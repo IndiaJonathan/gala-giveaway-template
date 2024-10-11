@@ -35,7 +35,7 @@ const loading = ref(true)
 const authError = ref<string | null>(null)
 const userName = ref<string | null>(null)
 const router = useRouter()
-const bypass = true
+const bypass = false
 
 const handleTelegramAuth = async () => {
   // Extract the tgAuthResult from the URL

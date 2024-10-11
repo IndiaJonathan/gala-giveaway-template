@@ -7,6 +7,8 @@
 </template>
 
 <script lang="ts" setup>
+const telegramServer = import.meta.env.VITE_TELEGRAM_SERVER
+
 interface TelegramUser {
   id: number
   first_name: string
@@ -33,10 +35,9 @@ const onTelegramLogin = () => {
   const top = (screen.height - height) / 2
 
   const telegramAuthUrl = `https://oauth.telegram.org/auth?bot_id=7931835040&origin=${encodeURIComponent(
-    window.location.origin + '/telegram-callback'
+    window.location.origin
   )}&embed=0&request_access=write`
 
-  console.log(telegramAuthUrl)
   const authWindow = window.open(
     telegramAuthUrl,
     'TelegramAuth',
@@ -44,9 +45,17 @@ const onTelegramLogin = () => {
   )
 
   // Listen for messages from the popup
-  window.addEventListener('message', function handleMessage(event) {
-    console.log(JSON.stringify(event))
+  window.addEventListener('message', async function handleMessage(event) {
     const eventData = JSON.parse(event.data)
+
+    const response = await fetch(`${telegramServer}/api/verify-telegram-auth`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: event.data
+    })
+
+    console.log(response)
+
     if (eventData.event === 'auth_result' && eventData.result) {
       emit('auth', eventData.result)
       console.log(`Result: ${JSON.stringify(eventData.result)}`)

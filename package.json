@@ -13,8 +13,10 @@
     "format": "prettier --write src/"
   },
   "dependencies": {
-    "@gala-chain/connect": "^1.4.4",
+    "@gala-chain/connect": "^1.4.7",
     "@tonconnect/sdk": "^3.0.5",
+    "bignumber.js": "^9.1.2",
+    "class-transformer": "^0.5.1",
     "ethers": "^6.13.2",
     "vue": "^3.4.29",
     "vue-router": "^4.3.3",

@@ -88,9 +88,9 @@ h3 {
 <script lang="ts" setup>
 import { ref } from 'vue'
 import TelegramLogin from '../components/TelegramLogin.vue'
-import { MetamaskConnectClient } from '@gala-chain/connect'
+import { BrowserConnectClient } from '@gala-chain/connect'
 
-const w3wConnection = new MetamaskConnectClient()
+const w3wConnection = new BrowserConnectClient()
 
 interface TelegramUser {
   id: number
