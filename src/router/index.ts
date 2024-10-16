@@ -2,7 +2,8 @@ import { createRouter, createWebHistory } from 'vue-router'
 import Home from '../views/Home.vue'
 import TelegramCallback from '@/views/TelegramCallback.vue'
 import CreateGiveaway from '@/views/CreateGiveaway.vue'
-import ViewAdminBalances from '@/views/ViewAdminBalances.vue'
+import GrantAllowance from '@/views/GrantAllowance.vue'
+import GiveawayWizard from '@/views/GiveawayWizard.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -13,15 +14,29 @@ const router = createRouter({
       component: Home
     },
     {
-      path: '/create-giveaway',
+      path: '/create-giveaway/:tokenClass',
       name: 'CreateGiveaway',
       component: CreateGiveaway,
     },
     {
-      path: '/get-admin-balances',
-      name: 'ViewAdminBalances',
-      component: ViewAdminBalances,
+      path: '/giveaway/:step?/:tokenClass?',
+      name: 'GiveawayWizard',
+      component: GiveawayWizard,
+      props: route => ({
+        initialStep: Number(route.params.step) || 1,
+        tokenClass: route.params.tokenClass || '',
+      }),
     },
+    {
+      path: '/grant-allowance',
+      name: 'GrantAllowance',
+      component: GrantAllowance,
+    },
+    // {
+    //   path: '/view-admin-balances',
+    //   name: 'ViewAdminBalances',
+    //   component: ViewAdminBalances,
+    // },
     {
       path: '/telegram-callback',
       name: 'TelegramCallback',
