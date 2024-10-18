@@ -10,11 +10,15 @@ import * as components from 'vuetify/components'
 import * as directives from 'vuetify/directives'
 import { aliases, mdi } from 'vuetify/iconsets/mdi'
 import '@mdi/font/css/materialdesignicons.css'
+import { VTimePicker } from 'vuetify/labs/VTimePicker'
 
 const app = createApp(App);
 
 const vuetify = createVuetify({
-    components,
+    components: {
+        ...components,
+        VTimePicker
+    },
     directives,
     icons: {
         defaultSet: 'mdi',

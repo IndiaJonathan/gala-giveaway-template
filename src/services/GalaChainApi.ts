@@ -1,6 +1,6 @@
 import { BrowserConnectClient, TokenApi } from "@gala-chain/connect";
 import { createHeadlessWallet, getPublicKey } from "./GalaSwapApi";
-import { FetchTokenClassesDto, createValidDTO, TokenClassKey, GalaChainResponse, type TokenClassBody, GrantAllowanceDto, AllowanceType, TokenInstanceQueryKey } from "@gala-chain/api";
+import { FetchTokenClassesDto, createValidDTO, TokenClassKey, GalaChainResponse, type TokenClassBody, GrantAllowanceDto, AllowanceType, TokenInstanceQueryKey, type TokenClassKeyBody, FetchAllowancesDto } from "@gala-chain/api";
 import BigNumber from "bignumber.js";
 import { plainToInstance } from "class-transformer";
 
@@ -55,7 +55,19 @@ export class GalaChainApi {
         return { tokenClassResponse, tokenClassDto };
     }
 
-    public async grantAllowance(tokenClassDto: TokenClassKey, quantity: number, adminWalletGC: string) {
+    public async getAllowances(adminGCAddress: string, tokenClassKey: TokenClassKeyBody) {
+        if (!this.tokenClient) {
+            throw new Error("TokenService is not initialized. Call 'init()' first.");
+        }
+        const fetchBalanceDto = await createValidDTO<FetchAllowancesDto>(FetchAllowancesDto, {
+            grantedTo: adminGCAddress,
+            ...tokenClassKey
+        })
+        const response = await this.tokenClient.FetchAllowances(fetchBalanceDto)
+        return response;
+    }
+
+    public async grantAllowance(tokenClassDto: TokenClassKeyBody, quantity: number, adminWalletGC: string) {
         if (!this.tokenClient) {
             throw new Error("TokenService is not initialized. Call 'init()' first.");
         }
@@ -74,7 +86,7 @@ export class GalaChainApi {
             tokenInstance: tokenInstanceQuery,
             quantities: [{ quantity: new BigNumber(quantity), user: adminWalletGC }],
             allowanceType: AllowanceType.Mint,
-            uses: BigNumber('Infinity')
+            uses: new BigNumber(quantity)
         })
         const allowanceGrant = await this.tokenClient.GrantAllowance(allowanceDto)
 

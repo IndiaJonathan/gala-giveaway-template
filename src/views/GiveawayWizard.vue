@@ -3,11 +3,10 @@
     <v-stepper v-model="currentStep">
       <!-- Stepper Header -->
       <v-stepper-header>
-        <v-stepper-item :complete="currentStep > 1" :value="1"> Select Token </v-stepper-item>
-        <v-stepper-item :complete="currentStep > 4" :value="2"> Giveaway Settings </v-stepper-item>
-        <v-stepper-item :complete="currentStep > 2" :value="3"> Grant Allowance </v-stepper-item>
-        <v-stepper-item :complete="currentStep > 3" :value="4"> Allowance Check </v-stepper-item>
-
+        <v-stepper-item :complete="stepsComplete[1]" :value="1"> Select Token </v-stepper-item>
+        <v-stepper-item :complete="stepsComplete[2]" :value="2"> Giveaway Settings </v-stepper-item>
+        <v-stepper-item :complete="stepsComplete[3]" :value="3"> Grant Allowance </v-stepper-item>
+        <v-stepper-item :complete="stepsComplete[4]" :value="4"> Allowance Check </v-stepper-item>
         <v-stepper-item :value="5"> Launch Giveaway </v-stepper-item>
       </v-stepper-header>
 
@@ -15,8 +14,7 @@
       <v-stepper-window>
         <!-- Step 1: Select Token -->
         <v-stepper-window-item :value="1">
-          <!-- <ViewAdminBalances @token-selected="onTokenSelected" /> -->
-          <TokenInput ref="tokenInputRef" v-model:tokenClass="tokenClass2" :showQuantity="false" />
+          <TokenInput ref="tokenInputRef" v-model:tokenClass="tokenClass" :showQuantity="false" />
           <v-row no-gutters>
             <v-btn :disabled="stepsComplete[1]" color="success" @click="selectToken">
               <template v-if="stepsComplete[1]">
@@ -30,12 +28,17 @@
 
         <!-- Step 4: Giveaway Settings -->
         <v-stepper-window-item :value="2">
-          <GiveawaySettings :token-class="tokenClass2" @settings-completed="nextStep" />
+          <GiveawaySettings
+            @form-valid="updateGiveawaySettingsValidity"
+            :token-class="tokenClass"
+            @settings-completed="nextStep"
+            :giveaway-settings="giveawaySettings"
+          />
         </v-stepper-window-item>
 
         <!-- Step 2: Grant Allowance -->
         <v-stepper-window-item :value="3">
-          <v-btn @click="grantAllowance" color="primary">Grant Allowance</v-btn>
+          <AdminBalanceGrant :token-class-key="tokenClass"></AdminBalanceGrant>
         </v-stepper-window-item>
 
         <!-- Step 3: Allowance Check -->
@@ -75,6 +78,8 @@ import { GalaChainApi } from '@/services/GalaChainApi'
 import { useToast } from '@/composables/useToast'
 import { GetAdminWallet } from '@/services/BackendApi'
 import GiveawaySettings from '@/components/GiveawaySettings.vue'
+import AdminBalanceGrant from '@/components/AdminBalanceGrant.vue'
+import type { GiveawaySettingsDto } from '@/utils/types'
 const tokenInputRef = ref<InstanceType<typeof TokenInput> | null>(null)
 
 const router = useRouter()
@@ -93,17 +98,16 @@ const resetStep = (stepNumber: number) => {
 
 // Props from route
 const props = defineProps<{
-  initialStep: number
   tokenClass: string
 }>()
 
 // Reactive state
 
-const currentStep = ref(Math.max(props.initialStep || 0, 1))
+const currentStep = ref(1)
 const tokenKey = ref(props.tokenClass || '')
 const availableQuantity = ref(0) // You might fetch this based on the tokenKey
 
-const tokenClass2 = reactive<TokenClassKeyBody>({
+const tokenClass = reactive<TokenClassKeyBody>({
   collection: 'MyCollection',
   category: 'Art4',
   type: 'UniqueArtToken',
@@ -111,6 +115,12 @@ const tokenClass2 = reactive<TokenClassKeyBody>({
 })
 const { showToast } = useToast()
 
+const giveawaySettings = ref<GiveawaySettingsDto>({
+  endDateTime: new Date(new Date().setDate(new Date().getDate() + 1)),
+  winners: 1,
+  tokenQuantity: 1,
+  tokenClass: { additionalKey: '', category: '', collection: '', type: '' }
+})
 const tokenService = GalaChainApi.getInstance()
 
 let selectedToken: TokenClassKey | null = null
@@ -119,7 +129,7 @@ async function selectToken() {
 
   const isValid = await tokenInputRef.value?.validate()
   if (isValid.valid) {
-    const { tokenClassDto, tokenClassResponse } = await tokenService.fetchTokenClasses(tokenClass2)
+    const { tokenClassDto, tokenClassResponse } = await tokenService.fetchTokenClasses(tokenClass)
     if ((tokenClassResponse as any).Status === 1) {
       selectedToken = tokenClassDto
       markStepComplete(1)
@@ -131,15 +141,15 @@ async function selectToken() {
   }
 }
 // Watch for changes in step or tokenKey to update the URL
-watch([currentStep, tokenKey], () => {
-  router.replace({
-    name: 'GiveawayWizard',
-    params: {
-      step: currentStep.value,
-      tokenClass: tokenKey.value || undefined
-    }
-  })
-})
+// watch([currentStep, tokenKey], () => {
+//   router.replace({
+//     name: 'GiveawayWizard',
+//     params: {
+//       step: currentStep.value,
+//       tokenClass: tokenKey.value || undefined
+//     }
+//   })
+// })
 
 // Navigation functions
 function nextStep() {
@@ -166,23 +176,11 @@ const allowPrevious = (currentPage: number) => {
   return currentPage > 1
 }
 
-async function grantAllowance() {
-  const adminWallet = await GetAdminWallet()
-  if (!adminWallet?.gc_address) {
-    showToast(`Unable to get admin wallet`, true)
-    return
-  }
-  await tokenService.init()
-  if (!selectedToken) {
-    showToast('Please select a token at step 1!')
+function updateGiveawaySettingsValidity(formIsValid: boolean) {
+  if (formIsValid) {
+    markStepComplete(2)
   } else {
-    const grant = await tokenService.grantAllowance(selectedToken, 1, adminWallet.gc_address)
-    if (grant.Status === 1) {
-      // Success!
-      showToast('Allowance Granted!')
-    } else {
-      showToast('Unable to grant allowance.', true)
-    }
+    resetStep(2)
   }
 }
 

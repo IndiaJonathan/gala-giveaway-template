@@ -23,7 +23,6 @@ const router = createRouter({
       name: 'GiveawayWizard',
       component: GiveawayWizard,
       props: route => ({
-        initialStep: Number(route.params.step) || 1,
         tokenClass: route.params.tokenClass || '',
       }),
     },

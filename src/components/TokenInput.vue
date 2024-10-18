@@ -4,6 +4,8 @@
       <!-- Collection Input -->
       <v-col cols="12" md="6">
         <v-text-field
+          :readonly="readOnly"
+          :disabled="readOnly"
           placeholder="Token"
           v-model="tokenClass.collection"
           label="Collection"
@@ -15,6 +17,8 @@
       <!-- Category Input -->
       <v-col cols="12" md="6">
         <v-text-field
+          :readonly="readOnly"
+          :disabled="readOnly"
           placeholder="Unit"
           v-model="tokenClass.category"
           label="Category"
@@ -26,6 +30,8 @@
       <!-- Type Input -->
       <v-col cols="12" md="6">
         <v-text-field
+          :readonly="readOnly"
+          :disabled="readOnly"
           placeholder="<your token's symbol>"
           v-model="tokenClass.type"
           label="Type"
@@ -37,6 +43,8 @@
       <!-- Additional Key Input -->
       <v-col cols="12" md="6">
         <v-text-field
+          :readonly="readOnly"
+          :disabled="readOnly"
           v-model="tokenClass.additionalKey"
           label="Additional Key"
           :rules="[rules.required]"
@@ -59,13 +67,14 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref, watch } from 'vue'
+import type { TokenClassKeyBody } from '@gala-chain/api'
+import { reactive, readonly, ref, watch, type PropType } from 'vue'
 
 const emit = defineEmits(['update:tokenClass', 'update:quantity'])
 
 const props = defineProps({
   tokenClass: {
-    type: Object,
+    type: Object as PropType<TokenClassKeyBody>,
     required: true
   },
   quantity: {
@@ -73,6 +82,10 @@ const props = defineProps({
     default: null
   },
   showQuantity: {
+    type: Boolean,
+    default: false
+  },
+  readOnly: {
     type: Boolean,
     default: false
   }

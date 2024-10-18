@@ -1,3 +1,5 @@
+import type { TokenClassBody } from "@gala-chain/api";
+
 // Load the base URL from environment variables
 const baseURL = import.meta.env.VITE_API_BASE_URL;
 
@@ -13,34 +15,56 @@ interface StartGiveawayResponse {
     message: string;
 }
 
+export async function GetAdminQuantityAvailable(tokenClassKey: TokenClassBody) {
+    const response = await fetch(`${baseURL}/api/allowance-available`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(tokenClassKey),
+    });
+
+    if (!response.ok) {
+        throw new Error('Network response was not ok');
+    }
+
+    const data: {
+        totalQuantity: string,
+        unuseableQuantity: string,
+    } = await response.json();
+
+    if (data) {
+        return data;
+    }
+
+    return null;
+
+}
+
 
 export async function GetAdminWallet() {
-    try {
-        const response = await fetch(`${baseURL}/api/adminWallet`, {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-        });
+    const response = await fetch(`${baseURL}/api/adminWallet`, {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+    });
 
-        if (!response.ok) {
-            throw new Error('Network response was not ok');
-        }
-
-        const data: {
-            publicKey: string,
-            gc_address: string,
-        } = await response.json();
-
-        if (data) {
-            return data;
-        }
-
-        return null;
-    } catch (error) {
-        console.error('Error getting admin wallet:', error);
-        return null;
+    if (!response.ok) {
+        throw new Error('Network response was not ok');
     }
+
+    const data: {
+        publicKey: string,
+        gc_address: string,
+    } = await response.json();
+
+    if (data) {
+        return data;
+    }
+
+    return null;
+
 }
 
 export async function startGiveaway(giveaway: GiveawayDto): Promise<StartGiveawayResponse | null> {

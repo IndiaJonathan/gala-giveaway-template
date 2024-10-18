@@ -1,6 +1,8 @@
 <template>
-  <div v-if="loading">Loading...</div>
-  <v-container v-else>
+  <v-container>
+    <v-overlay :value="isLoading" absolute>
+      <v-progress-circular indeterminate size="64"></v-progress-circular>
+    </v-overlay>
     <v-list two-line>
       Currently Granted Allowances
       <v-list-item
@@ -42,7 +44,7 @@ const browserClient = new BrowserConnectClient()
 const tokenContractUrl = import.meta.env.VITE_TOKEN_CONTRACT_URL
 const allowances: Ref<TokenAllowance[]> = ref([])
 const tokenApi = new TokenApi(tokenContractUrl, browserClient)
-let loading = ref(true)
+const isLoading = ref(true)
 const router = useRouter()
 const { toast, showToast } = useToast()
 const emit = defineEmits(['token-selected'])
