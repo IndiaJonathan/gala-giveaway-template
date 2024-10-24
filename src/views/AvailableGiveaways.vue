@@ -32,7 +32,7 @@ export interface Giveaway {
   _id: string
   giveawayToken: TokenClassBody
   tokenQuantity: string
-  winners: string
+  winnerCount: string
   signature: string
   endDateTime?: string
   usersSignedUp: string[]

@@ -7,7 +7,7 @@ export interface GiveawaySettingsDto {
 }
 
 export interface FullGiveawayDto {
-  winners: number
+  winnerCount: number
   tokenQuantity: number
   endDateTime: string
   giveawayToken: TokenClassBody

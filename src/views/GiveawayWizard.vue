@@ -127,7 +127,7 @@ const { showToast } = useToast()
 
 const giveawaySettings = ref<GiveawaySettingsDto>({
   endDateTime: new Date(new Date().setDate(new Date().getDate() + 1)),
-  winners: undefined,
+  winnerCount: undefined,
   tokenQuantity: undefined
 })
 const tokenService = GalaChainApi.getInstance()
@@ -207,7 +207,7 @@ async function launchGiveaway() {
     const unsignedGiveaway: FullGiveawayDto = {
       giveawayToken: selectedToken,
       tokenQuantity: settings.tokenQuantity,
-      winners: settings.winners,
+      winnerCount: settings.winners,
       endDateTime: settings.endDateTime.toISOString()
     }
     const signedGiveaway = await connectClient.sign('StartGiveaway', unsignedGiveaway as any)

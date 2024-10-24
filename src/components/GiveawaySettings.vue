@@ -13,6 +13,7 @@
                 label="Number of Winners"
                 type="number"
                 min="1"
+                :max="MAX_WINNERS"
                 outlined
                 dense
                 :readonly="props.readOnly"
@@ -155,7 +156,7 @@
 import type { GiveawaySettingsDto } from '@/utils/types'
 import type { TokenClassBody } from '@gala-chain/api'
 import { ref, computed, defineProps, watch, type PropType } from 'vue'
-
+import { MAX_WINNERS } from '../utils/constants'
 const props = defineProps({
   tokenClass: {
     type: Object as PropType<TokenClassBody>,
@@ -243,7 +244,8 @@ const formattedTime = computed({
 // Validation rules
 const winnersRules = [
   (v: number) => !!v || 'Number of winners is required',
-  (v: number) => v >= 1 || 'Must be at least 1'
+  (v: number) => v >= 1 || 'Must be at least 1',
+  (v: number) => v <= MAX_WINNERS || `May not exceed ${MAX_WINNERS}`
 ]
 
 const tokenQuantityRules = [
