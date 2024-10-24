@@ -15,6 +15,8 @@
                 min="1"
                 outlined
                 dense
+                :readonly="props.readOnly"
+                :disabled="props.readOnly"
               ></v-text-field>
             </v-col>
           </v-row>
@@ -30,6 +32,8 @@
                 min="1"
                 outlined
                 dense
+                :readonly="props.readOnly"
+                :disabled="props.readOnly"
               ></v-text-field>
             </v-col>
           </v-row>
@@ -43,6 +47,7 @@
                 label="Token Type"
                 outlined
                 dense
+                :readonly="props.readOnly"
               ></v-text-field>
             </v-col>
             <v-col cols="12" sm="6">
@@ -63,6 +68,7 @@
                 label="Category"
                 outlined
                 dense
+                :readonly="props.readOnly"
               ></v-text-field>
             </v-col>
             <v-col cols="12" sm="6">
@@ -72,6 +78,7 @@
                 label="Additional Key"
                 outlined
                 dense
+                :readonly="props.readOnly"
               ></v-text-field>
             </v-col>
           </v-row>
@@ -86,6 +93,7 @@
                 transition="scale-transition"
                 offset-y
                 min-width="290px"
+                :readonly="props.readOnly"
               >
                 <template #activator="{ props }">
                   <v-text-field
@@ -97,11 +105,13 @@
                     dense
                     v-model="formattedDate"
                     :rules="dateRules"
+                    :disabled="props.readOnly"
                   ></v-text-field>
                 </template>
                 <v-date-picker
                   v-model="props.giveawaySettings.endDateTime"
                   @update:modelValue="dateMenu = false"
+                  :disabled="props.readOnly"
                 ></v-date-picker>
               </v-menu>
             </v-col>
@@ -122,6 +132,7 @@
                     format="24hr"
                     v-if="timeMenu"
                     v-model="selectedTime"
+                    :readonly="props.readOnly"
                   ></v-time-picker>
                 </v-dialog>
               </v-text-field>
@@ -142,17 +153,21 @@
 
 <script setup lang="ts">
 import type { GiveawaySettingsDto } from '@/utils/types'
-import type { TokenClassBody, TokenClassKeyBody } from '@gala-chain/api'
+import type { TokenClassBody } from '@gala-chain/api'
 import { ref, computed, defineProps, watch, type PropType } from 'vue'
 
 const props = defineProps({
   tokenClass: {
-    type: Object as PropType<TokenClassKeyBody>,
+    type: Object as PropType<TokenClassBody>,
     required: true
   },
   giveawaySettings: {
     type: Object as PropType<GiveawaySettingsDto>,
     required: true
+  },
+  readOnly: {
+    type: Boolean,
+    required: false
   }
 })
 
@@ -170,8 +185,6 @@ const selectedTime = ref(
     : new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false })
 )
 
-// Method to update only the time part of endDateTime
-// Watch for changes in selectedTime to update endDateTime
 watch(selectedTime, (newTimeString) => {
   if (typeof newTimeString === 'string') {
     // Parse the string "HH:mm" into hours and minutes
@@ -271,7 +284,19 @@ const timeRules = [
 //   }
 //   return null
 // })
-
+watch([props.giveawaySettings], async () => {
+  if (
+    props.giveawaySettings.endDateTime &&
+    props.giveawaySettings.tokenQuantity &&
+    props.giveawaySettings.winners
+  ) {
+    const validation = await form.value.validate()
+    emit('form-valid', validation.valid)
+  } else {
+    emit('form-valid', false)
+  }
+  // Emit form validity to parent
+})
 // Giveaway duration display
 const giveawayDuration = computed(() => {
   if (!props.giveawaySettings.endDateTime) return ''

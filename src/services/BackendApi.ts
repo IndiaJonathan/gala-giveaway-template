@@ -1,97 +1,112 @@
-import type { TokenClassBody } from "@gala-chain/api";
+import type { FullGiveawayDto, Profile, SignupForGiveawayDto } from '@/utils/types'
+import type { Giveaway } from '@/views/AvailableGiveaways.vue'
+import type { TokenClassBody } from '@gala-chain/api'
 
 // Load the base URL from environment variables
-const baseURL = import.meta.env.VITE_API_BASE_URL;
-
-interface GiveawayDto {
-    giveawayToken: string;
-    amount: string;
-    signature: string;
-    endTime?: Date;
-}
+const baseURL = import.meta.env.VITE_TELEGRAM_SERVER
 
 interface StartGiveawayResponse {
-    success: boolean;
-    message: string;
+  success: boolean
+  message: string
 }
 
-export async function GetAdminQuantityAvailable(tokenClassKey: TokenClassBody) {
-    const response = await fetch(`${baseURL}/api/allowance-available`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(tokenClassKey),
-    });
+export async function GetAdminQuantityAvailable(tokenClassKey: TokenClassBody, gc_address: string) {
+  const response = await fetch(`${baseURL}/api/wallet/allowance-available/${gc_address}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(tokenClassKey)
+  })
 
-    if (!response.ok) {
-        throw new Error('Network response was not ok');
-    }
+  if (!response.ok) {
+    throw new Error('Network response was not ok')
+  }
 
-    const data: {
-        totalQuantity: string,
-        unuseableQuantity: string,
-    } = await response.json();
+  const data: {
+    totalQuantity: string
+    unuseableQuantity: string
+  } = await response.json()
 
-    if (data) {
-        return data;
-    }
+  if (data) {
+    return data
+  }
 
-    return null;
-
+  return null
 }
 
-
-export async function GetAdminWallet() {
-    const response = await fetch(`${baseURL}/api/adminWallet`, {
-        method: 'GET',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-    });
-
-    if (!response.ok) {
-        throw new Error('Network response was not ok');
+export async function getProfile(gc_address: string): Promise<Profile> {
+  const response = await fetch(`${baseURL}/api/profile/info/${gc_address}`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json'
     }
+  })
 
-    const data: {
-        publicKey: string,
-        gc_address: string,
-    } = await response.json();
+  if (!response.ok) {
+    const message = await response.text()
+    throw new Error(message)
+  }
 
-    if (data) {
-        return data;
-    }
+  const data = await response.json()
 
-    return null;
-
+  return data
 }
 
-export async function startGiveaway(giveaway: GiveawayDto): Promise<StartGiveawayResponse | null> {
-    try {
-        const response = await fetch(`${baseURL}/api/giveaway/start`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(giveaway),
-        });
-
-        if (!response.ok) {
-            throw new Error('Network response was not ok');
-        }
-
-        const data: StartGiveawayResponse = await response.json();
-
-        if (data && data.success) {
-            return data;
-        }
-
-        return null;
-    } catch (error) {
-        console.error('Error starting giveaway:', error);
-        return null;
+export async function getGiveaways(): Promise<Giveaway[]> {
+  const response = await fetch(`${baseURL}/api/giveaway/active`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json'
     }
+  })
+
+  if (!response.ok) {
+    const message = await response.text()
+    throw new Error(message)
+  }
+
+  const data = await response.json()
+
+  return data
+}
+
+export async function startGiveaway(giveaway: FullGiveawayDto): Promise<StartGiveawayResponse> {
+  const response = await fetch(`${baseURL}/api/giveaway/start`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(giveaway)
+  })
+
+  if (!response.ok) {
+    const message = await response.json()
+    throw message?.error || 'Unable to start giveway'
+  }
+
+  const data: StartGiveawayResponse = await response.json()
+
+  return data
+}
+
+export async function signupForGiveaway(signupForGiveawayDto: SignupForGiveawayDto) {
+  const response = await fetch(`${baseURL}/api/giveaway/signup`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(signupForGiveawayDto)
+  })
+
+  if (!response.ok) {
+    const message = await response.text()
+    throw new Error(message)
+  }
+
+  const data: StartGiveawayResponse = await response.json()
+
+  return data
 }
 
 // Example usage

@@ -7,8 +7,6 @@
 </template>
 
 <script lang="ts" setup>
-const telegramServer = import.meta.env.VITE_TELEGRAM_SERVER
-
 interface TelegramUser {
   id: number
   first_name: string
@@ -48,20 +46,23 @@ const onTelegramLogin = () => {
   window.addEventListener('message', async function handleMessage(event) {
     const eventData = JSON.parse(event.data)
 
-    const response = await fetch(`${telegramServer}/api/verify-telegram-auth`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: event.data
-    })
-
-    console.log(response)
-
     if (eventData.event === 'auth_result' && eventData.result) {
       emit('auth', eventData.result)
-      console.log(`Result: ${JSON.stringify(eventData.result)}`)
       window.removeEventListener('message', handleMessage)
       authWindow?.close() // Optionally close the popup window after auth
     }
+    // await fetch(`${telegramServer}/api/verify-telegram-auth`, {
+    //   method: 'POST',
+    //   headers: { 'Content-Type': 'application/json' },
+    //   body: event.data
+    // })
+
+    // if (eventData.event === 'auth_result' && eventData.result) {
+    //   emit('auth', eventData.result)
+    //   console.log(`Result: ${JSON.stringify(eventData.result)}`)
+    //   window.removeEventListener('message', handleMessage)
+    //   authWindow?.close() // Optionally close the popup window after auth
+    // }
   })
 }
 </script>

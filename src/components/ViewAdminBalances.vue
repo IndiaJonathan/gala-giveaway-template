@@ -32,13 +32,13 @@
 </style>
 
 <script setup lang="ts">
-import { GetAdminWallet } from '@/services/BackendApi'
 import { AllowanceKey, createValidDTO, FetchAllowancesDto, TokenAllowance } from '@gala-chain/api'
 import { BrowserConnectClient, TokenApi } from '@gala-chain/connect'
 import { ref, type Ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { getTokenKey, getTokenKeyFromString } from '@/utils/GalaHelper'
 import { useToast } from '@/composables/useToast'
+import { getProfile } from '../services/BackendApi'
 const browserClient = new BrowserConnectClient()
 
 const tokenContractUrl = import.meta.env.VITE_TOKEN_CONTRACT_URL
@@ -55,16 +55,17 @@ function startGiveaway(tokenClass: string) {
 }
 
 async function fetchBalances() {
-  loading.value = true
-  const adminWallet = await GetAdminWallet()
-  if (!adminWallet || !adminWallet.gc_address) {
-    showToast('Unable to get admin wallet info', true)
-    loading.value = false
+  isLoading.value = true
+  await browserClient.connect()
+  const profile = await getProfile(browserClient.galachainEthAlias)
+  if (!profile || !profile.galaChainAddress) {
+    showToast('Unable to get giveaway wallet info', true)
+    isLoading.value = false
     return
   }
 
   const fetchBalanceDto = await createValidDTO<FetchAllowancesDto>(FetchAllowancesDto, {
-    grantedTo: adminWallet.gc_address
+    grantedTo: profile.galaChainAddress
   })
   const response = await tokenApi.FetchAllowances(fetchBalanceDto)
   console.log(response)
@@ -74,7 +75,7 @@ async function fetchBalances() {
   } else {
     showToast('Failed to fetch allowances', true)
   }
-  loading.value = false
+  isLoading.value = false
 }
 
 fetchBalances()

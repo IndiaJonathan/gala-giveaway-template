@@ -15,7 +15,6 @@
 <script setup lang="ts">
 import TokenInput from '@/components/TokenInput.vue'
 import { useToast } from '@/composables/useToast'
-import { GetAdminWallet } from '@/services/BackendApi'
 import { createHeadlessWallet, getPublicKey } from '@/services/GalaSwapApi'
 import {
   AllowanceType,
@@ -23,12 +22,12 @@ import {
   FetchTokenClassesDto,
   GrantAllowanceDto,
   TokenClassKey,
-  TokenInstanceQueryKey,
-  type TokenClassKeyBody
+  TokenInstanceQueryKey
 } from '@gala-chain/api'
 import { BrowserConnectClient, TokenApi } from '@gala-chain/connect'
 import BigNumber from 'bignumber.js'
 import { reactive, ref, type Ref } from 'vue'
+import { getProfile } from '../services/BackendApi'
 
 const browserClient = new BrowserConnectClient()
 const tokenContractUrl = import.meta.env.VITE_TOKEN_CONTRACT_URL
@@ -37,7 +36,7 @@ const { showToast } = useToast()
 const tokenInputRef = ref()
 
 // Initialize tokenClass with default values
-const tokenClass = reactive<TokenClassKeyBody>({
+const tokenClass = reactive<any>({
   collection: 'MyCollection',
   category: 'Art',
   type: 'UniqueArtToken',
@@ -70,9 +69,9 @@ async function grantAllowance() {
 
   try {
     const classes = await tokenClient.FetchTokenClasses(dto)
-    const adminWallet = await GetAdminWallet()
-    if (!adminWallet?.gc_address) {
-      showToast(`Unable to get admin wallet`, true)
+    const profile = await getProfile(browserClient.galachainEthAlias)
+    if (!profile.galaChainAddress) {
+      showToast(`Unable to get giveaway wallet`, true)
       return
     }
     if (!quantity.value) {
@@ -87,7 +86,9 @@ async function grantAllowance() {
 
     const allowanceDto = await createValidDTO<GrantAllowanceDto>(GrantAllowanceDto, {
       tokenInstance: tokenInstanceQuery,
-      quantities: [{ quantity: new BigNumber(quantity.value), user: adminWallet?.gc_address }],
+      quantities: [
+        { quantity: new BigNumber(quantity.value), user: profile.giveawayWalletAddress }
+      ],
       allowanceType: AllowanceType.Mint,
       uses: BigNumber('Infinity')
     })

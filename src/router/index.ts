@@ -1,17 +1,24 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import Home from '../views/Home.vue'
+import Home from '../views/Login.vue'
 import TelegramCallback from '@/views/TelegramCallback.vue'
 import CreateGiveaway from '@/views/CreateGiveaway.vue'
 import GrantAllowance from '@/views/GrantAllowance.vue'
 import GiveawayWizard from '@/views/GiveawayWizard.vue'
+import AvailableGiveaways from '@/views/AvailableGiveaways.vue'
+import Login from '../views/Login.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
     {
+      path: '/profile',
+      name: 'profile',
+      component: Login
+    },
+    {
       path: '/',
-      name: 'home',
-      component: Home
+      name: 'Giveaways',
+      component: AvailableGiveaways
     },
     {
       path: '/create-giveaway/:tokenClass',
@@ -19,12 +26,9 @@ const router = createRouter({
       component: CreateGiveaway,
     },
     {
-      path: '/giveaway/:step?/:tokenClass?',
+      path: '/giveaway',
       name: 'GiveawayWizard',
       component: GiveawayWizard,
-      props: route => ({
-        tokenClass: route.params.tokenClass || '',
-      }),
     },
     {
       path: '/grant-allowance',
