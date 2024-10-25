@@ -5,11 +5,6 @@ import type { TokenClassBody } from '@gala-chain/api'
 // Load the base URL from environment variables
 const baseURL = import.meta.env.VITE_TELEGRAM_SERVER
 
-interface StartGiveawayResponse {
-  success: boolean
-  message: string
-}
-
 export async function GetAdminQuantityAvailable(tokenClassKey: TokenClassBody, gc_address: string) {
   const response = await fetch(`${baseURL}/api/wallet/allowance-available/${gc_address}`, {
     method: 'POST',
@@ -71,7 +66,7 @@ export async function getGiveaways(): Promise<Giveaway[]> {
   return data
 }
 
-export async function startGiveaway(giveaway: FullGiveawayDto): Promise<StartGiveawayResponse> {
+export async function startGiveaway(giveaway: FullGiveawayDto) {
   const response = await fetch(`${baseURL}/api/giveaway/start`, {
     method: 'POST',
     headers: {
@@ -85,7 +80,7 @@ export async function startGiveaway(giveaway: FullGiveawayDto): Promise<StartGiv
     throw message?.error || 'Unable to start giveway'
   }
 
-  const data: StartGiveawayResponse = await response.json()
+  const data = await response.json()
 
   return data
 }
@@ -100,8 +95,8 @@ export async function signupForGiveaway(signupForGiveawayDto: SignupForGiveawayD
   })
 
   if (!response.ok) {
-    const message = await response.text()
-    throw new Error(message)
+    const message = await response.json()
+    throw message
   }
 
   const data: StartGiveawayResponse = await response.json()

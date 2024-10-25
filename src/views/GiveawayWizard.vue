@@ -127,8 +127,9 @@ const { showToast } = useToast()
 
 const giveawaySettings = ref<GiveawaySettingsDto>({
   endDateTime: new Date(new Date().setDate(new Date().getDate() + 1)),
-  winnerCount: undefined,
-  tokenQuantity: undefined
+  winners: undefined,
+  tokenQuantity: undefined,
+  telegramAuthRequired: false
 })
 const tokenService = GalaChainApi.getInstance()
 
@@ -203,12 +204,14 @@ async function launchGiveaway() {
   const connectClient = new BrowserConnectClient()
   await connectClient.connect()
 
+  console.log('fooooo')
   if (settings.endDateTime && settings.tokenQuantity && settings.winners) {
     const unsignedGiveaway: FullGiveawayDto = {
       giveawayToken: selectedToken,
       tokenQuantity: settings.tokenQuantity,
       winnerCount: settings.winners,
-      endDateTime: settings.endDateTime.toISOString()
+      endDateTime: settings.endDateTime.toISOString(),
+      telegramAuthRequired: settings.telegramAuthRequired || false
     }
     const signedGiveaway = await connectClient.sign('StartGiveaway', unsignedGiveaway as any)
 

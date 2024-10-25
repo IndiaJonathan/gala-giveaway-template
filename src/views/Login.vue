@@ -34,7 +34,7 @@
               ></telegram-login>
             </div>
             <div v-else class="mt-5">
-              <h3 v-if="telegramUser" class="white--text">
+              <h3 v-if="telegramUser && !telegramUserLinked" class="white--text">
                 Logged in With Telegram as: {{ telegramUser.first_name }}
               </h3>
               <h3 v-else="telegramUser" class="white--text">
@@ -58,6 +58,8 @@
           </v-card-text>
         </v-card>
       </v-container>
+
+      <UserBalances v-if="galaChainAddress" :data="balances"> </UserBalances>
     </v-main>
   </v-app>
 </template>
@@ -93,14 +95,15 @@ h3 {
 </style>
 
 <script lang="ts" setup>
-import { ref } from 'vue'
+import { ref, type Ref } from 'vue'
 import TelegramLogin from '../components/TelegramLogin.vue'
-import { BrowserConnectClient } from '@gala-chain/connect'
+import { BrowserConnectClient, TokenApi } from '@gala-chain/connect'
 import { useToast } from '@/composables/useToast'
 import { getConnectedAddress } from '@/utils/GalaHelper'
 import { getProfile } from '@/services/BackendApi'
-import { signatures } from '@gala-chain/api'
+import { GalaChainResponse, signatures, type TokenBalanceBody } from '@gala-chain/api'
 import { getAddress } from 'ethers'
+import UserBalances from '../components/UserBalances.vue'
 
 const w3wConnection = new BrowserConnectClient()
 
@@ -120,6 +123,9 @@ const galaChainAddress = ref<string>('')
 const telegramBotUsername = import.meta.env.VITE_TELEGRAM_BOT_USERNAME as string
 const telegramServer = import.meta.env.VITE_TELEGRAM_SERVER
 const { showToast } = useToast()
+const tokenContractUrl = import.meta.env.VITE_TOKEN_CONTRACT_URL
+const browserClient = new BrowserConnectClient()
+let balances: Ref<GalaChainResponse<TokenBalanceBody[]> | null> = ref(null)
 
 const connectEthereumWallet = async () => {
   try {
@@ -136,9 +142,10 @@ const onTelegramAuth = (user: TelegramUser) => {
 
 const linkWallets = async () => {
   if (!telegramUser.value || !galaChainAddress.value) {
-    alert('Please connect all wallets and login with Telegram.')
+    showToast('Please connect all wallets and login with Telegram.', true)
     return
   }
+  console.log('hit')
 
   await connectEthereumWallet()
   const signedData = await w3wConnection.sign('Link GalaChain and Telegram', {
@@ -156,7 +163,7 @@ const linkWallets = async () => {
 
   if (linkResult.ok) {
     telegramUserLinked.value = true
-    alert('Wallets linked successfully!')
+    showToast('Wallets linked successfully!')
   } else {
     const jsonInfo = await linkResult.json()
     showToast(
@@ -169,11 +176,15 @@ const linkWallets = async () => {
 }
 
 async function load() {
-  const currentAddress = getAddress(await getConnectedAddress())
+  const currentAddress = await getConnectedAddress()
   if (currentAddress) {
     galaChainAddress.value = currentAddress.replace('0x', 'eth|')
     const profile = await getProfile(galaChainAddress.value)
     telegramUserLinked.value = profile.hasTelegramLinked
+
+    const tokenApi = new TokenApi(tokenContractUrl, browserClient)
+    balances.value = ((await tokenApi.FetchBalances({ owner: currentAddress })) as any).Data
+    console.log(balances)
   }
 }
 load()

@@ -39,6 +39,17 @@
             </v-col>
           </v-row>
 
+          <v-row>
+            <v-col cols="12" sm="6">
+              <v-checkbox
+                v-model="giveawaySettings.telegramAuthRequired"
+                label="Telegram Auth Required"
+                :readonly="props.readOnly"
+                :disabled="props.readOnly"
+              ></v-checkbox>
+            </v-col>
+          </v-row>
+
           <!-- Token Class Fields -->
           <v-row>
             <v-col cols="12" sm="6">
@@ -276,16 +287,6 @@ const timeRules = [
   }
 ]
 
-// Computed endDateTime
-// const endDateTime = computed(() => {
-//   if (date.value && time.value) {
-//     const [hours, minutes] = time.value.split(':').map(Number)
-//     const endDateTime = new Date(date.value)
-//     endDateTime.setHours(hours, minutes, 0, 0)
-//     return endDateTime
-//   }
-//   return null
-// })
 watch([props.giveawaySettings], async () => {
   if (
     props.giveawaySettings.endDateTime &&
@@ -317,32 +318,6 @@ const giveawayDuration = computed(() => {
   if (minutes > 0) durationStr += `${minutes} minute(s)`
   return durationStr.trim()
 })
-
-// function submitForm() {
-//   if (form.value.validate()) {
-//     // Additional validation for endDateTime
-//     if (!endDateTime.value || endDateTime.value <= new Date()) {
-//       // Show error message
-//       alert('End date and time must be in the future')
-//       return
-//     }
-
-//     // Handle form submission, e.g., API calls
-//     console.log({
-//       winners: winners.value,
-//       tokenQuantity: tokenQuantity.value,
-//       tokenClass: props.tokenClass,
-//       endDateTime: endDateTime.value
-//     })
-//   }
-// }
-
-// watch([winners, tokenQuantity, date, time], async () => {
-//   console.log('hit')
-//   const validation = await form.value.validate()
-//   // Emit form validity to parent
-//   emit('form-valid', validation.valid)
-// })
 </script>
 
 <style scoped>

@@ -4,6 +4,7 @@ export interface GiveawaySettingsDto {
   winners?: number
   tokenQuantity?: number
   endDateTime?: Date
+  telegramAuthRequired?: boolean
 }
 
 export interface FullGiveawayDto {
@@ -11,6 +12,7 @@ export interface FullGiveawayDto {
   tokenQuantity: number
   endDateTime: string
   giveawayToken: TokenClassBody
+  telegramAuthRequired: boolean
 }
 export interface SignupForGiveawayDto {
   giveawayId: string

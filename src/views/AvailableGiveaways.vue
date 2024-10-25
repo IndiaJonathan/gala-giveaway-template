@@ -14,7 +14,10 @@
           {{ getEndDateMessage(giveaway.endDateTime) }}
         </v-list-item-subtitle>
         <v-list-item-action>
-          <v-icon v-if="isUserSignedUp(giveaway)">mdi-check-circle</v-icon>
+          <div v-if="isUserSignedUp(giveaway)">
+            Signed Up <v-icon class="ml-2">mdi-check-circle</v-icon>
+          </div>
+          <div v-else-if="giveaway.telegramAuthRequired">Telegram Auth Required</div>
         </v-list-item-action>
       </v-list-item>
     </v-list>
@@ -27,6 +30,8 @@ import type { SignupForGiveawayDto } from '@/utils/types'
 import type { TokenClassBody } from '@gala-chain/api'
 import { BrowserConnectClient } from '@gala-chain/connect'
 import { defineComponent, ref, onMounted } from 'vue'
+import { useToast } from '../composables/useToast'
+import { getConnectedAddress } from '../utils/GalaHelper'
 
 export interface Giveaway {
   _id: string
@@ -36,16 +41,19 @@ export interface Giveaway {
   signature: string
   endDateTime?: string
   usersSignedUp: string[]
+  telegramAuthRequired: boolean
 }
 
 export default defineComponent({
   name: 'GiveawayList',
   setup() {
+    const { showToast } = useToast()
+    let connectedUserGCAddress = ref<string | null>()
     const giveaways = ref<Giveaway[]>([])
-    const userId = 'currentUserId123'
 
     // Fetch giveaways on component mount
     const fetchGiveaways = async () => {
+      connectedUserGCAddress.value = await getConnectedAddress()
       giveaways.value = await getGiveaways()
     }
 
@@ -58,21 +66,31 @@ export default defineComponent({
     const signGiveaway = async (giveaway: Giveaway) => {
       try {
         const connectClient = new BrowserConnectClient()
-        await connectClient.connect()
+        connectedUserGCAddress.value = await connectClient.connect()
+        const userAlreadySigned = isUserSignedUp(giveaway)
+        if (userAlreadySigned) {
+          showToast("You're already signed up!")
+          return
+        }
         const signupDto: SignupForGiveawayDto = {
           giveawayId: giveaway._id
         }
         const signedDto = await connectClient.sign('Signup for Giveaway', signupDto as any)
-        const response = await signupForGiveaway(signedDto)
-      } catch (error) {
+        await signupForGiveaway(signedDto)
+        giveaway.usersSignedUp.push(connectedUserGCAddress.value)
+        showToast('Signup Successful, good luck!')
+      } catch (error: any) {
         console.error('Error signing up for giveaway:', error)
+        showToast(`${error.message || 'Unable to signup. Unknown error'}`, true)
       }
     }
 
     // Check if the user is already signed up for the giveaway
     const isUserSignedUp = (giveaway: Giveaway): boolean => {
-      //todo: fix this
-      return true
+      return (
+        !!connectedUserGCAddress.value &&
+        !!giveaway.usersSignedUp.find((gcWallet) => connectedUserGCAddress.value === gcWallet)
+      )
       //   return giveaway.usersSignedUp.includes(userId)
     }
 
