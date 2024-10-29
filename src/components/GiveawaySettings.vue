@@ -7,145 +7,90 @@
           <!-- Number of Winners -->
           <v-row>
             <v-col cols="12" sm="6">
-              <v-text-field
-                v-model="giveawaySettings.winners"
-                :rules="winnersRules"
-                label="Number of Winners"
-                type="number"
-                min="1"
-                :max="MAX_WINNERS"
-                outlined
-                dense
-                :readonly="props.readOnly"
-                :disabled="props.readOnly"
-              ></v-text-field>
+              <v-text-field v-model="giveawaySettings.winners" :rules="winnersRules" label="Number of Winners"
+                type="number" min="1" :max="MAX_WINNERS" outlined dense :readonly="props.readOnly"
+                :disabled="props.readOnly"></v-text-field>
             </v-col>
           </v-row>
 
           <!-- Quantity of Tokens -->
           <v-row>
             <v-col cols="12" sm="6">
-              <v-text-field
-                v-model="giveawaySettings.tokenQuantity"
-                :rules="tokenQuantityRules"
-                label="Quantity of Tokens"
-                type="number"
-                min="1"
-                outlined
-                dense
-                :readonly="props.readOnly"
-                :disabled="props.readOnly"
-              ></v-text-field>
+              <v-text-field v-model="giveawaySettings.tokenQuantity" :rules="tokenQuantityRules"
+                label="Quantity of Tokens" type="number" min="1" outlined dense :readonly="props.readOnly"
+                :disabled="props.readOnly"></v-text-field>
             </v-col>
           </v-row>
 
           <v-row>
             <v-col cols="12" sm="6">
-              <v-checkbox
-                v-model="giveawaySettings.telegramAuthRequired"
-                label="Telegram Auth Required"
-                :readonly="props.readOnly"
-                :disabled="props.readOnly"
-              ></v-checkbox>
+              <v-checkbox v-model="giveawaySettings.telegramAuthRequired" label="Telegram Auth Required"
+                :readonly="props.readOnly" :disabled="props.readOnly"></v-checkbox>
+            </v-col>
+          </v-row>
+
+          <!-- Require Burn Token to Claim -->
+          <v-row>
+            <v-col cols="12" sm="6">
+              <v-checkbox v-model="giveawaySettings.requireBurnTokenToClaim" label="Require burn token to claim?"
+                :readonly="props.readOnly" :disabled="props.readOnly"></v-checkbox>
+            </v-col>
+          </v-row>
+
+          <!-- Burn Token Fields -->
+          <v-row v-if="giveawaySettings.requireBurnTokenToClaim">
+            <v-col cols="12">
+              <v-card class="pa-3" outlined>
+                <v-card-title class="subheading">Burn Token Details</v-card-title>
+                <v-card-text></v-card-text>
+              <TokenInput ref="tokenInputRef" v-model:tokenClass="giveawaySettings.burnToken"
+                v-model:quantity="giveawaySettings.burnTokenQuantity" :showQuantity="true" />
+              </v-card>
             </v-col>
           </v-row>
 
           <!-- Token Class Fields -->
           <v-row>
             <v-col cols="12" sm="6">
-              <v-text-field
-                disabled
-                v-model="tokenClass.type"
-                label="Token Type"
-                outlined
-                dense
-                :readonly="props.readOnly"
-              ></v-text-field>
+              <v-text-field disabled v-model="tokenClass.type" label="Token Type" outlined dense
+                :readonly="props.readOnly"></v-text-field>
             </v-col>
             <v-col cols="12" sm="6">
-              <v-text-field
-                disabled
-                v-model="tokenClass.collection"
-                label="Collection"
-                outlined
-                dense
-              ></v-text-field>
+              <v-text-field disabled v-model="tokenClass.collection" label="Collection" outlined dense></v-text-field>
             </v-col>
           </v-row>
           <v-row>
             <v-col cols="12" sm="6">
-              <v-text-field
-                disabled
-                v-model="tokenClass.category"
-                label="Category"
-                outlined
-                dense
-                :readonly="props.readOnly"
-              ></v-text-field>
+              <v-text-field disabled v-model="tokenClass.category" label="Category" outlined dense
+                :readonly="props.readOnly"></v-text-field>
             </v-col>
             <v-col cols="12" sm="6">
-              <v-text-field
-                disabled
-                v-model="tokenClass.additionalKey"
-                label="Additional Key"
-                outlined
-                dense
-                :readonly="props.readOnly"
-              ></v-text-field>
+              <v-text-field disabled v-model="tokenClass.additionalKey" label="Additional Key" outlined dense
+                :readonly="props.readOnly"></v-text-field>
             </v-col>
           </v-row>
 
           <!-- End Date and Time -->
           <v-row>
             <v-col cols="12" sm="6">
-              <v-menu
-                v-model="dateMenu"
-                :close-on-content-click="false"
-                :nudge-right="40"
-                transition="scale-transition"
-                offset-y
-                min-width="290px"
-                :readonly="props.readOnly"
-              >
+              <v-menu v-model="dateMenu" :close-on-content-click="false" :nudge-right="40" transition="scale-transition"
+                offset-y min-width="290px" :readonly="props.readOnly">
                 <template #activator="{ props }">
-                  <v-text-field
-                    label="End Date"
-                    prepend-icon="mdi-calendar"
-                    readonly
-                    v-bind="props"
-                    outlined
-                    dense
-                    v-model="formattedDate"
-                    :rules="dateRules"
-                    :disabled="props.readOnly"
-                  ></v-text-field>
+                  <v-text-field label="End Date" prepend-icon="mdi-calendar" readonly v-bind="props" outlined dense
+                    v-model="formattedDate" :rules="dateRules" :disabled="props.readOnly"></v-text-field>
                 </template>
-                <v-date-picker
-                  v-model="props.giveawaySettings.endDateTime"
-                  @update:modelValue="dateMenu = false"
-                  :disabled="props.readOnly"
-                ></v-date-picker>
+                <v-date-picker v-model="props.giveawaySettings.endDateTime" @update:modelValue="dateMenu = false"
+                  :disabled="props.readOnly"></v-date-picker>
               </v-menu>
             </v-col>
 
             <!-- Time Picker -->
             <v-col cols="11" sm="5">
-              <v-text-field
-                v-model="formattedTime"
-                :active="timeMenu"
-                :focused="timeMenu"
-                label="End Time"
-                prepend-icon="mdi-clock-time-four-outline"
-                readonly
-                :rules="timeRules"
-              >
+              <v-text-field v-model="formattedTime" :active="timeMenu" :focused="timeMenu" label="End Time"
+                prepend-icon="mdi-clock-time-four-outline" readonly :rules="timeRules">
                 <v-dialog v-model="timeMenu" activator="parent" width="auto">
-                  <v-time-picker
-                    format="24hr"
-                    v-if="timeMenu"
-                    v-model="selectedTime"
-                    :readonly="props.readOnly"
-                  ></v-time-picker>
+                  <v-time-picker format="24hr" v-if="timeMenu" v-model="selectedTime"
+                    :readonly="props.readOnly"></v-time-picker>
                 </v-dialog>
               </v-text-field>
             </v-col>
@@ -164,13 +109,15 @@
 </template>
 
 <script setup lang="ts">
+import type { TokenClassKeyProperties } from '@gala-chain/api';
 import type { GiveawaySettingsDto } from '@/utils/types'
-import type { TokenClassBody } from '@gala-chain/api'
 import { ref, computed, defineProps, watch, type PropType } from 'vue'
 import { MAX_WINNERS } from '../utils/constants'
+import type { TokenClassKey } from '@gala-chain/connect';
+import TokenInput from './TokenInput.vue';
 const props = defineProps({
   tokenClass: {
-    type: Object as PropType<TokenClassBody>,
+    type: Object as PropType<TokenClassKeyProperties>,
     required: true
   },
   giveawaySettings: {
@@ -190,10 +137,10 @@ const isFormValid = ref<boolean>(false)
 const selectedTime = ref(
   props.giveawaySettings.endDateTime
     ? new Date(props.giveawaySettings.endDateTime).toLocaleTimeString('en-GB', {
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: false
-      })
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    })
     : new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false })
 )
 
@@ -226,10 +173,10 @@ const formattedDate = computed({
   get: () => {
     return props.giveawaySettings.endDateTime
       ? props.giveawaySettings.endDateTime.toLocaleDateString('en-US', {
-          year: 'numeric',
-          month: '2-digit',
-          day: '2-digit'
-        })
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      })
       : ''
   },
   set: (val) => {
@@ -241,10 +188,10 @@ const formattedTime = computed({
   get: () => {
     return props.giveawaySettings.endDateTime
       ? props.giveawaySettings.endDateTime.toLocaleTimeString('en-US', {
-          hour: '2-digit',
-          minute: '2-digit',
-          hour12: false // Ensures 24-hour format
-        })
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false // Ensures 24-hour format
+      })
       : ''
   },
   set: (val) => {
@@ -284,6 +231,24 @@ const timeRules = [
     return (
       props.giveawaySettings.endDateTime > new Date() || 'End date and time must be in the future'
     )
+  }
+]
+
+const burnTokenQuantityRules = [
+  (v: number) => {
+    if (!props.giveawaySettings.requireBurnTokenToClaim) return true
+    return !!v || 'Burn token quantity is required'
+  },
+  (v: number) => {
+    if (!props.giveawaySettings.requireBurnTokenToClaim) return true
+    return v >= 1 || 'Must be at least 1'
+  }
+]
+
+const burnTokenInputRules = [
+  (v: string) => {
+    if (!props.giveawaySettings.requireBurnTokenToClaim) return true
+    return !!v || 'Burn token input is required'
   }
 ]
 

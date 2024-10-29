@@ -17,10 +17,10 @@
                   </v-row>
                 </v-list-item-subtitle>
               </v-list-item-content>
+              <v-divider v-if="index < data.length - 1"></v-divider>
             </v-list-item>
-            <v-divider v-if="index < data.length - 1"></v-divider>
           </v-list>
-          <v-alert v-else type="info" border="left" color="primary" dark> No tokens, yet! </v-alert>
+          <v-alert v-else type="info" color="primary" dark> No tokens, yet! </v-alert>
         </v-card>
       </v-col>
     </v-row>
@@ -28,12 +28,16 @@
 </template>
 
 <script lang="ts">
+import type { PropType } from 'vue';
+import { GalaChainResponse } from "@gala-chain/api";
+import type { TokenBalance } from '@gala-chain/connect';
+
 export default {
   name: 'UserBalances',
   props: {
     data: {
-      type: Object,
-      required: true
+      type: Object as PropType<TokenBalance[]>,
+      required: false
     }
   },
   methods: {

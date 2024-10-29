@@ -67,14 +67,14 @@
 </template>
 
 <script setup lang="ts">
-import type { TokenClassKeyBody } from '@gala-chain/api'
+import type { TokenClassKeyProperties } from '@gala-chain/api';
 import { reactive, readonly, ref, watch, type PropType } from 'vue'
 
 const emit = defineEmits(['update:tokenClass', 'update:quantity'])
 
 const props = defineProps({
   tokenClass: {
-    type: Object as PropType<TokenClassKeyBody>,
+    type: Object as PropType<TokenClassKeyProperties>,
     required: true
   },
   quantity: {

@@ -57,7 +57,7 @@ function startGiveaway(tokenClass: string) {
 async function fetchBalances() {
   isLoading.value = true
   await browserClient.connect()
-  const profile = await getProfile(browserClient.galachainEthAlias)
+  const profile = await getProfile(browserClient.galaChainAddress)
   if (!profile || !profile.galaChainAddress) {
     showToast('Unable to get giveaway wallet info', true)
     isLoading.value = false

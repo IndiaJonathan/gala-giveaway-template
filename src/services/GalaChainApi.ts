@@ -2,7 +2,6 @@ import { BrowserConnectClient, TokenApi } from "@gala-chain/connect";
 import { createHeadlessWallet, getPublicKey } from "./GalaSwapApi";
 import { FetchTokenClassesDto, createValidDTO, TokenClassKey, GalaChainResponse, type TokenClassBody, GrantAllowanceDto, AllowanceType, TokenInstanceQueryKey, FetchAllowancesDto } from "@gala-chain/api";
 import BigNumber from "bignumber.js";
-import { plainToInstance } from "class-transformer";
 
 export class GalaChainApi {
     private static instance: GalaChainApi;

@@ -74,7 +74,7 @@ const browserClient = new BrowserConnectClient()
 
 async function grantAdditionalAllowance() {
   await browserClient.connect()
-  const profile = await getProfile(browserClient.galachainEthAlias)
+  const profile = await getProfile(browserClient.galaChainAddress)
   if (!profile.giveawayWalletAddress) {
     showToast(`Unable to get giveway wallet`, true)
     return
@@ -87,26 +87,40 @@ async function grantAdditionalAllowance() {
   if (!props.tokenClassKey) {
     showToast('Please select a token at step 1!')
   } else {
-    const grant = await tokenService.grantAllowance(
-      props.tokenClassKey,
-      props.giveawaySettings.tokenQuantity - (totalAllowance.value || 0),
-      profile.giveawayWalletAddress
-    )
-    if ((grant as any).Status === 1) {
-      // Success!
-      showToast('Allowance Granted!')
-      await loadBalances()
-    } else {
-      showToast('Unable to grant allowance.', true)
+    try {
+
+      const grant = await tokenService.grantAllowance(
+        props.tokenClassKey,
+        props.giveawaySettings.tokenQuantity - (totalAllowance.value || 0),
+        profile.giveawayWalletAddress
+      )
+      if (grant.Status === 1) {
+        // Success!
+        showToast('Allowance Granted!')
+        await loadBalances()
+      }
+    } catch (e: unknown) {
+      let errorMessage = 'unknown error';
+
+      if (isErrorWithMessage(e)) {
+        errorMessage = e.Message
+      }
+
+      console.error(errorMessage)
+      showToast(`Unable to grant allowance. Error: ${errorMessage}`, true);
     }
   }
+}
+
+function isErrorWithMessage(error: unknown): error is { Message: string } {
+  return typeof error === 'object' && error !== null && 'Message' in error;
 }
 
 async function loadBalances() {
   try {
     await browserClient.connect()
 
-    const profile = await getProfile(browserClient.galachainEthAlias)
+    const profile = await getProfile(browserClient.galaChainAddress)
     await tokenService.init()
 
     if (!profile || !profile.galaChainAddress) {

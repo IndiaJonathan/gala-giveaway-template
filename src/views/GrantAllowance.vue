@@ -69,7 +69,7 @@ async function grantAllowance() {
 
   try {
     const classes = await tokenClient.FetchTokenClasses(dto)
-    const profile = await getProfile(browserClient.galachainEthAlias)
+    const profile = await getProfile(browserClient.galaChainAddress)
     if (!profile.galaChainAddress) {
       showToast(`Unable to get giveaway wallet`, true)
       return
