@@ -7,20 +7,19 @@
           <v-divider></v-divider>
           <v-list v-if="data && data.length">
             <v-list-item v-for="(item, index) in data" :key="index" class="my-4">
-              <v-list-item-content>
                 <v-list-item-title class="text-h6">
                   Token: <strong>{{ formatTokenName(item) }}</strong>
                 </v-list-item-title>
                 <v-list-item-subtitle>
                   <v-row>
-                    <v-col cols="6"> <strong>Owned:</strong> {{ item.quantity }} </v-col>
+                    <v-col cols="6"> <strong>Owned:</strong> {{ (item as any).quantity }} </v-col>
                   </v-row>
                 </v-list-item-subtitle>
-              </v-list-item-content>
-            </v-list-item>
             <v-divider v-if="index < data.length - 1"></v-divider>
+
+            </v-list-item>
           </v-list>
-          <v-alert v-else type="info" border="left" color="primary" dark> No tokens, yet! </v-alert>
+          <v-alert v-else type="info" color="primary" dark> No tokens, yet! </v-alert>
         </v-card>
       </v-col>
     </v-row>
@@ -28,12 +27,15 @@
 </template>
 
 <script lang="ts">
+import type { PropType } from 'vue';
+import { GalaChainResponse, type TokenBalanceBody } from "@gala-chain/api";
+
 export default {
   name: 'UserBalances',
   props: {
     data: {
-      type: Object,
-      required: true
+      type: Object as PropType<TokenBalanceBody[]>,
+      required: false
     }
   },
   methods: {
