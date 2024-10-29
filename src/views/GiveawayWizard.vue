@@ -145,12 +145,12 @@ async function selectToken() {
     const { tokenClassDto, tokenClassResponse } = await tokenService.fetchTokenClasses(tokenClass)
     if (
       (tokenClassResponse as any).Status === 1 &&
-      tokenClassResponse.Data &&
-      tokenClassResponse.Data[0]
+      (tokenClassResponse as any).Data &&
+      (tokenClassResponse as any).Data[0]
     ) {
       selectedToken = tokenClassDto
-      maxSupply.value = (tokenClassResponse.Data[0] as any).maxSupply
-      totalSupply.value = (tokenClassResponse.Data[0] as any).totalSupply
+      maxSupply.value = (tokenClassResponse as any).Data[0].maxSupply
+      totalSupply.value = (tokenClassResponse as any).Data[0].totalSupply
       markStepComplete(1)
     } else {
       resetStep(1)
