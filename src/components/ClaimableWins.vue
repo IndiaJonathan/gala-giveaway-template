@@ -38,11 +38,8 @@
 
 <script lang="ts" setup>
 import type { ClaimableWinDto } from '@/utils/types';
-import { BrowserConnectClient, TokenBalance, TokenInstanceKey, type BurnTokensRequest } from '@gala-chain/connect';
-import { GalaChainApi } from '@/services/GalaChainApi';
+import { BrowserConnectClient, TokenBalance, type BurnTokensRequest } from '@gala-chain/connect';
 import BigNumber from 'bignumber.js';
-import type { BurnTokensDto } from '@gala-chain/api';
-import { plainToInstance } from 'class-transformer';
 import { useToast } from '@/composables/useToast';
 import { claimWin } from '@/services/BackendApi';
 const browserClient = new BrowserConnectClient()

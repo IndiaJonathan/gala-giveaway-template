@@ -98,12 +98,10 @@ h3 {
 <script lang="ts" setup>
 import { ref, type Ref } from 'vue'
 import TelegramLogin from '../components/TelegramLogin.vue'
-import { BrowserConnectClient, TokenApi } from '@gala-chain/connect'
+import { BrowserConnectClient, TokenApi, TokenBalance } from '@gala-chain/connect'
 import { useToast } from '@/composables/useToast'
 import { getConnectedAddress } from '@/utils/GalaHelper'
 import { getProfile } from '@/services/BackendApi'
-import { GalaChainResponse, signatures, TokenBalance } from '@gala-chain/api'
-import { getAddress } from 'ethers'
 import UserBalances from '../components/UserBalances.vue'
 import ClaimableWins from '@/components/ClaimableWins.vue'
 import type { ClaimableWinDto } from '@/utils/types'
