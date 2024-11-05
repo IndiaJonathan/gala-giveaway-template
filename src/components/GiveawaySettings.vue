@@ -160,16 +160,6 @@ import { useToast } from '@/composables/useToast';
 
 const { showToast } = useToast()
 
-
-onMounted(() => {
-  if (burnTokenInputRef.value) {
-    // Accessing the TokenInput instance safely
-    console.log('TokenInput instance:', burnTokenInputRef.value);
-  } else {
-    console.warn('burnTokenInputRef is still null');
-  }
-})
-
 const props = defineProps({
   tokenClass: {
     type: Object as PropType<TokenClassKeyProperties>,
@@ -194,7 +184,7 @@ const tokenService = GalaChainApi.getInstance()
 
 function tokenClassUpdated() {
   console.log('token class updated')
-  // selectedBurnToken.value = null;
+  selectedBurnToken.value = null;
 }
 async function selectBurnToken() {
   await tokenService.init()

@@ -3,7 +3,6 @@ import type { Giveaway } from '@/views/AvailableGiveaways.vue'
 import type { TokenClassKeyProperties } from '@gala-chain/api'
 import type { BurnTokensRequest } from '@gala-chain/connect'
 
-// Load the base URL from environment variables
 const baseURL = import.meta.env.VITE_TELEGRAM_SERVER
 
 export async function GetAdminQuantityAvailable(
@@ -123,22 +122,7 @@ export async function signupForGiveaway(signupForGiveawayDto: SignupForGiveawayD
     throw message
   }
 
-  const data: StartGiveawayResponse = await response.json()
+  const data = await response.json()
 
   return data
 }
-
-// Example usage
-// const giveaway: GiveawayDto = {
-//   giveawayToken: 'some-token-value',
-//   amount: '100',
-//   endTime: new Date('2024-12-31T23:59:59Z'),
-// };
-//
-// startGiveaway(giveaway).then(response => {
-//   if (response) {
-//     console.log('Giveaway started successfully:', response);
-//   } else {
-//     console.log('Failed to start giveaway');
-//   }
-// });

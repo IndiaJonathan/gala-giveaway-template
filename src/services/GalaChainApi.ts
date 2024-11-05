@@ -1,6 +1,6 @@
 import { BrowserConnectClient, TokenApi } from "@gala-chain/connect";
 import { createHeadlessWallet, getPublicKey } from "./GalaSwapApi";
-import { FetchTokenClassesDto, createValidDTO, TokenClassKey, GalaChainResponse, type TokenClassBody, GrantAllowanceDto, AllowanceType, TokenInstanceQueryKey, FetchAllowancesDto } from "@gala-chain/api";
+import { FetchTokenClassesDto, createValidDTO, TokenClassKey, GalaChainResponse, GrantAllowanceDto, AllowanceType, TokenInstanceQueryKey, FetchAllowancesDto, type TokenClassKeyProperties } from "@gala-chain/api";
 import BigNumber from "bignumber.js";
 
 export class GalaChainApi {
@@ -54,7 +54,7 @@ export class GalaChainApi {
         return { tokenClassResponse, tokenClassDto };
     }
 
-    public async getAllowances(adminGCAddress: string, tokenClassKey: TokenClassBody) {
+    public async getAllowances(adminGCAddress: string, tokenClassKey: TokenClassKeyProperties) {
         if (!this.tokenClient) {
             throw new Error("TokenService is not initialized. Call 'init()' first.");
         }
@@ -66,15 +66,10 @@ export class GalaChainApi {
         return response;
     }
 
-    public async grantAllowance(tokenClassDto: TokenClassBody, quantity: number, adminWalletGC: string) {
+    public async grantAllowance(tokenClassDto: TokenClassKeyProperties, quantity: number, adminWalletGC: string) {
         if (!this.tokenClient) {
             throw new Error("TokenService is not initialized. Call 'init()' first.");
         }
-
-        // if (!quantity.value) {
-        //     showToast(`Quantity not defined`, true)
-        //     return
-        // }
 
         const tokenInstanceQuery = await createValidDTO<TokenInstanceQueryKey>(TokenInstanceQueryKey, {
             ...tokenClassDto,
