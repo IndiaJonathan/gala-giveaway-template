@@ -9,7 +9,20 @@
             <v-col cols="12" sm="6">
               <v-text-field v-model="giveawaySettings.winners" :rules="winnersRules" label="Number of Winners"
                 type="number" min="1" :max="MAX_WINNERS" outlined dense :readonly="props.readOnly"
-                :disabled="props.readOnly"></v-text-field>
+                :disabled="props.readOnly" class="flex-grow-1"></v-text-field>
+
+              <!-- Tooltip with information icon next to the input field -->
+
+            </v-col>
+            <v-col>
+              <v-tooltip>
+                <template #activator="{ props }">
+                  <v-icon small v-bind="props" class="ml-2">mdi-information-outline</v-icon>
+                </template>
+                <span>
+                  A winner may win multiple times, as winners are selected with replacement.
+                </span>
+              </v-tooltip>
             </v-col>
           </v-row>
 
@@ -19,6 +32,17 @@
               <v-text-field v-model="giveawaySettings.tokenQuantity" :rules="tokenQuantityRules"
                 label="Quantity of Tokens" type="number" min="1" outlined dense :readonly="props.readOnly"
                 :disabled="props.readOnly"></v-text-field>
+            </v-col>
+          </v-row>
+
+
+          <v-row>
+            <v-col cols="12">
+              <v-card class="pa-3" outlined>
+                <v-card-title class="subheading">Giveaway Token</v-card-title>
+                <v-card-text></v-card-text>
+                <TokenInput v-bind:tokenClass="tokenClass" :read-only="true" :disabled="true" />
+              </v-card>
             </v-col>
           </v-row>
 
@@ -33,32 +57,46 @@
           <v-row>
             <v-col cols="12" sm="6">
               <v-checkbox v-model="giveawaySettings.requireBurnTokenToClaim" label="Require burn token to claim?"
-                :readonly="props.readOnly" :disabled="props.readOnly"></v-checkbox>
+                :readonly="props.readOnly" :disabled="props.readOnly">
+                <!-- Tooltip with explanation -->
+                <template #label>
+                  Require burn token to claim?
+                  <v-tooltip location="bottom">
+                    <template #activator="{ props }">
+                      <v-icon small v-bind="props" class="ml-1">mdi-information-outline</v-icon>
+                    </template>
+                    <span>
+                      If selected, the user must burn the token you specify to claim any winnings.
+                    </span>
+                  </v-tooltip>
+                </template>
+              </v-checkbox>
             </v-col>
           </v-row>
 
           <!-- Burn Token Fields -->
-          <v-row v-if="giveawaySettings.requireBurnTokenToClaim">
-            <v-col cols="12">
-              <v-card class="pa-3" outlined>
-                <v-card-title class="subheading">Burn Token Details</v-card-title>
-                <v-card-text></v-card-text>
-              <TokenInput ref="tokenInputRef" v-model:tokenClass="giveawaySettings.burnToken"
-                v-model:quantity="giveawaySettings.burnTokenQuantity" :showQuantity="true" />
-              </v-card>
-            </v-col>
-          </v-row>
+          <transition name="fade-slide">
 
-          <!-- Token Class Fields -->
-          <v-row>
-            <v-col cols="12" sm="6">
-              <v-text-field disabled v-model="tokenClass.type" label="Token Type" outlined dense
-                :readonly="props.readOnly"></v-text-field>
-            </v-col>
-            <v-col cols="12" sm="6">
-              <v-text-field disabled v-model="tokenClass.collection" label="Collection" outlined dense></v-text-field>
-            </v-col>
-          </v-row>
+            <v-row v-show="giveawaySettings.requireBurnTokenToClaim">
+              <v-col cols="12">
+                <v-card class="pa-3" outlined>
+                  <v-card-title class="subheading">Burn Token Details</v-card-title>
+                  <TokenInput ref="burnTokenInputRef" @update:token-class="tokenClassUpdated"
+                    v-model:tokenClass="giveawaySettings.burnToken"
+                    v-model:quantity="giveawaySettings.burnTokenQuantity" :showQuantity="true"
+                    quantity-label="Amount Required To Burn Per Claim" :read-only="props.readOnly"
+                    :disabled="props.readOnly" />
+                  <v-card-actions>
+                    <v-btn class="bg-success" :disabled="props.readOnly || !!selectedBurnToken" rounded block
+                      @click="selectBurnToken" :readonly="props.readOnly">Set Token As Burn Requirement
+                    </v-btn>
+                  </v-card-actions>
+                </v-card>
+              </v-col>
+            </v-row>
+          </transition>
+
+
           <v-row>
             <v-col cols="12" sm="6">
               <v-text-field disabled v-model="tokenClass.category" label="Category" outlined dense
@@ -109,12 +147,29 @@
 </template>
 
 <script setup lang="ts">
-import type { TokenClassKeyProperties } from '@gala-chain/api';
+import type { TokenClassKey, TokenClassKeyProperties } from '@gala-chain/api';
 import type { GiveawaySettingsDto } from '@/utils/types'
-import { ref, computed, defineProps, watch, type PropType } from 'vue'
+import { ref, computed, defineProps, watch, type PropType, type Ref } from 'vue'
 import { MAX_WINNERS } from '../utils/constants'
-import type { TokenClassKey } from '@gala-chain/connect';
-import TokenInput from './TokenInput.vue';
+import TokenInput from '@/components/TokenInput.vue'
+import { onMounted } from 'vue';
+import { GalaChainApi } from '@/services/GalaChainApi';
+import { GalaChainResponseError } from '@gala-chain/connect';
+import { useToast } from '@/composables/useToast';
+
+
+const { showToast } = useToast()
+
+
+onMounted(() => {
+  if (burnTokenInputRef.value) {
+    // Accessing the TokenInput instance safely
+    console.log('TokenInput instance:', burnTokenInputRef.value);
+  } else {
+    console.warn('burnTokenInputRef is still null');
+  }
+})
+
 const props = defineProps({
   tokenClass: {
     type: Object as PropType<TokenClassKeyProperties>,
@@ -132,7 +187,43 @@ const props = defineProps({
 
 const dateMenu = ref<boolean>(false)
 const timeMenu = ref<boolean>(false)
-const isFormValid = ref<boolean>(false)
+const burnTokenInputRef = ref();
+let selectedBurnToken: Ref<TokenClassKey | null> = ref(null)
+const tokenService = GalaChainApi.getInstance()
+
+
+function tokenClassUpdated() {
+  console.log('token class updated')
+  // selectedBurnToken.value = null;
+}
+async function selectBurnToken() {
+  await tokenService.init()
+
+  const isValid = await burnTokenInputRef.value.validate()
+  if (isValid.valid) {
+    try {
+      const { tokenClassDto, tokenClassResponse } = await tokenService.fetchTokenClasses(props.giveawaySettings.burnToken)
+      if (
+        tokenClassResponse.Status === 1 &&
+        tokenClassResponse.Data &&
+        tokenClassResponse.Data[0]
+      ) {
+        selectedBurnToken.value = tokenClassDto
+      }
+    } catch (e: any) {
+      // selectedBurnToken.value = null
+      if (e instanceof GalaChainResponseError) {
+        showToast(e.Message || 'Unable to get token class', true)
+      } else {
+        showToast(e.message || 'Unable to get token class', true)
+
+      }
+    } finally {
+      await checkValidation()
+    }
+
+  }
+}
 
 const selectedTime = ref(
   props.giveawaySettings.endDateTime
@@ -216,12 +307,6 @@ const tokenQuantityRules = [
 
 const dateRules = [
   () => !!props.giveawaySettings.endDateTime || 'End date is required',
-  () => {
-    if (!props.giveawaySettings.endDateTime) return true
-    return (
-      props.giveawaySettings.endDateTime > new Date() || 'End date and time must be in the future'
-    )
-  }
 ]
 
 const timeRules = [
@@ -229,41 +314,36 @@ const timeRules = [
   () => {
     if (!props.giveawaySettings.endDateTime) return true
     return (
-      props.giveawaySettings.endDateTime > new Date() || 'End date and time must be in the future'
+      props.giveawaySettings.endDateTime > new Date() || 'End time must be in the future'
     )
   }
 ]
 
-const burnTokenQuantityRules = [
-  (v: number) => {
-    if (!props.giveawaySettings.requireBurnTokenToClaim) return true
-    return !!v || 'Burn token quantity is required'
-  },
-  (v: number) => {
-    if (!props.giveawaySettings.requireBurnTokenToClaim) return true
-    return v >= 1 || 'Must be at least 1'
-  }
-]
-
-const burnTokenInputRules = [
-  (v: string) => {
-    if (!props.giveawaySettings.requireBurnTokenToClaim) return true
-    return !!v || 'Burn token input is required'
-  }
-]
-
-watch([props.giveawaySettings], async () => {
+async function checkValidation() {
   if (
     props.giveawaySettings.endDateTime &&
     props.giveawaySettings.tokenQuantity &&
     props.giveawaySettings.winners
   ) {
-    const validation = await form.value.validate()
-    emit('form-valid', validation.valid)
+    let valid = true;
+    if (props.giveawaySettings.requireBurnTokenToClaim) {
+      const burnTokenInputRefValid = await burnTokenInputRef.value.validate();
+      valid = burnTokenInputRefValid.valid
+      valid = !!(selectedBurnToken.value) && valid
+
+    }
+    const formValid = await form.value.validate();
+    valid = (formValid).valid && valid;
+
+    emit('form-valid', valid)
   } else {
     emit('form-valid', false)
   }
-  // Emit form validity to parent
+}
+
+
+watch([props.giveawaySettings], async () => {
+  await checkValidation()
 })
 // Giveaway duration display
 const giveawayDuration = computed(() => {
@@ -301,7 +381,29 @@ const giveawayDuration = computed(() => {
   border-radius: 12px;
 }
 
-.v-btn {
-  border-radius: 25px;
+
+.fade-slide-enter-active,
+.fade-slide-leave-active {
+  transition: opacity 0.5s ease, transform 0.5s ease;
+}
+
+.fade-slide-enter-from {
+  opacity: 0;
+  transform: translateY(-10px);
+}
+
+.fade-slide-enter-to {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.fade-slide-leave-from {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.fade-slide-leave-to {
+  opacity: 0;
+  transform: translateY(-10px);
 }
 </style>

@@ -7,7 +7,6 @@
           <v-divider></v-divider>
           <v-list v-if="data && data.length">
             <v-list-item v-for="(item, index) in data" :key="index" class="my-4">
-              <v-list-item-content>
                 <v-list-item-title class="text-h6">
                   Token: <strong>{{ formatTokenName(item) }}</strong>
                 </v-list-item-title>
@@ -16,7 +15,6 @@
                     <v-col cols="6"> <strong>Owned:</strong> {{ item.quantity }} </v-col>
                   </v-row>
                 </v-list-item-subtitle>
-              </v-list-item-content>
               <v-divider v-if="index < data.length - 1"></v-divider>
             </v-list-item>
           </v-list>

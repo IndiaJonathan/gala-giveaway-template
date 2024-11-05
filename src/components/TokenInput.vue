@@ -55,10 +55,10 @@
       <!-- Quantity Input (Optional) -->
       <v-col cols="12" md="6" v-if="showQuantity">
         <v-text-field
-          label="Quantity"
-          :rules="[rules.greaterThanZero]"
+          :label="quantityLabel"
           required
           v-model="quantity"
+          min="1"
           type="number"
         ></v-text-field>
       </v-col>
@@ -68,7 +68,7 @@
 
 <script setup lang="ts">
 import type { TokenClassKeyProperties } from '@gala-chain/api';
-import { reactive, readonly, ref, watch, type PropType } from 'vue'
+import { reactive,  ref, watch, type PropType } from 'vue'
 
 const emit = defineEmits(['update:tokenClass', 'update:quantity'])
 
@@ -78,8 +78,12 @@ const props = defineProps({
     required: true
   },
   quantity: {
-    type: Number,
+    type: String,
     default: null
+  },
+  quantityLabel: {
+    type: String,
+    default: "Quantity"
   },
   showQuantity: {
     type: Boolean,
@@ -91,7 +95,7 @@ const props = defineProps({
   }
 })
 
-const quantity = ref(props.quantity)
+const quantity = ref(Number(props.quantity))
 
 const rules = {
   required: (value: any) => !!value || 'Required.',
@@ -103,6 +107,18 @@ const form = ref()
 function validate() {
   return form.value.validate()
 }
+
+watch(
+  () => props.tokenClass,
+  (newVal) => {
+    emit('update:tokenClass', newVal);
+  },
+  { deep: true }
+);
+
+watch(quantity, (newVal) => {
+  emit('update:quantity', newVal);
+});
 
 defineExpose({
   validate

@@ -1,6 +1,9 @@
-import type { TokenAllowance } from '@gala-chain/api'
+import type { TokenAllowance, TokenClassKeyProperties } from '@gala-chain/api'
 import { getAddress } from 'ethers'
 
+export function tokenToReadable(token: TokenClassKeyProperties){
+  return `${token.collection}|${token.category}|${token.type}|${token.additionalKey}`
+}
 export function getGalaChainAddress(ethAddress: string) {
   return ethAddress.replace('0x', 'eth|')
 }

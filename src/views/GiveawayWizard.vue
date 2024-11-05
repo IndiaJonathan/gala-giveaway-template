@@ -72,14 +72,14 @@ import { useRoute, useRouter } from 'vue-router'
 import AllowanceCheck from '@/components/AllowanceCheck.vue'
 import ViewAdminBalances from '@/components/ViewAdminBalances.vue'
 import TokenInput from '@/components/TokenInput.vue'
-import type { TokenClassKey, TokenClassKeyProperties } from '@gala-chain/api'
+import { GalaChainErrorResponse, type TokenClassKey, type TokenClassKeyProperties } from '@gala-chain/api'
 import { GalaChainApi } from '@/services/GalaChainApi'
 import { useToast } from '@/composables/useToast'
 import { startGiveaway } from '@/services/BackendApi'
 import GiveawaySettings from '@/components/GiveawaySettings.vue'
 import AdminBalanceGrant from '@/components/AdminBalanceGrant.vue'
 import type { FullGiveawayDto, GiveawaySettingsDto } from '@/utils/types'
-import { BrowserConnectClient } from '@gala-chain/connect'
+import { BrowserConnectClient, GalaChainResponseError } from '@gala-chain/connect'
 import type BigNumber from 'bignumber.js'
 const tokenInputRef = ref<InstanceType<typeof TokenInput> | null>(null)
 
@@ -105,11 +105,12 @@ const tokenClass = reactive<TokenClassKeyProperties>({
   type: 'UniqueArtToken',
   additionalKey: 'Rare'
 })
+
 const burnTokenClass = reactive<TokenClassKeyProperties>({
-  collection: 'MyCollection',
-  category: 'Art4',
-  type: 'UniqueArtToken',
-  additionalKey: 'Rare'
+  collection: 'GALA',
+  category: 'Unit',
+  type: 'none',
+  additionalKey: 'none'
 })
 const { showToast } = useToast()
 
@@ -120,7 +121,7 @@ const giveawaySettings = ref<GiveawaySettingsDto>({
   telegramAuthRequired: false,
   requireBurnTokenToClaim: false,
   burnToken: burnTokenClass,
-  burnTokenQuantity: undefined
+  burnTokenQuantity: '1'
 })
 const tokenService = GalaChainApi.getInstance()
 
@@ -145,10 +146,16 @@ async function selectToken() {
         totalSupply.value = (tokenClassResponse).Data[0].totalSupply
         markStepComplete(1)
       }
-    } catch(e: any){
+    } catch (e: any) {
       resetStep(1)
-        selectedToken = null
+      selectedToken = null
+      if (e instanceof GalaChainResponseError) {
+        showToast(e.Message || 'Unable to get token class', true)
+      } else {
         showToast(e.message || 'Unable to get token class', true)
+
+      }
+
     }
 
   }
@@ -186,7 +193,7 @@ function updateGiveawaySettingsValidity(formIsValid: boolean) {
 function stepChanged(payload: { stepNumber: number; isComplete: boolean }) {
   if (payload.isComplete) {
     markStepComplete(payload.stepNumber)
-  } else {
+} else {
     resetStep(payload.stepNumber)
   }
 }
@@ -198,14 +205,18 @@ async function launchGiveaway() {
   const connectClient = new BrowserConnectClient()
   await connectClient.connect()
 
-  console.log('fooooo')
   if (settings.endDateTime && settings.tokenQuantity && settings.winners) {
     const unsignedGiveaway: FullGiveawayDto = {
       giveawayToken: selectedToken,
       tokenQuantity: settings.tokenQuantity,
       winnerCount: settings.winners,
       endDateTime: settings.endDateTime.toISOString(),
-      telegramAuthRequired: settings.telegramAuthRequired || false
+      telegramAuthRequired: settings.telegramAuthRequired || false,
+      requireBurnTokenToClaim: settings.requireBurnTokenToClaim,
+      ...(settings.requireBurnTokenToClaim && {
+        burnTokenQuantity: settings.burnTokenQuantity,
+        burnToken: settings.burnToken,
+      }),
     }
     const signedGiveaway = await connectClient.sign('StartGiveaway', unsignedGiveaway)
 

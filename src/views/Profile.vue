@@ -60,6 +60,7 @@
       </v-container>
 
       <UserBalances v-if="galaChainAddress" :data="balances"> </UserBalances>
+      <ClaimableWins v-if="claimableWins" :balances="balances" v-on:reload="load()" :data="claimableWins"></ClaimableWins>
     </v-main>
   </v-app>
 </template>
@@ -101,9 +102,11 @@ import { BrowserConnectClient, TokenApi } from '@gala-chain/connect'
 import { useToast } from '@/composables/useToast'
 import { getConnectedAddress } from '@/utils/GalaHelper'
 import { getProfile } from '@/services/BackendApi'
-import { GalaChainResponse, signatures, type TokenBalanceBody } from '@gala-chain/api'
+import { GalaChainResponse, signatures, TokenBalance } from '@gala-chain/api'
 import { getAddress } from 'ethers'
 import UserBalances from '../components/UserBalances.vue'
+import ClaimableWins from '@/components/ClaimableWins.vue'
+import type { ClaimableWinDto } from '@/utils/types'
 
 const w3wConnection = new BrowserConnectClient()
 
@@ -125,12 +128,14 @@ const telegramServer = import.meta.env.VITE_TELEGRAM_SERVER
 const { showToast } = useToast()
 const tokenContractUrl = import.meta.env.VITE_TOKEN_CONTRACT_URL
 const browserClient = new BrowserConnectClient()
-let balances: Ref<GalaChainResponse<TokenBalanceBody[]> | null> = ref(null)
+let balances: Ref<TokenBalance[]> = ref([])
+let claimableWins: Ref<ClaimableWinDto[]> = ref([])
 
 const connectEthereumWallet = async () => {
   try {
     const account = await w3wConnection.connect()
     galaChainAddress.value = account
+    load();
   } catch (error) {
     console.error('User rejected the request:', error)
   }
@@ -145,7 +150,6 @@ const linkWallets = async () => {
     showToast('Please connect all wallets and login with Telegram.', true)
     return
   }
-  console.log('hit')
 
   await connectEthereumWallet()
   const signedData = await w3wConnection.sign('Link GalaChain and Telegram', {
@@ -180,11 +184,11 @@ async function load() {
   if (currentAddress) {
     galaChainAddress.value = currentAddress.replace('0x', 'eth|')
     const profile = await getProfile(galaChainAddress.value)
+    claimableWins.value = profile.claimableWins
     telegramUserLinked.value = profile.hasTelegramLinked
 
     const tokenApi = new TokenApi(tokenContractUrl, browserClient)
     balances.value = ((await tokenApi.FetchBalances({ owner: currentAddress })) as any).Data
-    console.log(balances)
   }
 }
 load()

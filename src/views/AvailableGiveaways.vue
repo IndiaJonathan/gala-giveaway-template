@@ -1,17 +1,17 @@
 <template>
   <v-container>
     <v-list>
-      <v-list-item
-        v-for="(giveaway, index) in giveaways"
-        :key="index"
-        @click="signUpForGiveaway(giveaway)"
-        class="giveaway-item"
-      >
+      <v-list-item v-for="(giveaway, index) in giveaways" :key="index" @click="signUpForGiveaway(giveaway)"
+        class="giveaway-item">
         <v-list-item-title>
-          {{ giveaway.giveawayToken.category }} - {{ giveaway.tokenQuantity }} tokens
+          {{ tokenToReadable(giveaway.giveawayToken) }} - {{ giveaway.tokenQuantity }} tokens
         </v-list-item-title>
         <v-list-item-subtitle>
           {{ getEndDateMessage(giveaway.endDateTime) }}
+        </v-list-item-subtitle>
+        <v-list-item-subtitle v-if="giveaway.requireBurnTokenToClaim">
+          Requires {{ giveaway.burnTokenQuantity }} burnable token(s) of:
+          "{{ tokenToReadable(giveaway.burnToken) }}" to claim
         </v-list-item-subtitle>
         <v-list-item-action>
           <div v-if="isUserSignedUp(giveaway)">
@@ -27,21 +27,24 @@
 <script lang="ts">
 import { getGiveaways, signupForGiveaway } from '@/services/BackendApi'
 import type { SignupForGiveawayDto } from '@/utils/types'
-import type { TokenClassBody } from '@gala-chain/api'
+import type { TokenClassKeyProperties } from '@gala-chain/api'
 import { BrowserConnectClient } from '@gala-chain/connect'
 import { defineComponent, ref, onMounted } from 'vue'
 import { useToast } from '../composables/useToast'
-import { getConnectedAddress } from '../utils/GalaHelper'
+import { getConnectedAddress, tokenToReadable } from '../utils/GalaHelper'
 
 export interface Giveaway {
   _id: string
-  giveawayToken: TokenClassBody
+  giveawayToken: TokenClassKeyProperties
   tokenQuantity: string
   winnerCount: string
   signature: string
   endDateTime?: string
   usersSignedUp: string[]
   telegramAuthRequired: boolean
+  requireBurnTokenToClaim: boolean
+  burnTokenQuantity?: string
+  burnToken: TokenClassKeyProperties
 }
 
 export default defineComponent({
@@ -119,7 +122,8 @@ export default defineComponent({
       giveaways,
       signUpForGiveaway: signGiveaway,
       isUserSignedUp,
-      getEndDateMessage
+      getEndDateMessage,
+      tokenToReadable
     }
   }
 })
