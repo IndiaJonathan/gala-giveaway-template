@@ -12,7 +12,7 @@
                 </v-list-item-title>
                 <v-list-item-subtitle>
                   <v-row>
-                    <v-col cols="6"> <strong>Owned:</strong> {{ item.quantity }} </v-col>
+                    <v-col cols="6"> <strong>Owned:</strong> {{ (item as any).quantity }} </v-col>
                   </v-row>
                 </v-list-item-subtitle>
               <v-divider v-if="index < data.length - 1"></v-divider>
@@ -29,6 +29,7 @@
 import type { PropType } from 'vue';
 import { GalaChainResponse } from "@gala-chain/api";
 import type { TokenBalance } from '@gala-chain/connect';
+
 
 export default {
   name: 'UserBalances',
