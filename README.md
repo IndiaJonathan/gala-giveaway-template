@@ -14,3 +14,15 @@ If you're using local galachain, you can also use the convenience script to mint
 node scripts/mintToken.js
 ```
 
+
+In order to run the app, copy .env.example to .env, and fill it with your relevant info
+
+```
+npm i
+```
+
+To run locally:
+
+```
+npm run dev
+```

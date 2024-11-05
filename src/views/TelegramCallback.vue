@@ -27,7 +27,6 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 
-// Access environment variable for server URL
 const telegramServer = import.meta.env.VITE_TELEGRAM_SERVER
 
 // State variables
@@ -81,7 +80,6 @@ const handleTelegramAuth = async () => {
   }
 }
 
-// Automatically handle authentication on component mount
 onMounted(() => {
   handleTelegramAuth()
 })

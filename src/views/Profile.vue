@@ -9,14 +9,7 @@
 
           <v-divider></v-divider>
 
-          <v-btn
-            v-if="!galaChainAddress"
-            color="primary"
-            large
-            block
-            class="mt-5"
-            @click="connectEthereumWallet"
-          >
+          <v-btn v-if="!galaChainAddress" color="primary" large block class="mt-5" @click="connectEthereumWallet">
             <v-icon left>mdi-wallet</v-icon>
             Connect Ethereum Wallet
           </v-btn>
@@ -27,11 +20,8 @@
 
           <v-card-text>
             <div v-if="!telegramUser && !telegramUserLinked">
-              <telegram-login
-                :disabled="!galaChainAddress"
-                :bot-name="telegramBotUsername"
-                @auth="onTelegramAuth"
-              ></telegram-login>
+              <telegram-login :disabled="!galaChainAddress" :bot-name="telegramBotUsername"
+                @auth="onTelegramAuth"></telegram-login>
             </div>
             <div v-else class="mt-5">
               <h3 v-if="telegramUser && !telegramUserLinked" class="white--text">
@@ -42,25 +32,22 @@
               </h3>
             </div>
 
-            <v-btn
-              v-if="!telegramUserLinked"
-              :disabled="!telegramUser?.id || !galaChainAddress"
-              color="success"
-              dark
-              large
-              block
-              class="mt-5"
-              @click="linkWallets"
-            >
+            <v-btn v-if="!telegramUserLinked" :disabled="!telegramUser?.id || !galaChainAddress" color="success" dark
+              large block class="mt-5" @click="linkWallets">
               <v-icon left>mdi-link-variant</v-icon>
               Link Wallets
             </v-btn>
           </v-card-text>
+
+          <div v-if="giveawayWallet" class="mt-5">
+            <h3 class="white--text">Your Giveaway Wallet Address: {{ giveawayWallet }}</h3>
+          </div>
         </v-card>
       </v-container>
 
       <UserBalances v-if="galaChainAddress" :data="balances"> </UserBalances>
-      <ClaimableWins v-if="claimableWins" :balances="balances" v-on:reload="load()" :data="claimableWins"></ClaimableWins>
+      <ClaimableWins v-if="claimableWins" :balances="balances" v-on:reload="load()" :data="claimableWins">
+      </ClaimableWins>
     </v-main>
   </v-app>
 </template>
@@ -120,6 +107,7 @@ interface TelegramUser {
 
 const telegramUser = ref<TelegramUser | null>(null)
 const telegramUserLinked = ref(false)
+const giveawayWallet: Ref<string | null> = ref(null)
 const galaChainAddress = ref<string>('')
 const telegramBotUsername = import.meta.env.VITE_TELEGRAM_BOT_USERNAME as string
 const telegramServer = import.meta.env.VITE_TELEGRAM_SERVER
@@ -184,7 +172,7 @@ async function load() {
     const profile = await getProfile(galaChainAddress.value)
     claimableWins.value = profile.claimableWins
     telegramUserLinked.value = profile.hasTelegramLinked
-
+    giveawayWallet.value = profile.giveawayWalletAddress
     const tokenApi = new TokenApi(tokenContractUrl, browserClient)
     balances.value = ((await tokenApi.FetchBalances({ owner: currentAddress })) as any).Data
   }

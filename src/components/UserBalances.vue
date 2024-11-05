@@ -15,7 +15,7 @@
                     <v-col cols="6"> <strong>Owned:</strong> {{ (item as any).quantity }} </v-col>
                   </v-row>
                 </v-list-item-subtitle>
-              <v-divider v-if="index < data.length - 1"></v-divider>
+              <v-divider style="margin-top: 10px;"></v-divider>
             </v-list-item>
           </v-list>
           <v-alert v-else type="info" color="primary" dark> No tokens, yet! </v-alert>

@@ -6,7 +6,6 @@
         <v-card class="pa-4">
           <v-list v-if="data && data.length">
             <v-list-item v-for="(item, index) in data" :key="index" @click="checkClaimBurnable(item)" class=" my-4">
-              <!-- Giveaway Token and Win Amount -->
               <v-list-item-title class="text-h6">
                 Won Token: <strong>{{ formatTokenName(item.giveawayToken) }}</strong>
               </v-list-item-title>
@@ -14,19 +13,16 @@
                 <strong>Amount Won:</strong> {{ item.amountWon }}
               </v-list-item-subtitle>
 
-              <!-- Burn Token Requirement -->
               <v-list-item-subtitle v-if="item.burnToken">
                 <strong>Burn Requirement:</strong> {{ item.burnTokenQuantity || 'No quantity specified' }} {{
                   formatTokenName(item.burnToken) }}
               </v-list-item-subtitle>
 
 
-              <!-- Divider between items -->
               <v-divider v-if="index < data.length - 1" class="my-2"></v-divider>
             </v-list-item>
           </v-list>
 
-          <!-- No Wins Message -->
           <v-alert v-else type="info" color="primary" dark>
             No claimable wins yet!
           </v-alert>
@@ -63,7 +59,7 @@ function formatTokenName(item: any): string {
 async function checkClaimBurnable(win: ClaimableWinDto): Promise<void> {
   if (win.claimed) {
     // Handle case when win is already claimed
-    console.log('Already claimed');
+    showToast(`You've already claimed this`, true)
   } else {
     // Handle claim logic
     const relevantBalances = props.balances.filter((balance) => balance.additionalKey === win.burnToken.additionalKey && balance.category === win.burnToken.category && balance.collection === win.burnToken.collection && balance.type === win.burnToken.type)
