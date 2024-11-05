@@ -1,43 +1,60 @@
 <template>
-  <v-container v-if="!props.giveawaySettings.tokenQuantity || !props.giveawaySettings.winners">
-    <p>Something isn't set, please go back to step 2</p>
-  </v-container>
-  <v-container v-else>
-    <v-progress-circular v-if="isLoading" indeterminate size="64"></v-progress-circular>
+  <v-container>
+    <v-alert v-if="!props.giveawaySettings.tokenQuantity || !props.giveawaySettings.winners" type="info" text
+      class="mb-6">
+      Please go back to Step 2 to set all required settings.
+    </v-alert>
+
+    <div v-if="isLoading" class="text-center my-8">
+      <v-progress-circular indeterminate size="48"></v-progress-circular>
+    </div>
 
     <v-form v-else>
-      <p v-if="totalAllowance">
-        You have a granted net allowance of {{ totalAllowance }} to the giveaway wallet
-      </p>
-      <p v-else="totalAllowance">
-        You have not yet granted any allowance of this token to the giveaway wallet
-      </p>
-      <p v-if="totalAllowance >= props.giveawaySettings.tokenQuantity">
-        This is enough to start the giveaway!
-      </p>
-      <div v-else>
-        <p>
-          You need to grant {{ props.giveawaySettings.tokenQuantity - (totalAllowance || 0) }} more
-          to start the giveaway
+      <div v-if="totalAllowance" class="text-muted mb-4">
+        <p>You have a net allowance of <strong>{{ totalAllowance }}</strong> tokens allocated to the giveaway wallet.
         </p>
-        <v-btn color="success" @click="grantAdditionalAllowance">Grant Allowance</v-btn>
+      </div>
+      <div v-else class="text-muted mb-4">
+        <p>You have not granted any allowance of this token to the giveaway wallet yet.</p>
       </div>
 
-      <!-- <TokenInput
-        ref="tokenInputRef"
-        v-model:tokenClass="tokenClassReadOnly"
-        :showQuantity="false"
-        readOnly
-      />
-      <v-btn @click="grantAllowance" color="primary">Grant Allowance</v-btn> -->
+      <v-alert v-if="totalAllowance >= props.giveawaySettings.tokenQuantity" type="success" text dense outlined
+        class="mb-4">
+        You have sufficient allowance to start the giveaway.
+      </v-alert>
+
+      <div v-else class="text-muted mb-4">
+        <p>
+          You need to grant an additional
+          <strong>{{ new BigNumber(props.giveawaySettings.tokenQuantity).minus(new BigNumber(totalAllowance || 0))
+            }}</strong>
+          tokens to meet the requirement.
+        </p>
+        <v-btn color="primary" @click="grantAdditionalAllowance" class="mt-2">
+          Grant Additional Allowance
+        </v-btn>
+      </div>
+
+      <v-divider></v-divider>
+
+      <v-btn @click="loadBalances" color="primary" class="mt-6">
+        Refresh Allowances
+      </v-btn>
+
+      <div v-if="giveawayWallet" class="text-muted mt-8">
+        <p>All allowances are granted to the giveaway wallet: <strong>{{ giveawayWallet }}</strong></p>
+      </div>
     </v-form>
   </v-container>
 </template>
+
+
 
 <script setup lang="ts">
 import { useToast } from '@/composables/useToast'
 import { GetAdminQuantityAvailable, getProfile } from '@/services/BackendApi'
 import { GalaChainApi } from '@/services/GalaChainApi'
+import BigNumber from "bignumber.js";
 import {
   createValidDTO,
   FetchAllowancesDto,
@@ -71,10 +88,11 @@ const emit = defineEmits<{
 const { showToast } = useToast()
 const totalAllowance = ref()
 const browserClient = new BrowserConnectClient()
+const giveawayWallet = ref();
 
 async function grantAdditionalAllowance() {
   await browserClient.connect()
-  const profile = await getProfile(browserClient.galachainEthAlias)
+  const profile = await getProfile(browserClient.galaChainAddress)
   if (!profile.giveawayWalletAddress) {
     showToast(`Unable to get giveway wallet`, true)
     return
@@ -87,34 +105,50 @@ async function grantAdditionalAllowance() {
   if (!props.tokenClassKey) {
     showToast('Please select a token at step 1!')
   } else {
-    const grant = await tokenService.grantAllowance(
-      props.tokenClassKey,
-      props.giveawaySettings.tokenQuantity - (totalAllowance.value || 0),
-      profile.giveawayWalletAddress
-    )
-    if ((grant as any).Status === 1) {
-      // Success!
-      showToast('Allowance Granted!')
-      await loadBalances()
-    } else {
-      showToast('Unable to grant allowance.', true)
+    try {
+
+      const grant = await tokenService.grantAllowance(
+        props.tokenClassKey,
+        props.giveawaySettings.tokenQuantity - (totalAllowance.value || 0),
+        profile.giveawayWalletAddress
+      )
+      if (grant.Status === 1) {
+        // Success!
+        showToast('Allowance Granted!')
+        await loadBalances()
+      }
+    } catch (e: unknown) {
+      let errorMessage = 'unknown error';
+
+      if (isErrorWithMessage(e)) {
+        errorMessage = e.Message
+      }
+
+      console.error(errorMessage)
+      showToast(`Unable to grant allowance. Error: ${errorMessage}`, true);
     }
   }
+}
+
+function isErrorWithMessage(error: unknown): error is { Message: string } {
+  return typeof error === 'object' && error !== null && 'Message' in error;
 }
 
 async function loadBalances() {
   try {
     await browserClient.connect()
 
-    const profile = await getProfile(browserClient.galachainEthAlias)
+    const profile = await getProfile(browserClient.galaChainAddress)
     await tokenService.init()
 
     if (!profile || !profile.galaChainAddress) {
       showToast('Unable to get admin wallet info', true)
       return
     }
+    console.log('loaded here')
 
     const response = await GetAdminQuantityAvailable(props.tokenClassKey, profile.galaChainAddress)
+    giveawayWallet.value = response?.giveawayWallet;
     totalAllowance.value = Number(response?.totalQuantity)
   } catch (e: any) {
     showToast(e.message || 'An error occured', true)
@@ -127,14 +161,9 @@ async function loadBalances() {
 watch(
   [() => Number(props.giveawaySettings.tokenQuantity), totalAllowance],
   ([tokenQuantity, totalAllowance]) => {
-    console.log('hit here')
     if (tokenQuantity && (totalAllowance >= tokenQuantity || 0)) {
-      console.log('valid')
-
       emit('form-valid', { stepNumber: 3, isComplete: true })
     } else {
-      console.log('invalid')
-
       emit('form-valid', { stepNumber: 3, isComplete: false })
     }
   }

@@ -33,29 +33,20 @@
 
         <!-- Step 4: Giveaway Settings -->
         <v-stepper-window-item :value="2">
-          <GiveawaySettings
-            @form-valid="updateGiveawaySettingsValidity"
-            :token-class="tokenClass"
-            :giveaway-settings="giveawaySettings"
-          />
+          <GiveawaySettings @form-valid="updateGiveawaySettingsValidity" :token-class="tokenClass"
+            :giveaway-settings="giveawaySettings" />
         </v-stepper-window-item>
 
         <!-- Step 2: Grant Allowance -->
         <v-stepper-window-item :value="3">
-          <AdminBalanceGrant
-            @form-valid="stepChanged"
-            :token-class-key="tokenClass"
-            :giveaway-settings="giveawaySettings"
-          ></AdminBalanceGrant>
+          <AdminBalanceGrant @form-valid="stepChanged" :token-class-key="tokenClass"
+            :giveaway-settings="giveawaySettings">
+          </AdminBalanceGrant>
         </v-stepper-window-item>
 
         <v-stepper-window-item :value="4">
-          <GiveawaySettings
-            @form-valid="updateGiveawaySettingsValidity"
-            :token-class="tokenClass"
-            :giveaway-settings="giveawaySettings"
-            read-only
-          />
+          <GiveawaySettings @form-valid="updateGiveawaySettingsValidity" :token-class="tokenClass"
+            :giveaway-settings="giveawaySettings" read-only />
           <v-btn color="success" @click="launchGiveaway">Launch Giveaway</v-btn>
         </v-stepper-window-item>
       </v-stepper-window>
@@ -65,12 +56,7 @@
           <v-icon>mdi-chevron-left</v-icon> Back
         </v-btn>
 
-        <v-btn
-          color="primary"
-          v-if="currentStep < 4"
-          :disabled="!allowNext(currentStep)"
-          @click="nextStep"
-        >
+        <v-btn color="primary" v-if="currentStep < 4" :disabled="!allowNext(currentStep)" @click="nextStep">
           Next
           <v-icon>mdi-chevron-right</v-icon>
         </v-btn>
@@ -86,14 +72,15 @@ import { useRoute, useRouter } from 'vue-router'
 import AllowanceCheck from '@/components/AllowanceCheck.vue'
 import ViewAdminBalances from '@/components/ViewAdminBalances.vue'
 import TokenInput from '@/components/TokenInput.vue'
-import type { TokenClassBody, TokenClassKey } from '@gala-chain/api'
+import { GalaChainErrorResponse, type TokenClassKey, type TokenClassKeyProperties } from '@gala-chain/api'
 import { GalaChainApi } from '@/services/GalaChainApi'
 import { useToast } from '@/composables/useToast'
 import { startGiveaway } from '@/services/BackendApi'
 import GiveawaySettings from '@/components/GiveawaySettings.vue'
 import AdminBalanceGrant from '@/components/AdminBalanceGrant.vue'
 import type { FullGiveawayDto, GiveawaySettingsDto } from '@/utils/types'
-import { BrowserConnectClient } from '@gala-chain/connect'
+import { BrowserConnectClient, GalaChainResponseError } from '@gala-chain/connect'
+import type BigNumber from 'bignumber.js'
 const tokenInputRef = ref<InstanceType<typeof TokenInput> | null>(null)
 
 const router = useRouter()
@@ -108,20 +95,22 @@ const resetStep = (stepNumber: number) => {
   stepsComplete.value[stepNumber] = false
 }
 
-// Props from route
-const props = defineProps<{
-  tokenClass: string
-}>()
 
 const currentStep = ref(1)
-const tokenKey = ref(props.tokenClass || '')
 const availableQuantity = ref(0) // You might fetch this based on the tokenKey
 
-const tokenClass = reactive<TokenClassBody>({
+const tokenClass = reactive<TokenClassKeyProperties>({
   collection: 'MyCollection',
   category: 'Art4',
   type: 'UniqueArtToken',
   additionalKey: 'Rare'
+})
+
+const burnTokenClass = reactive<TokenClassKeyProperties>({
+  collection: 'GALA',
+  category: 'Unit',
+  type: 'none',
+  additionalKey: 'none'
 })
 const { showToast } = useToast()
 
@@ -129,34 +118,46 @@ const giveawaySettings = ref<GiveawaySettingsDto>({
   endDateTime: new Date(new Date().setDate(new Date().getDate() + 1)),
   winners: undefined,
   tokenQuantity: undefined,
-  telegramAuthRequired: false
+  telegramAuthRequired: false,
+  requireBurnTokenToClaim: false,
+  burnToken: burnTokenClass,
+  burnTokenQuantity: '1'
 })
 const tokenService = GalaChainApi.getInstance()
 
 let selectedToken: TokenClassKey | null = null
-const totalSupply: Ref<number | null> = ref(null)
-const maxSupply: Ref<number | null> = ref(null)
+const totalSupply: Ref<BigNumber | null> = ref(null)
+const maxSupply: Ref<BigNumber | null> = ref(null)
 
 async function selectToken() {
   await tokenService.init()
 
   const isValid = await tokenInputRef.value?.validate()
   if (isValid.valid) {
-    const { tokenClassDto, tokenClassResponse } = await tokenService.fetchTokenClasses(tokenClass)
-    if (
-      (tokenClassResponse as any).Status === 1 &&
-      (tokenClassResponse as any).Data &&
-      (tokenClassResponse as any).Data[0]
-    ) {
-      selectedToken = tokenClassDto
-      maxSupply.value = (tokenClassResponse as any).Data[0].maxSupply
-      totalSupply.value = (tokenClassResponse as any).Data[0].totalSupply
-      markStepComplete(1)
-    } else {
+    try {
+      const { tokenClassDto, tokenClassResponse } = await tokenService.fetchTokenClasses(tokenClass)
+      if (
+        tokenClassResponse.Status === 1 &&
+        tokenClassResponse.Data &&
+        tokenClassResponse.Data[0]
+      ) {
+        selectedToken = tokenClassDto
+        maxSupply.value = (tokenClassResponse).Data[0].maxSupply
+        totalSupply.value = (tokenClassResponse).Data[0].totalSupply
+        markStepComplete(1)
+      }
+    } catch (e: any) {
       resetStep(1)
       selectedToken = null
-      showToast((tokenClassResponse as any).message || 'Unable to get token class', true)
+      if (e instanceof GalaChainResponseError) {
+        showToast(e.Message || 'Unable to get token class', true)
+      } else {
+        showToast(e.message || 'Unable to get token class', true)
+
+      }
+
     }
+
   }
 }
 
@@ -192,7 +193,7 @@ function updateGiveawaySettingsValidity(formIsValid: boolean) {
 function stepChanged(payload: { stepNumber: number; isComplete: boolean }) {
   if (payload.isComplete) {
     markStepComplete(payload.stepNumber)
-  } else {
+} else {
     resetStep(payload.stepNumber)
   }
 }
@@ -204,16 +205,20 @@ async function launchGiveaway() {
   const connectClient = new BrowserConnectClient()
   await connectClient.connect()
 
-  console.log('fooooo')
   if (settings.endDateTime && settings.tokenQuantity && settings.winners) {
     const unsignedGiveaway: FullGiveawayDto = {
       giveawayToken: selectedToken,
       tokenQuantity: settings.tokenQuantity,
       winnerCount: settings.winners,
       endDateTime: settings.endDateTime.toISOString(),
-      telegramAuthRequired: settings.telegramAuthRequired || false
+      telegramAuthRequired: settings.telegramAuthRequired || false,
+      requireBurnTokenToClaim: settings.requireBurnTokenToClaim,
+      ...(settings.requireBurnTokenToClaim && {
+        burnTokenQuantity: settings.burnTokenQuantity,
+        burnToken: settings.burnToken,
+      }),
     }
-    const signedGiveaway = await connectClient.sign('StartGiveaway', unsignedGiveaway as any)
+    const signedGiveaway = await connectClient.sign('StartGiveaway', unsignedGiveaway)
 
     console.log(settings.endDateTime)
     try {
@@ -249,6 +254,7 @@ async function launchGiveaway() {
 }
 
 .stepper-actions .v-btn[disabled] {
-  opacity: 0.5; /* Make disabled buttons less prominent */
+  opacity: 0.5;
+  /* Make disabled buttons less prominent */
 }
 </style>

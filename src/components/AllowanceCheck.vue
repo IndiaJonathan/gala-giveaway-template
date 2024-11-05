@@ -40,7 +40,7 @@ fetchBalances()
 async function fetchBalances() {
   loading.value = true
   await browserClient.connect()
-  const profile = await getProfile(browserClient.galachainEthAlias)
+  const profile = await getProfile(browserClient.galaChainAddress)
   if (!profile || !profile.galaChainAddress) {
     showToast('Unable to get giveaway wallet info', true)
     loading.value = false
@@ -61,7 +61,7 @@ async function fetchBalances() {
   const response = await tokenApi.FetchAllowances(fetchBalanceDto)
 
   if (response.Status === 1 && response.Data && response.Data.results) {
-    availableQuantity.value = (response.Data.results as any as TokenAllowance[]).reduce(
+    availableQuantity.value = (response.Data.results).reduce(
       (accumulator, element) => {
         if (Number(element.uses) - (Number(element.usesSpent) || 0) !== 0) {
           return accumulator + (Number(element.quantity) - (Number(element.quantitySpent) || 0))

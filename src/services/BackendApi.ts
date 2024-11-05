@@ -1,11 +1,15 @@
-import type { FullGiveawayDto, Profile, SignupForGiveawayDto } from '@/utils/types'
+import type { ClaimableWinDto, FullGiveawayDto, Profile, SignupForGiveawayDto } from '@/utils/types'
 import type { Giveaway } from '@/views/AvailableGiveaways.vue'
-import type { TokenClassBody } from '@gala-chain/api'
+import type { TokenClassKeyProperties } from '@gala-chain/api'
+import type { BurnTokensRequest } from '@gala-chain/connect'
 
 // Load the base URL from environment variables
 const baseURL = import.meta.env.VITE_TELEGRAM_SERVER
 
-export async function GetAdminQuantityAvailable(tokenClassKey: TokenClassBody, gc_address: string) {
+export async function GetAdminQuantityAvailable(
+  tokenClassKey: TokenClassKeyProperties,
+  gc_address: string
+) {
   const response = await fetch(`${baseURL}/api/wallet/allowance-available/${gc_address}`, {
     method: 'POST',
     headers: {
@@ -21,6 +25,7 @@ export async function GetAdminQuantityAvailable(tokenClassKey: TokenClassBody, g
   const data: {
     totalQuantity: string
     unuseableQuantity: string
+    giveawayWallet: string
   } = await response.json()
 
   if (data) {
@@ -59,6 +64,25 @@ export async function getGiveaways(): Promise<Giveaway[]> {
   if (!response.ok) {
     const message = await response.text()
     throw new Error(message)
+  }
+
+  const data = await response.json()
+
+  return data
+}
+
+export async function claimWin(win: BurnTokensRequest & { claimId: string }) {
+  const response = await fetch(`${baseURL}/api/giveaway/claim`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(win)
+  })
+
+  if (!response.ok) {
+    const message = await response.json()
+    throw message?.error || 'Unable to claim'
   }
 
   const data = await response.json()

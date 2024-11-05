@@ -15,8 +15,7 @@
                     <v-col cols="6"> <strong>Owned:</strong> {{ (item as any).quantity }} </v-col>
                   </v-row>
                 </v-list-item-subtitle>
-            <v-divider v-if="index < data.length - 1"></v-divider>
-
+              <v-divider v-if="index < data.length - 1"></v-divider>
             </v-list-item>
           </v-list>
           <v-alert v-else type="info" color="primary" dark> No tokens, yet! </v-alert>
@@ -28,13 +27,15 @@
 
 <script lang="ts">
 import type { PropType } from 'vue';
-import { GalaChainResponse, type TokenBalanceBody } from "@gala-chain/api";
+import { GalaChainResponse } from "@gala-chain/api";
+import type { TokenBalance } from '@gala-chain/connect';
+
 
 export default {
   name: 'UserBalances',
   props: {
     data: {
-      type: Object as PropType<TokenBalanceBody[]>,
+      type: Object as PropType<TokenBalance[]>,
       required: false
     }
   },
