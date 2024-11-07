@@ -33,7 +33,7 @@ export class GalaChainApi {
         }
     }
 
-    public async fetchTokenClasses(tokenClass: any) {
+    public async fetchTokenClasses(tokenClass: TokenClassKeyProperties) {
         if (!this.tokenClient) {
             throw new Error("TokenService is not initialized. Call 'init()' first.");
         }
