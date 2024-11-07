@@ -15,7 +15,7 @@
         <v-stepper-window-item :value="1">
           <TokenInput ref="tokenInputRef" v-model:tokenClass="tokenClass" :showQuantity="false" />
           <v-row no-gutters>
-            <v-btn :disabled="stepsComplete[1]" color="success" @click="selectToken">
+            <v-btn :disabled="stepsComplete[1]" color="success" @click="selectToken" :loading="tokenSelectLoading">
               <div v-if="stepsComplete[1]">
                 <template v-if="stepsComplete[1]">
                   <v-icon left>mdi-check</v-icon>
@@ -66,13 +66,11 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, watch, computed, reactive, type Ref } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { ref, reactive, type Ref } from 'vue'
+import { useRouter } from 'vue-router'
 
-import AllowanceCheck from '@/components/AllowanceCheck.vue'
-import ViewAdminBalances from '@/components/ViewAdminBalances.vue'
 import TokenInput from '@/components/TokenInput.vue'
-import { GalaChainErrorResponse, type TokenClassKey, type TokenClassKeyProperties } from '@gala-chain/api'
+import { type TokenClassKeyProperties } from '@gala-chain/api'
 import { GalaChainApi } from '@/services/GalaChainApi'
 import { useToast } from '@/composables/useToast'
 import { startGiveaway } from '@/services/BackendApi'
@@ -97,16 +95,15 @@ const resetStep = (stepNumber: number) => {
 
 
 const currentStep = ref(1)
-const availableQuantity = ref(0) // You might fetch this based on the tokenKey
 
-const tokenClass = reactive<TokenClassKeyProperties>({
-  collection: 'MyCollection',
-  category: 'Art4',
-  type: 'UniqueArtToken',
-  additionalKey: 'Rare'
+const tokenClass = ref<TokenClassKeyProperties>({
+  collection: '',
+  category: '',
+  type: '',
+  additionalKey: ''
 })
 
-const burnTokenClass = reactive<TokenClassKeyProperties>({
+const burnTokenClass = ref<TokenClassKeyProperties>({
   collection: 'GALA',
   category: 'Unit',
   type: 'none',
@@ -120,16 +117,18 @@ const giveawaySettings = ref<GiveawaySettingsDto>({
   tokenQuantity: undefined,
   telegramAuthRequired: false,
   requireBurnTokenToClaim: false,
-  burnToken: burnTokenClass,
+  burnToken: burnTokenClass.value,
   burnTokenQuantity: '1'
 })
 const tokenService = GalaChainApi.getInstance()
 
-let selectedToken: TokenClassKey | null = null
+let selectedToken: TokenClassKeyProperties | null = null
 const totalSupply: Ref<BigNumber | null> = ref(null)
 const maxSupply: Ref<BigNumber | null> = ref(null)
+const tokenSelectLoading = ref(false);
 
 async function selectToken() {
+  tokenSelectLoading.value = true;
   await tokenService.init()
 
   const isValid = await tokenInputRef.value?.validate()
@@ -159,6 +158,8 @@ async function selectToken() {
     }
 
   }
+  tokenSelectLoading.value = false;
+
 }
 
 // Navigation functions
@@ -207,7 +208,7 @@ async function launchGiveaway() {
 
   if (settings.endDateTime && settings.tokenQuantity && settings.winners) {
     const unsignedGiveaway: FullGiveawayDto = {
-      giveawayToken: selectedToken,
+      giveawayToken: selectedToken.value,
       tokenQuantity: settings.tokenQuantity,
       winnerCount: settings.winners,
       endDateTime: settings.endDateTime.toISOString(),

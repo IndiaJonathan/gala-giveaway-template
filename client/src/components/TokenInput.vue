@@ -68,7 +68,7 @@
 
 <script setup lang="ts">
 import type { TokenClassKeyProperties } from '@gala-chain/api';
-import { reactive,  ref, watch, type PropType } from 'vue'
+import { ref, watch, type PropType } from 'vue'
 
 const emit = defineEmits(['update:tokenClass', 'update:quantity'])
 
@@ -79,7 +79,7 @@ const props = defineProps({
   },
   quantity: {
     type: String,
-    default: null
+    required: false
   },
   quantityLabel: {
     type: String,

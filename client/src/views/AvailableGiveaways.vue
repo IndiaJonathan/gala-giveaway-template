@@ -60,7 +60,6 @@ export default defineComponent({
       giveaways.value = await getGiveaways()
     }
 
-    // Fetch giveaways once component is mounted
     onMounted(() => {
       fetchGiveaways()
     })
@@ -94,7 +93,6 @@ export default defineComponent({
         !!connectedUserGCAddress.value &&
         !!giveaway.usersSignedUp.find((gcWallet) => connectedUserGCAddress.value === gcWallet)
       )
-      //   return giveaway.usersSignedUp.includes(userId)
     }
 
     const getEndDateMessage = (dateString?: string): string => {
