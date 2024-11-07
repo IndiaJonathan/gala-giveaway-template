@@ -9,7 +9,7 @@ infrastructure:
 client:
   variables:
     SRC_PATH: "client/"
-    DEPLOY_SOURCE: "client/.output/public"
+    DEPLOY_SOURCE: "client/dist"
   trigger:
     include:
       - local: "client/.gitlab-ci.yml"
