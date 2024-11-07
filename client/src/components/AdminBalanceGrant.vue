@@ -1,13 +1,12 @@
 <template>
   <v-container>
-    <v-alert v-if="!props.giveawaySettings.tokenQuantity || !props.giveawaySettings.winners" type="info"
-      class="mb-6">
-      Please go back to Step 2 to set all required settings.
-    </v-alert>
-
     <div v-if="isLoading" class="text-center my-8">
       <v-progress-circular indeterminate size="48"></v-progress-circular>
     </div>
+    <v-alert v-if="!props.giveawaySettings.tokenQuantity || !props.giveawaySettings.winners || !props.giveawaySettings.tokenQuantity" type="info"
+      class="mb-6">
+      Please go back to Step 2 to set all required settings.
+    </v-alert>
 
     <v-form v-else>
       <div v-if="totalAllowance" class="text-muted mb-4">
@@ -18,7 +17,7 @@
         <p>You have not granted any allowance of this token to the giveaway wallet yet.</p>
       </div>
 
-      <v-alert v-if="totalAllowance >= (props.giveawaySettings.tokenQuantity || 0)" type="success" dense outlined
+      <v-alert v-if="totalAllowance >= props.giveawaySettings.tokenQuantity" type="success" dense outlined
         class="mb-4">
         You have sufficient allowance to start the giveaway.
       </v-alert>
@@ -109,7 +108,7 @@ async function grantAdditionalAllowance() {
 
       const grant = await tokenService.grantAllowance(
         props.tokenClassKey,
-        Number(props.giveawaySettings.tokenQuantity) - (totalAllowance.value || 0),
+        new BigNumber(props.giveawaySettings.tokenQuantity).minus( new BigNumber(totalAllowance.value || 0)),
         profile.giveawayWalletAddress
       )
       if (grant.Status === 1) {

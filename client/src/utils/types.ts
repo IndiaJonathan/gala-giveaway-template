@@ -9,6 +9,8 @@ export interface GiveawaySettingsDto {
   burnTokenQuantity?: string
   burnToken: TokenClassKeyProperties
 }
+export type RequiredGiveawaySettingsDto = Required<GiveawaySettingsDto>;
+
 
 export interface FullGiveawayDto {
   winnerCount: string
