@@ -1,0 +1,16 @@
+infrastructure:
+  variables:
+    TF_ROOT: terraform/
+  trigger:
+    include:
+      - local: "terraform/.gitlab-ci.yml"
+    strategy: depend
+
+client:
+  variables:
+    SRC_PATH: "client/"
+    DEPLOY_SOURCE: "client/dist"
+  trigger:
+    include:
+      - local: "client/.gitlab-ci.yml"
+    strategy: depend

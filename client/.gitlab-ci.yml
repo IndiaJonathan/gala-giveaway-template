@@ -1,0 +1,108 @@
+variables:
+  SRC_PATH: .
+  DEPLOY_SOURCE: $SRC_PATH/dist
+
+stages:
+  - build
+  - publish
+
+nuxt:build:dev:
+  extends: .nuxt:build
+  environment: dev
+  stage: build
+  rules:
+    - if: $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH
+
+nuxt:build:stage:
+  extends: .nuxt:build
+  environment: stage
+  stage: build
+  rules:
+    - if: $CI_COMMIT_TAG == null && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
+nuxt:build:prod:
+  extends: .nuxt:build
+  environment: prod
+  stage: build
+  artifacts:
+    expire_in: 90 days
+    paths:
+      - $DEPLOY_SOURCE
+  rules:
+    - if: $CI_COMMIT_TAG != null
+
+# Publish
+publish:dev:
+  extends: .static_site:publish
+  environment: dev
+  rules:
+    - if: $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH
+      when: manual
+      allow_failure: true
+  needs:
+    - job: nuxt:build:dev
+      artifacts: true
+
+publish:stage:
+  extends: .static_site:publish
+  environment: stage
+  rules:
+    - if: $CI_COMMIT_TAG == null && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+  needs:
+    - job: nuxt:build:stage
+      artifacts: true
+
+publish:prod:
+  extends: .static_site:publish
+  environment: prod
+  artifacts:
+    expire_in: 90 days
+    paths:
+      - $DEPLOY_SOURCE
+  rules:
+    - if: $CI_COMMIT_TAG != null
+      when: manual
+      allow_failure: true
+  needs:
+    - job: nuxt:build:prod
+      artifacts: true
+
+.nuxt:build: &nuxt_build
+  image: public.ecr.aws/docker/library/node:20-alpine
+  stage: build
+  before_script:
+    - cd "$SRC_PATH"
+    - echo "$ENV" > .env
+  script: |
+    # Install vuecli
+    npm install -g @vue/cli@latest
+
+    # Install dependencies
+    NODE_ENV=development npm install
+
+    # Build App
+    NODE_OPTIONS='--max_old_space_size=1500' npm run build-only
+  artifacts:
+    paths:
+      # Build folder
+      - $DEPLOY_SOURCE
+
+.static_site:publish: &static_site_publish
+  stage: publish
+  image: registry.gitlab.com/gitlab-org/cloud-deploy/aws-base
+  before_script: |
+    echo "Fetching Terraform state from ${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/terraform/state/${CI_ENVIRONMENT_NAME}-${CI_PROJECT_NAME}"
+    curl -s -H "Private-Token: ${TF_STATE_READ_TOKEN}" -XGET ${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/terraform/state/${CI_ENVIRONMENT_NAME}-${CI_PROJECT_NAME} > state.json
+    export S3_BUCKET_NAME=$(jq -r '.resources[]|select(.type=="aws_s3_bucket")|select(.module=="module.s3_client_app_bucket").instances[0].attributes.bucket' state.json)
+    export CF_DISTRO_ID=$(jq -r '.resources[]|select(.type=="aws_cloudfront_distribution").instances[0].attributes.id' state.json)
+
+    echo "S3_BUCKET_NAME: ${S3_BUCKET_NAME}"
+    echo "CF_DISTRO_ID: ${CF_DISTRO_ID}"
+  script:
+    - cd ${DEPLOY_SOURCE}
+    - aws s3 sync . s3://${S3_BUCKET_NAME}/
+    - aws cloudfront create-invalidation --distribution-id ${CF_DISTRO_ID} --paths '/*'
+  artifacts:
+    expire_in: 1 week
+    paths:
+      - $DEPLOY_SOURCE

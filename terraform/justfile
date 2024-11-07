@@ -1,0 +1,69 @@
+jq_cmd := if `which jq` != 'jq not found' {
+  'jq -r'
+} else {
+  error('Please install jq')
+}
+
+aws_cmd := if `which aws` != 'aws not found' {
+  'aws'
+} else {
+  error('Please install aws cli')
+}
+
+terraform_cmd := if `which terraform` != 'terraform not found' {
+  'terraform'
+} else {
+  error('Please install terraform')
+}
+
+project_name := `basename $(dirname "$PWD")`
+project_id := '54248768'
+
+gitlab_user_name := env_var('GITLAB_USER_NAME')
+gitlab_access_token := env_var('GITLAB_ACCESS_TOKEN')
+
+default:
+  @just --list
+
+init env="dev":
+  #!/bin/bash
+  set -uo pipefail
+  # set -x
+
+  export TF_STATE_NAME='{{env}}-{{project_name}}'
+  echo "TF_STATE_NAME: ${TF_STATE_NAME}"
+
+  {{jq_cmd}} '.backend.config.address' .terraform/terraform.tfstate | grep {{project_id}} | grep ${TF_STATE_NAME}
+
+  if [ $? -eq 0 ]; then
+    echo "Already initialized"
+    exit 0
+  fi
+
+  echo 'tf_state_name: ${TF_STATE_NAME}'
+  {{terraform_cmd}} init \
+    -backend-config="address=https://gitlab.com/api/v4/projects/{{project_id}}/terraform/state/${TF_STATE_NAME}" \
+    -backend-config="lock_address=https://gitlab.com/api/v4/projects/{{project_id}}/terraform/state/${TF_STATE_NAME}/lock" \
+    -backend-config="unlock_address=https://gitlab.com/api/v4/projects/{{project_id}}/terraform/state/${TF_STATE_NAME}/lock" \
+    -backend-config="username={{gitlab_user_name}}" \
+    -backend-config="password={{gitlab_access_token}}" \
+    -backend-config="lock_method=POST" \
+    -backend-config="unlock_method=DELETE" \
+    -backend-config="retry_wait_min=5" \
+    -reconfigure
+
+plan env="dev": (init env)
+  #!/bin/bash
+  set -euo pipefail
+  # set -x
+
+  echo "TF_VARS_FILE: tfvars/{{env}}.tfvars"
+  {{terraform_cmd}} plan -var-file=tfvars/{{env}}.tfvars
+
+apply env="dev": (init env)
+  #!/bin/bash
+  set -euo pipefail
+  # set -x
+
+  echo "TF_VARS_FILE: tfvars/{{env}}.tfvars"
+  {{terraform_cmd}} apply -var-file=tfvars/{{env}}.tfvars

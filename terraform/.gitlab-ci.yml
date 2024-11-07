@@ -1,0 +1,10 @@
+include:
+  - project: "gala-games/library/gitlab/ci-templates"
+    ref: main
+    file: "terraform/terraform.multi-env-stack.gitlab-ci.yml"
+
+stages:
+  - validate
+  - test
+  - plan
+  - apply
