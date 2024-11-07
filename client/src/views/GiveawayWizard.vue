@@ -134,7 +134,7 @@ async function selectToken() {
   const isValid = await tokenInputRef.value?.validate()
   if (isValid.valid) {
     try {
-      const { tokenClassDto, tokenClassResponse } = await tokenService.fetchTokenClasses(tokenClass)
+      const { tokenClassDto, tokenClassResponse } = await tokenService.fetchTokenClasses(tokenClass.value)
       if (
         tokenClassResponse.Status === 1 &&
         tokenClassResponse.Data &&

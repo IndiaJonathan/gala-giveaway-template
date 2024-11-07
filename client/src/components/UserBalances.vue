@@ -27,7 +27,7 @@
 
 <script lang="ts">
 import type { PropType } from 'vue';
-import { GalaChainResponse } from "@gala-chain/api";
+import { type TokenClassKeyProperties } from "@gala-chain/api";
 import type { TokenBalance } from '@gala-chain/connect';
 
 
@@ -40,7 +40,7 @@ export default {
     }
   },
   methods: {
-    formatTokenName(item: any) {
+    formatTokenName(item: TokenClassKeyProperties) {
       return `${item.category}|${item.additionalKey}|${item.collection}|${item.type}`
     }
   }
