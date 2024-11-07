@@ -70,7 +70,7 @@ import { ref, reactive, type Ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 import TokenInput from '@/components/TokenInput.vue'
-import { type TokenClassKey, type TokenClassKeyProperties } from '@gala-chain/api'
+import { type TokenClassKeyProperties } from '@gala-chain/api'
 import { GalaChainApi } from '@/services/GalaChainApi'
 import { useToast } from '@/composables/useToast'
 import { startGiveaway } from '@/services/BackendApi'
@@ -96,14 +96,14 @@ const resetStep = (stepNumber: number) => {
 
 const currentStep = ref(1)
 
-const tokenClass = reactive<TokenClassKeyProperties>({
+const tokenClass = ref<TokenClassKeyProperties>({
   collection: '',
   category: '',
   type: '',
   additionalKey: ''
 })
 
-const burnTokenClass = reactive<TokenClassKeyProperties>({
+const burnTokenClass = ref<TokenClassKeyProperties>({
   collection: 'GALA',
   category: 'Unit',
   type: 'none',
@@ -117,12 +117,12 @@ const giveawaySettings = ref<GiveawaySettingsDto>({
   tokenQuantity: undefined,
   telegramAuthRequired: false,
   requireBurnTokenToClaim: false,
-  burnToken: burnTokenClass,
+  burnToken: burnTokenClass.value,
   burnTokenQuantity: '1'
 })
 const tokenService = GalaChainApi.getInstance()
 
-let selectedToken: TokenClassKey | null = null
+let selectedToken: TokenClassKeyProperties | null = null
 const totalSupply: Ref<BigNumber | null> = ref(null)
 const maxSupply: Ref<BigNumber | null> = ref(null)
 const tokenSelectLoading = ref(false);
@@ -208,7 +208,7 @@ async function launchGiveaway() {
 
   if (settings.endDateTime && settings.tokenQuantity && settings.winners) {
     const unsignedGiveaway: FullGiveawayDto = {
-      giveawayToken: selectedToken,
+      giveawayToken: selectedToken.value,
       tokenQuantity: settings.tokenQuantity,
       winnerCount: settings.winners,
       endDateTime: settings.endDateTime.toISOString(),
