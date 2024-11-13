@@ -1,55 +1,51 @@
 <template>
-  <v-app dark style="width: 100%">
-    <v-main style="width: 100%">
-      <v-container fluid fill-height class="d-flex align-center justify-center">
-        <v-card class="elevation-12 text-center px-5 py-7">
-          <v-card-title class="justify-center">
-            <h2 class="white--text font-weight-bold">Your Profile</h2>
-          </v-card-title>
+  <v-container fluid fill-height class="d-flex align-center justify-center">
+    <v-card class="elevation-12 text-center px-5 py-7">
+      <v-card-title class="justify-center">
+        <h2 class="white--text font-weight-bold">Your Profile</h2>
+      </v-card-title>
 
-          <v-divider></v-divider>
+      <v-divider></v-divider>
 
-          <v-btn v-if="!galaChainAddress" color="primary" large block class="mt-5" @click="connectEthereumWallet">
-            <v-icon left>mdi-wallet</v-icon>
-            Connect Ethereum Wallet
-          </v-btn>
+      <v-btn v-if="!galaChainAddress" color="primary" large block class="mt-5" @click="connectEthereumWallet">
+        <v-icon left>mdi-wallet</v-icon>
+        Connect Ethereum Wallet
+      </v-btn>
 
-          <div v-else class="mt-5">
-            <h3 class="white--text">Ethereum Address: {{ galaChainAddress }}</h3>
-          </div>
+      <div v-else class="mt-5">
+        <h3 class="white--text">Ethereum Address: {{ galaChainAddress }}</h3>
+      </div>
 
-          <v-card-text>
-            <div v-if="!telegramUser && !telegramUserLinked">
-              <telegram-login :disabled="!galaChainAddress" :bot-name="telegramBotUsername"
-                @auth="onTelegramAuth"></telegram-login>
-            </div>
-            <div v-else class="mt-5">
-              <h3 v-if="telegramUser && !telegramUserLinked" class="white--text">
-                Logged in With Telegram as: {{ telegramUser.first_name }}
-              </h3>
-              <h3 v-else="telegramUser" class="white--text">
-                Telegram is linked <v-icon left>mdi-check</v-icon>
-              </h3>
-            </div>
+      <v-card-text>
+        <div v-if="!telegramUser && !telegramUserLinked">
+          <telegram-login :disabled="!galaChainAddress" :bot-name="telegramBotUsername"
+            @auth="onTelegramAuth"></telegram-login>
+        </div>
+        <div v-else class="mt-5">
+          <h3 v-if="telegramUser && !telegramUserLinked" class="white--text">
+            Logged in With Telegram as: {{ telegramUser.first_name }}
+          </h3>
+          <h3 v-else="telegramUser" class="white--text">
+            Telegram is linked <v-icon left>mdi-check</v-icon>
+          </h3>
+        </div>
 
-            <v-btn v-if="!telegramUserLinked" :disabled="!telegramUser?.id || !galaChainAddress" color="success" dark
-              large block class="mt-5" @click="linkWallets">
-              <v-icon left>mdi-link-variant</v-icon>
-              Link Wallets
-            </v-btn>
-          </v-card-text>
+        <v-btn v-if="!telegramUserLinked" :disabled="!telegramUser?.id || !galaChainAddress" color="success" dark large
+          block class="mt-5" @click="linkWallets">
+          <v-icon left>mdi-link-variant</v-icon>
+          Link Wallets
+        </v-btn>
+      </v-card-text>
 
-          <div v-if="giveawayWallet" class="mt-5">
-            <h3 class="white--text">Your Giveaway Wallet Address: {{ giveawayWallet }}</h3>
-          </div>
-        </v-card>
-      </v-container>
+      <div v-if="giveawayWallet" class="mt-5">
+        <h3 class="white--text">Your Giveaway Wallet Address: {{ giveawayWallet }}</h3>
+      </div>
+    </v-card>
+  </v-container>
 
-      <UserBalances v-if="galaChainAddress" :data="balances"> </UserBalances>
-      <ClaimableWins v-if="claimableWins" :balances="balances" v-on:reload="load()" :data="claimableWins">
-      </ClaimableWins>
-    </v-main>
-  </v-app>
+  <UserBalances v-if="galaChainAddress" :data="balances"> </UserBalances>
+  <ClaimableWins v-if="claimableWins" :balances="balances" v-on:reload="load()" :data="claimableWins">
+  </ClaimableWins>
 </template>
 
 <style scoped>

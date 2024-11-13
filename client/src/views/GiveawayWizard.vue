@@ -1,6 +1,10 @@
 <template>
-  <div>
-    <v-stepper v-model="currentStep">
+  <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;">
+    <div v-if="!connectedUserGCAddress" style="width: 100%; text-align: center;">
+      <h1>Start A Giveaway</h1>
+      <v-btn color="success" @click="connect">Sign in With your Web3 Wallet To Continue</v-btn>
+    </div>
+    <v-stepper v-else v-model="currentStep" style="width: 100%; height: 100%;">
       <!-- Stepper Header -->
       <v-stepper-header>
         <v-stepper-item :complete="stepsComplete[1]" :value="1"> Select Token </v-stepper-item>
@@ -10,25 +14,53 @@
       </v-stepper-header>
 
       <!-- Stepper Content -->
-      <v-stepper-window>
+      <v-stepper-window style="width: 100%; padding: 20px">
         <!-- Step 1: Select Token -->
         <v-stepper-window-item :value="1">
-          <TokenInput ref="tokenInputRef" v-model:tokenClass="tokenClass" :showQuantity="false" />
-          <v-row no-gutters>
-            <v-btn :disabled="stepsComplete[1]" color="success" @click="selectToken" :loading="tokenSelectLoading">
-              <div v-if="stepsComplete[1]">
-                <template v-if="stepsComplete[1]">
-                  <v-icon left>mdi-check</v-icon>
-                  Token Selected
-                </template>
-              </div>
-              <template v-else> Select Token </template>
-            </v-btn>
-            <v-spacer></v-spacer>
-            <div v-if="totalSupply !== null && maxSupply !== null && stepsComplete[1]">
-              <p>Total Supply: {{ totalSupply }} Max Supply: {{ maxSupply }}</p>
-            </div>
+          <!-- User Allowances Component -->
+          <UserAllowances @clicked-token="selectProjectToken" :gc-address="connectedUserGCAddress"></UserAllowances>
+
+          <v-row>
+            <v-checkbox v-model="showCustomInput" label="Show Custom Token Input"></v-checkbox>
+            <v-tooltip>
+              <template #activator="{ props }">
+                <v-icon small v-bind="props" class="ml-2">mdi-information-outline</v-icon>
+              </template>
+              <span>
+                Only select this if you know what you're doing!
+              </span>
+            </v-tooltip>
           </v-row>
+
+
+          <div v-if="showCustomInput">
+
+            <TokenInput @update:token-class="deselectToken" ref="tokenInputRef" v-model:tokenClass="tokenClass"
+              :showQuantity="false" />
+
+            <v-row no-gutters>
+
+              <v-btn :disabled="stepsComplete[1]" color="success" @click="selectToken" :loading="tokenSelectLoading">
+                <div v-if="stepsComplete[1]">
+                  <template v-if="stepsComplete[1]">
+                    <v-icon left>mdi-check</v-icon>
+                    Token Selected
+                  </template>
+                </div>
+                <template v-else> Select Token </template>
+              </v-btn>
+              <v-spacer></v-spacer>
+
+
+
+            </v-row>
+
+          </div>
+
+
+          <div v-if="totalSupply !== null && maxSupply !== null && stepsComplete[1]">
+            <p>Total Supply: {{ totalSupply }} Max Supply: {{ maxSupply }}</p>
+          </div>
         </v-stepper-window-item>
 
         <!-- Step 4: Giveaway Settings -->
@@ -79,9 +111,17 @@ import AdminBalanceGrant from '@/components/AdminBalanceGrant.vue'
 import type { FullGiveawayDto, GiveawaySettingsDto } from '@/utils/types'
 import { BrowserConnectClient, GalaChainResponseError } from '@gala-chain/connect'
 import type BigNumber from 'bignumber.js'
+import UserBalances from '@/components/UserBalances.vue'
+import UserAllowances from '@/components/UserAllowances.vue'
+import type { Transaction } from '@/services/GalaSwapApi'
+import { getConnectedAddress } from '@/utils/GalaHelper'
 const tokenInputRef = ref<InstanceType<typeof TokenInput> | null>(null)
-
+const connectedUserGCAddress: Ref<string | null> = ref('')
+const showCustomInput = ref(false)
+const client = new BrowserConnectClient();
 const router = useRouter()
+
+
 
 const stepsComplete: Ref<Record<number, boolean>> = ref({})
 
@@ -91,6 +131,10 @@ const markStepComplete = (stepNumber: number) => {
 
 const resetStep = (stepNumber: number) => {
   stepsComplete.value[stepNumber] = false
+}
+
+async function connect() {
+  connectedUserGCAddress.value = await client.connect();
 }
 
 
@@ -122,7 +166,7 @@ const giveawaySettings = ref<GiveawaySettingsDto>({
 })
 const tokenService = GalaChainApi.getInstance()
 
-let selectedToken: TokenClassKeyProperties | null = null
+let selectedToken: Ref<TokenClassKeyProperties | null> = ref(null)
 const totalSupply: Ref<BigNumber | null> = ref(null)
 const maxSupply: Ref<BigNumber | null> = ref(null)
 const tokenSelectLoading = ref(false);
@@ -131,7 +175,13 @@ async function selectToken() {
   tokenSelectLoading.value = true;
   await tokenService.init()
 
-  const isValid = await tokenInputRef.value?.validate()
+  let isValid;
+  if (showCustomInput.value) {
+    isValid = tokenInputRef.value ? await tokenInputRef.value.validate() : { valid: false };
+  } else {
+    isValid = { valid: true };
+  }
+
   if (isValid.valid) {
     try {
       const { tokenClassDto, tokenClassResponse } = await tokenService.fetchTokenClasses(tokenClass.value)
@@ -140,14 +190,14 @@ async function selectToken() {
         tokenClassResponse.Data &&
         tokenClassResponse.Data[0]
       ) {
-        selectedToken = tokenClassDto
+        selectedToken.value = tokenClassDto
         maxSupply.value = (tokenClassResponse).Data[0].maxSupply
         totalSupply.value = (tokenClassResponse).Data[0].totalSupply
         markStepComplete(1)
       }
     } catch (e: any) {
       resetStep(1)
-      selectedToken = null
+      selectedToken.value = null
       if (e instanceof GalaChainResponseError) {
         showToast(e.Message || 'Unable to get token class', true)
       } else {
@@ -162,6 +212,11 @@ async function selectToken() {
 
 }
 
+
+async function selectProjectToken(transaction: Transaction) {
+  tokenClass.value = transaction.tokenDetails.tokenClass
+  await selectToken();
+}
 // Navigation functions
 function nextStep() {
   if (currentStep.value < 5) {
@@ -194,9 +249,14 @@ function updateGiveawaySettingsValidity(formIsValid: boolean) {
 function stepChanged(payload: { stepNumber: number; isComplete: boolean }) {
   if (payload.isComplete) {
     markStepComplete(payload.stepNumber)
-} else {
+  } else {
     resetStep(payload.stepNumber)
   }
+}
+
+function deselectToken(){
+  selectedToken.value = null;
+  resetStep(1)
 }
 
 async function launchGiveaway() {
@@ -237,6 +297,12 @@ async function launchGiveaway() {
     }
   }
 }
+
+async function load() {
+  connectedUserGCAddress.value = await getConnectedAddress();
+}
+
+load();
 </script>
 
 <style scoped>
