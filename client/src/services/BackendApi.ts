@@ -53,13 +53,34 @@ export async function getProfile(gc_address: string): Promise<Profile> {
   return data
 }
 
-export async function getGiveaways(): Promise<Giveaway[]> {
+export async function getGiveaways(gcAddress: string): Promise<Giveaway[]> {
+  const { showToast } = useToast()
+
+  const response = await fetch(`${baseURL}/api/giveaway/all`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+      'GC-Address': gcAddress
+    }
+  })
+
+  if (!response.ok) {
+    const message = await response.text()
+    showToast(message, true)
+    throw new Error(message)
+  }
+
+  const data = await response.json()
+
+  return data
+}
+export async function getActiveGiveaways(): Promise<Giveaway[]> {
   const { showToast } = useToast()
 
   const response = await fetch(`${baseURL}/api/giveaway/active`, {
     method: 'GET',
     headers: {
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
     }
   })
 

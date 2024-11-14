@@ -149,7 +149,7 @@
 <script setup lang="ts">
 import type { TokenClassKey, TokenClassKeyProperties } from '@gala-chain/api';
 import type { GiveawaySettingsDto } from '@/utils/types'
-import { ref, computed, defineProps, watch, type PropType, type Ref } from 'vue'
+import { ref, computed, defineProps, watch, type PropType, type Ref, nextTick } from 'vue'
 import { MAX_WINNERS } from '../utils/constants'
 import TokenInput from '@/components/TokenInput.vue'
 import { onMounted } from 'vue';
@@ -333,7 +333,8 @@ async function checkValidation() {
 
 
 watch([props.giveawaySettings], async () => {
-  await checkValidation()
+  nextTick(async () => { await checkValidation() }),
+    { deep: true }
 })
 // Giveaway duration display
 const giveawayDuration = computed(() => {

@@ -1,42 +1,76 @@
 <template>
   <v-container>
     <v-progress-circular indeterminate v-if="loading"></v-progress-circular>
-    <v-list v-else-if="giveaways.length">
-      <v-list-item v-for="(giveaway, index) in giveaways" :key="index" @click="signGiveaway(giveaway)"
-        class="giveaway-item">
-        <v-list-item-title>
-          {{ tokenToReadable(giveaway.giveawayToken) }} - {{ giveaway.tokenQuantity }} tokens
-        </v-list-item-title>
-        <v-list-item-subtitle>
-          {{ getEndDateMessage(giveaway.endDateTime) }}
-        </v-list-item-subtitle>
-        <v-list-item-subtitle v-if="giveaway.requireBurnTokenToClaim">
-          Requires {{ giveaway.burnTokenQuantity }} burnable token(s) of:
-          "{{ tokenToReadable(giveaway.burnToken) }}" to claim
-        </v-list-item-subtitle>
-        <v-list-item-action>
-          <div v-if="isUserSignedUp(giveaway)">
-            Signed Up <v-icon class="ml-2">mdi-check-circle</v-icon>
-          </div>
-          <div v-else-if="giveaway.telegramAuthRequired">Telegram Auth Required</div>
-        </v-list-item-action>
-      </v-list-item>
-    </v-list>
-    <div v-else>
-      No giveways yet. Why not start one?
-    </div>
+    <div v-else-if="giveaways.length">
+      <div v-if="activeGiveaways.length">
+        <v-list-subheader>Active Giveaways</v-list-subheader>
+        <v-list>
+          <v-list-item v-for="(giveaway, index) in activeGiveaways" :key="index" @click="signGiveaway(giveaway)"
+            class="giveaway-item">
+            <v-list-item-title>
+              Giveway of {{ giveaway.tokenQuantity }} "{{ tokenToReadable(giveaway.giveawayToken) }}" Tokens
+            </v-list-item-title>
+            <v-list-item-subtitle>
+              Winners Possible: {{ giveaway.winnerCount }} </v-list-item-subtitle>
+            <v-list-item-subtitle>
+              {{ getEndDateMessage(giveaway.endDateTime) }}
+            </v-list-item-subtitle>
+            <v-list-item-subtitle v-if="giveaway.requireBurnTokenToClaim">
+              Requires {{ giveaway.burnTokenQuantity }} burnable token(s) of:
+              "{{ tokenToReadable(giveaway.burnToken) }}" to claim
+            </v-list-item-subtitle>
+            <v-list-item-action>
+              <div v-if="isUserSignedUp(giveaway)">
+                Signed Up <v-icon class="ml-2">mdi-check-circle</v-icon>
+              </div>
+              <div v-else-if="giveaway.telegramAuthRequired">Telegram Auth Required</div>
+            </v-list-item-action>
+          </v-list-item>
+        </v-list>
+      </div>
 
+
+      <v-divider style="margin-top: 20px; margin-bottom: 20px;"></v-divider>
+
+      <!-- Completed Giveaways -->
+      <div v-if="completedGiveaways.length">
+        <v-list-subheader>Completed Giveaways</v-list-subheader>
+        <v-list>
+          <v-list-item v-for="(giveaway, index) in completedGiveaways" :key="index" class="giveaway-item">
+            <v-list-item-title>
+              Giveway of {{ giveaway.tokenQuantity }} "{{ tokenToReadable(giveaway.giveawayToken) }}" Tokens
+            </v-list-item-title>
+            <v-list-item-subtitle>
+              {{ getEndDateMessage(giveaway.endDateTime) }}
+            </v-list-item-subtitle>
+            <v-list-item-subtitle v-if="giveaway.requireBurnTokenToClaim">
+              Requires {{ giveaway.burnTokenQuantity }} burnable token(s) of:
+              "{{ tokenToReadable(giveaway.burnToken) }}" to claim
+            </v-list-item-subtitle>
+            <v-list-item-action>
+              <div v-if="giveaway.isWinner">
+                You won!!! <v-icon class="ml-2">mdi-check-circle</v-icon>
+              </div>
+              <div v-else-if="giveaway.telegramAuthRequired">Telegram Auth Required</div>
+            </v-list-item-action>
+          </v-list-item>
+        </v-list>
+      </div>
+    </div>
+    <div v-else>
+      No giveaways yet. Why not start one?
+    </div>
   </v-container>
 </template>
 
 <script lang="ts" setup>
-import { getGiveaways, signupForGiveaway } from '@/services/BackendApi'
+import { getActiveGiveaways, getGiveaways, signupForGiveaway } from '@/services/BackendApi'
 import type { SignupForGiveawayDto } from '@/utils/types'
 import type { TokenClassKeyProperties } from '@gala-chain/api'
 import { BrowserConnectClient } from '@gala-chain/connect'
-import { defineComponent, ref, onMounted } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { useToast } from '../composables/useToast'
-import { getConnectedAddress, tokenToReadable } from '../utils/GalaHelper'
+import { getConnectedAddress, isEthersRejectedRequest, tokenToReadable } from '../utils/GalaHelper'
 
 export interface Giveaway {
   _id: string
@@ -50,25 +84,49 @@ export interface Giveaway {
   requireBurnTokenToClaim: boolean
   burnTokenQuantity?: string
   burnToken: TokenClassKeyProperties
+  isWinner?: boolean
 }
-const { showToast } = useToast()
-let connectedUserGCAddress = ref<string | null>()
-const giveaways = ref<Giveaway[]>([])
-const loading = ref(true);
 
-// Fetch giveaways on component mount
+const { showToast } = useToast()
+const connectedUserGCAddress = ref<string | null>(null)
+const giveaways = ref<Giveaway[]>([])
+const loading = ref(true)
+
 const fetchGiveaways = async () => {
-  loading.value = true;
+  loading.value = true
   connectedUserGCAddress.value = await getConnectedAddress()
-  giveaways.value = await getGiveaways()
-  loading.value = false;
+  if (connectedUserGCAddress.value) {
+    giveaways.value = await getGiveaways(connectedUserGCAddress.value)
+  } else {
+    giveaways.value = await getActiveGiveaways()
+  }
+  loading.value = false
 }
 
 onMounted(() => {
   fetchGiveaways()
 })
 
-// Method to sign up for a giveaway
+const activeGiveaways = computed(() => {
+  return giveaways.value.filter((giveaway) => {
+    if (giveaway.endDateTime) {
+      return new Date(giveaway.endDateTime) > new Date()
+    }
+    // If no endDateTime is provided, consider it active
+    return true
+  })
+})
+
+const completedGiveaways = computed(() => {
+  return giveaways.value.filter((giveaway) => {
+    if (giveaway.endDateTime) {
+      return new Date(giveaway.endDateTime) <= new Date()
+    }
+    // If no endDateTime is provided, consider it active
+    return false
+  })
+})
+
 const signGiveaway = async (giveaway: Giveaway) => {
   try {
     const connectClient = new BrowserConnectClient()
@@ -86,18 +144,24 @@ const signGiveaway = async (giveaway: Giveaway) => {
     giveaway.usersSignedUp.push(connectedUserGCAddress.value)
     showToast('Signup Successful, good luck!')
   } catch (error: any) {
-    console.error('Error signing up for giveaway:', error)
-    showToast(`${error.message || 'Unable to signup. Unknown error'}`, true)
+    if (error.message && error.message.includes("ACTION_REJECTED")) {
+      showToast(`Rejected sign request`, true)
+    } else {
+      console.error('Error signing up for giveaway:', error)
+      showToast(`${error.message || 'Unable to signup. Unknown error'}`, true)
+    }
   }
 }
 
-// Check if the user is already signed up for the giveaway
 const isUserSignedUp = (giveaway: Giveaway): boolean => {
   return (
     !!connectedUserGCAddress.value &&
-    !!giveaway.usersSignedUp.find((gcWallet) => connectedUserGCAddress.value === gcWallet)
+    giveaway.usersSignedUp.includes(connectedUserGCAddress.value)
   )
 }
+watch(connectedUserGCAddress, () => {
+  fetchGiveaways();
+});
 
 const getEndDateMessage = (dateString?: string): string => {
   if (dateString) {
@@ -119,9 +183,3 @@ const getEndDateMessage = (dateString?: string): string => {
   return 'No end date'
 }
 </script>
-
-<style scoped>
-.giveaway-item {
-  cursor: pointer;
-}
-</style>
