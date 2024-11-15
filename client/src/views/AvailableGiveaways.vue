@@ -70,7 +70,7 @@ import type { TokenClassKeyProperties } from '@gala-chain/api'
 import { BrowserConnectClient } from '@gala-chain/connect'
 import { ref, onMounted, computed, watch } from 'vue'
 import { useToast } from '../composables/useToast'
-import { getConnectedAddress, isEthersRejectedRequest, tokenToReadable } from '../utils/GalaHelper'
+import { getConnectedAddress, tokenToReadable } from '../utils/GalaHelper'
 
 export interface Giveaway {
   _id: string
