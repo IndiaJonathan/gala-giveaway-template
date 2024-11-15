@@ -18,7 +18,7 @@
               <v-divider style="margin-top: 10px;"></v-divider>
             </v-list-item>
           </v-list>
-          <v-alert v-else type="info" color="primary" dark> No tokens, yet! </v-alert>
+          <v-alert v-else type="info" color="primary" dark> No tokens yet! </v-alert>
         </v-card>
       </v-col>
     </v-row>
