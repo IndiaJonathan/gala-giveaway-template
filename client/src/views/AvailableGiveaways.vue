@@ -16,8 +16,8 @@
               {{ getEndDateMessage(giveaway.endDateTime) }}
             </v-list-item-subtitle>
             <v-list-item-subtitle v-if="giveaway.requireBurnTokenToClaim">
-              Requires {{ giveaway.burnTokenQuantity }} burnable token(s) of:
-              "{{ tokenToReadable(giveaway.burnToken) }}" to claim
+              Requires burning {{ giveaway.burnTokenQuantity }} token(s) of:
+              {{ tokenToReadable(giveaway.burnToken) }} to claim
             </v-list-item-subtitle>
             <v-list-item-action>
               <div v-if="isUserSignedUp(giveaway)">
@@ -25,6 +25,7 @@
               </div>
               <div v-else-if="giveaway.telegramAuthRequired">Telegram Auth Required</div>
             </v-list-item-action>
+            <v-divider style="margin-top: 10px;"></v-divider>
           </v-list-item>
         </v-list>
       </div>
@@ -43,16 +44,13 @@
             <v-list-item-subtitle>
               {{ getEndDateMessage(giveaway.endDateTime) }}
             </v-list-item-subtitle>
-            <v-list-item-subtitle v-if="giveaway.requireBurnTokenToClaim">
-              Requires {{ giveaway.burnTokenQuantity }} burnable token(s) of:
-              "{{ tokenToReadable(giveaway.burnToken) }}" to claim
-            </v-list-item-subtitle>
             <v-list-item-action>
               <div v-if="giveaway.isWinner">
-                You won!!! <v-icon class="ml-2">mdi-check-circle</v-icon>
+                You won! <v-icon class="ml-2">mdi-check-circle</v-icon>
               </div>
-              <div v-else-if="giveaway.telegramAuthRequired">Telegram Auth Required</div>
             </v-list-item-action>
+            <v-divider style="margin-top: 10px;"></v-divider>
+
           </v-list-item>
         </v-list>
       </div>

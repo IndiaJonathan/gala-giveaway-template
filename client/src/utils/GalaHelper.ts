@@ -1,8 +1,17 @@
 import type { TokenAllowance, TokenClassKeyProperties } from '@gala-chain/api'
 import { getAddress } from 'ethers'
 
-export function tokenToReadable(token: TokenClassKeyProperties){
-  return `${token.collection}|${token.category}|${token.type}|${token.additionalKey}`
+export function tokenToReadable(token: TokenClassKeyProperties) {
+  if (
+    token.collection === 'GALA' &&
+    token.category === 'Unit' &&
+    token.type === 'none' &&
+    token.additionalKey === 'none'
+  ) {
+    return 'GALA'
+  } else {
+    return `${token.collection}|${token.category}|${token.type}|${token.additionalKey}`
+  }
 }
 export function getGalaChainAddress(ethAddress: string) {
   return ethAddress.replace('0x', 'eth|')

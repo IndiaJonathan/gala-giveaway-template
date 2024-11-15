@@ -7,7 +7,7 @@
           <v-list v-if="data && data.length">
             <v-list-item v-for="(item, index) in data" :key="index" @click="checkClaimBurnable(item)" class=" my-4">
               <v-list-item-title class="text-h6">
-                Won Token: <strong>{{ formatTokenName(item.giveawayToken) }}</strong>
+                Won Token: <strong>{{ tokenToReadable(item.giveawayToken) }}</strong>
               </v-list-item-title>
               <v-list-item-subtitle>
                 <strong>Amount Won:</strong> {{ item.amountWon }}
@@ -15,7 +15,7 @@
 
               <v-list-item-subtitle v-if="item.burnToken">
                 <strong>Burn Requirement:</strong> {{ item.burnTokenQuantity || 'No quantity specified' }} {{
-                  formatTokenName(item.burnToken) }}
+                  tokenToReadable(item.burnToken) }}
               </v-list-item-subtitle>
 
 
@@ -38,6 +38,7 @@ import { BrowserConnectClient, TokenBalance, type BurnTokensRequest } from '@gal
 import BigNumber from 'bignumber.js';
 import { useToast } from '@/composables/useToast';
 import { claimWin } from '@/services/BackendApi';
+import { tokenToReadable } from '@/utils/GalaHelper';
 const browserClient = new BrowserConnectClient()
 const emit = defineEmits<{
   (e: 'reload'): void
@@ -50,10 +51,6 @@ const props = defineProps<{
   balances: TokenBalance[],
 }>();
 
-// Format token name function
-function formatTokenName(item: any): string {
-  return `${item.category}|${item.additionalKey}|${item.collection}|${item.type}`;
-}
 
 // Claim burnable token function
 async function checkClaimBurnable(win: ClaimableWinDto): Promise<void> {
@@ -72,9 +69,8 @@ async function checkClaimBurnable(win: ClaimableWinDto): Promise<void> {
       await claimBurnable(win)
 
     } else {
-      showToast(`You need: ${balance.multipliedBy(-1)} more of ${formatTokenName(win.burnToken)} to claim`, true)
+      showToast(`You need: ${balance.multipliedBy(-1)} more of ${tokenToReadable(win.burnToken)} to claim`, true)
     }
-    console.log('Claiming burnable token');
 
   }
 }
