@@ -1,7 +1,6 @@
 import { useToast } from '@/composables/useToast'
 import type { TokenClassKeyProperties } from '@gala-chain/api'
 
-// Load the base URL from environment variables
 const baseURL = import.meta.env.VITE_GALA_SWAP_API
 
 interface GetPublicKeyRequest {
