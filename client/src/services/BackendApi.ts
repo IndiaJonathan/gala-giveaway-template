@@ -1,12 +1,13 @@
 import { useToast } from '@/composables/useToast'
 import type { ClaimableWinDto, FullGiveawayDto, Profile, SignupForGiveawayDto } from '@/utils/types'
 import type { Giveaway } from '@/views/AvailableGiveaways.vue'
-import type { TokenClassKeyProperties } from '@gala-chain/api'
-import type { BurnTokensRequest } from '@gala-chain/connect'
+import type { GalaChainResponse, TokenClassKeyProperties } from '@gala-chain/api'
+import type { BurnTokensRequest, GalaChainResponseSuccess, TokenBalance } from '@gala-chain/connect'
+import type BigNumber from 'bignumber.js'
 
 const baseURL = import.meta.env.VITE_TELEGRAM_SERVER
 
-export async function GetAdminQuantityAvailable(
+export async function GetGiveawayBalances(
   tokenClassKey: TokenClassKeyProperties,
   gc_address: string
 ) {
@@ -23,8 +24,8 @@ export async function GetAdminQuantityAvailable(
   }
 
   const data: {
-    totalQuantity: string
-    unuseableQuantity: string
+    allowances: { totalQuantity: string; unuseableQuantity: string }
+    balances: BigNumber
     giveawayWallet: string
   } = await response.json()
 
@@ -80,7 +81,7 @@ export async function getActiveGiveaways(): Promise<Giveaway[]> {
   const response = await fetch(`${baseURL}/api/giveaway/active`, {
     method: 'GET',
     headers: {
-      'Content-Type': 'application/json',
+      'Content-Type': 'application/json'
     }
   })
 
