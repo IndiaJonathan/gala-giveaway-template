@@ -44,8 +44,7 @@
       <h1>GALA Token Requirements</h1>
 
       <div v-if="giveawayGalaBalance" class="text-muted mb-4">
-        <p>You have a balance of <strong>{{ giveawayGalaBalance }}</strong> tokens in the giveaway wallet for fees but
-          need {{ estimateGalaFees() }}.
+        <p>You have a balance of <strong>{{ giveawayGalaBalance }}</strong> tokens in the giveaway wallet for fees.
         </p>
       </div>
       <div v-else class="text-muted mb-4">
@@ -156,7 +155,7 @@ async function grantAdditionalAllowance() {
     return
   }
   if (!props.giveawaySettings.tokenQuantity) {
-    showToast('Unable to find the token quantity, please make sure it is set in step 2!')
+    showToast('Unable to find the token quantity, please make sure it is set in step 2!', true)
     return
   }
   await tokenService.init()
