@@ -1,25 +1,43 @@
 <template>
   <v-container v-if="!loading">
-    <h1 class="text-center">Your Created Tokens</h1>
-    <v-row class="justify-center">
-      <v-col cols="12" md="8">
-        <v-card class="pa-4">
-          <v-list v-if="createdTokens && createdTokens.length" dense>
-            <v-list-item v-for="(item, index) in createdTokens" :key="index" class="token-list-item"
-              :class="{ 'selected-token': selectedToken?.id === item.id }" @click="handleTokenClick(item)" clickable>
-              <v-img :src="item.tokenDetails.image" alt="Token Image" />
-              <v-list-item-title class="text-h6">
-                <strong>{{ item.tokenDetails.name }}</strong>
-              </v-list-item-title>
-            </v-list-item>
-          </v-list>
-          <v-alert v-else type="info" color="primary" dark>
-            You haven't created any tokens on this wallet. Create one at:
-            <a :href="galaConnectURL" target="_blank" style="color: #ffffff; text-decoration: underline;">Gala
-              Connect</a>
-          </v-alert> </v-card>
-      </v-col>
-    </v-row>
+    <div v-if="createdTokens && createdTokens.length">
+      <h1 class="text-center">Your Created Tokens</h1>
+      <v-row class="justify-center">
+        <v-col cols="12" md="8">
+          <v-card class="pa-4">
+            <v-list dense>
+              <v-list-item v-for="(item, index) in createdTokens" :key="index" class="token-list-item"
+                :title=item.tokenDetails.name :class="{ 'selected-token': selectedToken?.id === item.id }"
+                @click="handleTokenClick(item)" :prepend-avatar=item.tokenDetails.image clickable />
+
+            </v-list>
+          </v-card>
+        </v-col>
+      </v-row>
+    </div>
+
+
+    <div v-if="pendingTokens && pendingTokens.length">
+      <h1 class="text-center">Your Tokens Currently Pending Node Vote</h1>
+      <v-row class="justify-center">
+        <v-col cols="12" md="8">
+          <v-card class="pa-4">
+            <v-list dense>
+              <v-list-item v-for="(item, index) in pendingTokens" :key="index" class="token-list-item"
+                :title=item.tokenDetails.name :class="{ 'selected-token': selectedToken?.id === item.id }"
+                :prepend-avatar=item.tokenDetails.image />
+            </v-list>
+          </v-card>
+        </v-col>
+      </v-row>
+    </div>
+
+    <v-alert v-else-if="(!pendingTokens || !pendingTokens.length) && (!createdTokens || !createdTokens.length)"
+      type="info" color="primary" dark>
+      You haven't created any tokens on this wallet. Create one at:
+      <a :href="galaConnectURL" target="_blank" style="color: #ffffff; text-decoration: underline;">Gala
+        Connect</a>
+    </v-alert>
   </v-container>
   <v-progress-circular v-else indeterminate></v-progress-circular>
 </template>
@@ -41,11 +59,14 @@ const emit = defineEmits<{
 }>()
 
 const createdTokens: Ref<Transaction[]> = ref([])
+const pendingTokens: Ref<Transaction[]> = ref([])
 
 async function load() {
   if (!props.gcAddress) return;
   loading.value = true;
-  createdTokens.value = (await getCreatedTokens(props.gcAddress)).jobs
+  const jobs = await getCreatedTokens(props.gcAddress);
+  createdTokens.value = jobs.completedJobs
+  pendingTokens.value = jobs.pendingJobs
   loading.value = false;
 }
 

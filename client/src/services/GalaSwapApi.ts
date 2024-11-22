@@ -47,7 +47,7 @@ export interface createdTokenResponse {
 }
 
 //todo: add this
-export async function getCreatedTokens(gcAddress: string): Promise<createdTokenResponse> {
+export async function getCreatedTokens(gcAddress: string) {
   try {
     const response = await fetch(`${baseURL}/v1/tokencreationjobs`, {
       method: 'GET',
@@ -62,7 +62,13 @@ export async function getCreatedTokens(gcAddress: string): Promise<createdTokenR
     }
 
     const data: createdTokenResponse = await response.json()
-    return data
+    if (data && data.jobs) {
+      const pendingJobs = data.jobs.filter((job) => job.status === 'PENDING_NODE_VOTE_RESULT')
+      const completedJobs = data.jobs.filter((job) => job.status === 'CREATED')
+      return { pendingJobs, completedJobs }
+    } else {
+      return { pendingJobs: [], completedJobs: [] }
+    }
   } catch (error) {
     console.error('Error fetching created tokens:', error)
     throw error
@@ -89,7 +95,7 @@ export async function getPublicKey(user: string): Promise<string | null> {
     )
 
     if (!response.ok) {
-      showToast('Unable to get your public key, are you signed up?', false)
+      showToast('Unable to get your public key, are you signed up?', true)
       throw new Error('Network response was not ok')
     }
 
