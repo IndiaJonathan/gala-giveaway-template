@@ -1,5 +1,5 @@
 import { useToast } from '@/composables/useToast'
-import type { ClaimableWinDto, FullGiveawayDto, Profile, SignupForGiveawayDto } from '@/utils/types'
+import type { BasicGivewaySettingsDto, ClaimableWinDto, ClaimFCFSDto, GiveawayBalances, Profile, SignupForGiveawayDto, StartBasicGivewaySettingsDto } from '@/utils/types'
 import type { Giveaway } from '@/views/AvailableGiveaways.vue'
 import type { GalaChainResponse, TokenClassKeyProperties } from '@gala-chain/api'
 import type { BurnTokensRequest, GalaChainResponseSuccess, TokenBalance } from '@gala-chain/connect'
@@ -23,17 +23,13 @@ export async function GetGiveawayBalances(
     throw new Error('Network response was not ok')
   }
 
-  const data: {
-    allowances: { totalQuantity: string; unuseableQuantity: string }
-    balances: BigNumber
-    giveawayWallet: string
-  } = await response.json()
+  const data: GiveawayBalances = await response.json()
 
   if (data) {
     return data
   }
 
-  return null
+  return undefined
 }
 
 export async function getProfile(gc_address: string): Promise<Profile> {
@@ -97,7 +93,7 @@ export async function getActiveGiveaways(): Promise<Giveaway[]> {
 }
 
 export async function claimWin(win: BurnTokensRequest & { claimId: string }) {
-  const response = await fetch(`${baseURL}/api/giveaway/claim`, {
+  const response = await fetch(`${baseURL}/api/giveaway/randomgiveaway/claim`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
@@ -115,7 +111,26 @@ export async function claimWin(win: BurnTokensRequest & { claimId: string }) {
   return data
 }
 
-export async function startGiveaway(giveaway: FullGiveawayDto) {
+export async function requestClaimFCFS(claim: ClaimFCFSDto) {
+  const response = await fetch(`${baseURL}/api/giveaway/fcfs/claim`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(claim)
+  })
+
+  if (!response.ok) {
+    const message = await response.json()
+    throw message?.error || 'Unable to claim'
+  }
+
+  const data = await response.json()
+
+  return data
+}
+
+export async function startGiveaway(giveaway: StartBasicGivewaySettingsDto) {
   const response = await fetch(`${baseURL}/api/giveaway/start`, {
     method: 'POST',
     headers: {

@@ -1,30 +1,39 @@
 <template>
+
+  <div class="d-flex justify-center" style="padding-top: 20px;">
+    <v-btn color="primary" v-if="!connectedUserGCAddress" @click="connect">Sign In</v-btn>
+  </div>
+
+  <v-dialog :model-value="!!selectedGiveaway" v-if="!!selectedGiveaway" max-width="400px">
+    <v-card>
+      <v-card-title class="text-h5">Confirm Action</v-card-title>
+      <v-card-text v-if="selectedGiveaway">
+        To claim this giveaway costs {{ selectedGiveaway.burnTokenQuantity }} {{
+          tokenToReadable(selectedGiveaway.burnToken) }}. Do you want to
+        claim it?
+      </v-card-text>
+      <v-card-actions>
+        <v-spacer></v-spacer>
+        <v-btn @click="cancel">Cancel</v-btn>
+        <v-btn color="primary" @click="confirm">Confirm</v-btn>
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
+
   <v-container>
     <v-progress-circular indeterminate v-if="loading"></v-progress-circular>
     <div v-else-if="giveaways.length">
       <div v-if="activeGiveaways.length">
         <v-list-subheader>Active Giveaways</v-list-subheader>
         <v-list>
-          <v-list-item v-for="(giveaway, index) in activeGiveaways" :key="index" @click="signGiveaway(giveaway)"
-            class="giveaway-item">
-            <v-list-item-title>
-              Giveway of {{ giveaway.tokenQuantity }} "{{ tokenToReadable(giveaway.giveawayToken) }}" Tokens
-            </v-list-item-title>
-            <v-list-item-subtitle>
-              Winners Possible: {{ giveaway.winnerCount }} </v-list-item-subtitle>
-            <v-list-item-subtitle>
-              {{ getEndDateMessage(giveaway.endDateTime) }}
-            </v-list-item-subtitle>
-            <v-list-item-subtitle v-if="giveaway.requireBurnTokenToClaim">
-              Requires burning {{ giveaway.burnTokenQuantity }} token(s) of:
-              {{ tokenToReadable(giveaway.burnToken) }} to claim
-            </v-list-item-subtitle>
-            <v-list-item-action>
-              <div v-if="isUserSignedUp(giveaway)">
-                Signed Up <v-icon class="ml-2">mdi-check-circle</v-icon>
-              </div>
-              <div v-else-if="giveaway.telegramAuthRequired">Telegram Auth Required</div>
-            </v-list-item-action>
+          <v-list-item v-for="(giveaway, index) in activeGiveaways" :key="index" class="giveaway-item"
+            @click="requestClickGiveaway(giveaway)">
+            <DistributedGiveaway v-if="giveaway.giveawayType === 'DistributedGiveway'"
+              :is-user-signed-up="isUserSignedUp(giveaway)" :giveaway="giveaway">
+            </DistributedGiveaway>
+
+            <FirstComeFirstServe v-if="giveaway.giveawayType === 'FirstComeFirstServe'" :giveaway="giveaway">
+            </FirstComeFirstServe>
             <v-divider style="margin-top: 10px;"></v-divider>
           </v-list-item>
         </v-list>
@@ -62,19 +71,22 @@
 </template>
 
 <script lang="ts" setup>
-import { getActiveGiveaways, getGiveaways, signupForGiveaway } from '@/services/BackendApi'
-import type { SignupForGiveawayDto } from '@/utils/types'
-import type { TokenClassKeyProperties } from '@gala-chain/api'
+import { getActiveGiveaways, getGiveaways, requestClaimFCFS, signupForGiveaway } from '@/services/BackendApi'
+import type { ClaimFCFSDto, SignupForGiveawayDto } from '@/utils/types'
+import type { TokenClassKeyProperties, TokenInstanceKey } from '@gala-chain/api'
 import { BrowserConnectClient } from '@gala-chain/connect'
-import { ref, onMounted, computed, watch } from 'vue'
+import { ref, onMounted, computed, watch, type Ref } from 'vue'
 import { useToast } from '../composables/useToast'
 import { getConnectedAddress, tokenToReadable } from '../utils/GalaHelper'
+import DistributedGiveaway from '@/components/DistributedGiveaway.vue'
+import { getEndDateMessage } from '@/utils/Helpers'
+import FirstComeFirstServe from '@/components/FirstComeFirstServe.vue'
 
 export interface Giveaway {
   _id: string
   giveawayToken: TokenClassKeyProperties
   tokenQuantity: string
-  winnerCount: string
+  maxWinners: string
   signature: string
   endDateTime?: string
   usersSignedUp: string[]
@@ -83,22 +95,33 @@ export interface Giveaway {
   burnTokenQuantity?: string
   burnToken: TokenClassKeyProperties
   isWinner?: boolean
+  claimPerUser?: string;
+  claimsLeft?: number;
+  giveawayType: 'FirstComeFirstServe' | 'DistributedGiveway';
 }
 
+const selectedGiveaway: Ref<Giveaway | null> = ref(null)
 const { showToast } = useToast()
 const connectedUserGCAddress = ref<string | null>(null)
 const giveaways = ref<Giveaway[]>([])
 const loading = ref(true)
 
 const fetchGiveaways = async () => {
-  loading.value = true
-  connectedUserGCAddress.value = await getConnectedAddress()
-  if (connectedUserGCAddress.value) {
-    giveaways.value = await getGiveaways(connectedUserGCAddress.value)
-  } else {
-    giveaways.value = await getActiveGiveaways()
+  try {
+
+    loading.value = true
+    connectedUserGCAddress.value = await getConnectedAddress()
+    if (connectedUserGCAddress.value) {
+      giveaways.value = await getGiveaways(connectedUserGCAddress.value)
+    } else {
+      giveaways.value = await getActiveGiveaways()
+    }
+  } catch (e) {
+    showToast((e as any).message || JSON.stringify(e), true);
+    console.error(e)
+  } finally {
+    loading.value = false
   }
-  loading.value = false
 }
 
 onMounted(() => {
@@ -106,12 +129,16 @@ onMounted(() => {
 })
 
 const activeGiveaways = computed(() => {
+  let isActive = true;
   return giveaways.value.filter((giveaway) => {
     if (giveaway.endDateTime) {
-      return new Date(giveaway.endDateTime) > new Date()
+      isActive = new Date(giveaway.endDateTime) > new Date()
+    }
+    if (giveaway.claimsLeft != undefined) {
+      isActive = isActive && giveaway.claimsLeft > 0;
     }
     // If no endDateTime is provided, consider it active
-    return true
+    return isActive
   })
 })
 
@@ -125,22 +152,127 @@ const completedGiveaways = computed(() => {
   })
 })
 
+const requestSignDistributedGiveaway = async (giveaway: Giveaway) => {
+  const connectClient = new BrowserConnectClient()
+  connectedUserGCAddress.value = await connectClient.connect()
+  const userAlreadySigned = isUserSignedUp(giveaway)
+  if (userAlreadySigned) {
+    switch (giveaway.giveawayType) {
+      case 'DistributedGiveway':
+        showToast("You're already signed up!", true)
+        break;
+      case 'FirstComeFirstServe':
+        showToast("You've already claimed this!", true)
+        break;
+    }
+    return
+  }
+
+  if (giveaway.requireBurnTokenToClaim && giveaway.giveawayType === 'FirstComeFirstServe') {
+    selectedGiveaway.value = giveaway;
+    return;
+  }
+
+  await signGiveaway(giveaway)
+
+}
+
+
+async function requestClickGiveaway(giveaway: Giveaway) {
+  switch (giveaway.giveawayType) {
+    case 'DistributedGiveway':
+      return await requestSignDistributedGiveaway(giveaway)
+    case 'FirstComeFirstServe':
+      return await requestSignFCFSGiveaway(giveaway)
+  }
+}
+
+const requestSignFCFSGiveaway = async (giveaway: Giveaway) => {
+  const connectClient = new BrowserConnectClient()
+  connectedUserGCAddress.value = await connectClient.connect()
+  const userAlreadyClaimed = hasUserClaimed(giveaway)
+  if (userAlreadyClaimed) {
+    showToast("You've already claimed this!", true)
+    return
+  }
+
+  if (giveaway.requireBurnTokenToClaim) {
+    //Confirmation dialogue
+    selectedGiveaway.value = giveaway;
+  } else {
+    await claimFCFS(giveaway);
+  }
+
+}
+
+const isUserSignedUp = (giveaway: Giveaway): boolean => {
+  return (
+    !!connectedUserGCAddress.value &&
+    giveaway.usersSignedUp.includes(connectedUserGCAddress.value)
+  )
+}
+const hasUserClaimed = (giveaway: Giveaway): boolean => {
+  return (
+    !!connectedUserGCAddress.value &&
+    !!giveaway.isWinner
+  )
+}
+watch(connectedUserGCAddress, () => {
+  // fetchGiveaways();
+});
+
+
+const claimFCFS = async (giveaway: Giveaway) => {
+  try {
+    const connectClient = new BrowserConnectClient()
+    connectedUserGCAddress.value = await connectClient.connect()
+
+    const signupDto: ClaimFCFSDto = {
+      giveawayId: giveaway._id,
+    }
+
+    if (giveaway.burnToken && giveaway.burnTokenQuantity && giveaway.requireBurnTokenToClaim) {
+      signupDto.tokenInstances = [{ quantity: giveaway.burnTokenQuantity.toString() as any, tokenInstanceKey: { ...giveaway.burnToken, instance: '0' as any } as TokenInstanceKey }]
+    }
+    const signedDto = await connectClient.sign('Claim Giveaway', signupDto as any)
+    await requestClaimFCFS(signedDto)
+
+    // giveaway.usersSignedUp.push(connectedUserGCAddress.value)
+
+    showToast("Claim Successful!")
+
+    giveaway.isWinner = true;
+
+  } catch (error: any) {
+    if (error.message && error.message.includes("ACTION_REJECTED")) {
+      showToast(`Rejected sign request`, true)
+    } else {
+      console.error('Error signing up for giveaway:', error)
+      showToast(`${error.message || 'Unable to signup. Unknown error'}`, true)
+    }
+  }
+}
 const signGiveaway = async (giveaway: Giveaway) => {
   try {
     const connectClient = new BrowserConnectClient()
     connectedUserGCAddress.value = await connectClient.connect()
-    const userAlreadySigned = isUserSignedUp(giveaway)
-    if (userAlreadySigned) {
-      showToast("You're already signed up!")
-      return
-    }
+
     const signupDto: SignupForGiveawayDto = {
       giveawayId: giveaway._id
     }
     const signedDto = await connectClient.sign('Signup for Giveaway', signupDto as any)
     await signupForGiveaway(signedDto)
+
     giveaway.usersSignedUp.push(connectedUserGCAddress.value)
-    showToast('Signup Successful, good luck!')
+
+    switch (giveaway.giveawayType) {
+      case 'DistributedGiveway':
+        showToast('Signup Successful, good luck!')
+        break;
+      case 'FirstComeFirstServe':
+        showToast("Claim Successful!")
+        break;
+    }
   } catch (error: any) {
     if (error.message && error.message.includes("ACTION_REJECTED")) {
       showToast(`Rejected sign request`, true)
@@ -151,33 +283,20 @@ const signGiveaway = async (giveaway: Giveaway) => {
   }
 }
 
-const isUserSignedUp = (giveaway: Giveaway): boolean => {
-  return (
-    !!connectedUserGCAddress.value &&
-    giveaway.usersSignedUp.includes(connectedUserGCAddress.value)
-  )
+async function connect() {
+  const connectClient = new BrowserConnectClient()
+  connectedUserGCAddress.value = await connectClient.connect()
+  await fetchGiveaways();
 }
-watch(connectedUserGCAddress, () => {
-  fetchGiveaways();
-});
 
-const getEndDateMessage = (dateString?: string): string => {
-  if (dateString) {
-    const endDate = new Date(dateString)
-    const now = new Date()
+function cancel() {
+  selectedGiveaway.value = null;
+}
 
-    if (now > endDate) {
-      return `Ended: ${endDate.toLocaleDateString()}`
-    } else {
-      return `Ends: ${endDate.toLocaleString(undefined, {
-        year: 'numeric',
-        month: 'numeric',
-        day: 'numeric',
-        hour: 'numeric',
-        minute: 'numeric'
-      })}`
-    }
+async function confirm() {
+  if (selectedGiveaway.value) {
+    await claimFCFS(selectedGiveaway.value)
+    selectedGiveaway.value = null;
   }
-  return 'No end date'
 }
 </script>

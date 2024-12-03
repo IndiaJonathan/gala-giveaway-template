@@ -35,8 +35,8 @@
 
           <div v-if="showCustomInput">
 
-            <TokenInput @update:token-class="deselectToken" ref="tokenInputRef" v-model:tokenClass="tokenClass"
-              :showQuantity="false" />
+            <TokenInput @update:token-class="deselectToken" ref="tokenInputRef"
+              v-model:tokenClass="giveawaySettings.giveawayToken" :showQuantity="false" />
 
             <v-row no-gutters>
 
@@ -65,19 +65,19 @@
 
         <!-- Step 4: Giveaway Settings -->
         <v-stepper-window-item :value="2">
-          <GiveawaySettings @form-valid="updateGiveawaySettingsValidity" :token-class="tokenClass"
+          <GiveawaySettings @form-valid="updateGiveawaySettingsValidity" :token-class="giveawaySettings.giveawayToken"
             :giveaway-settings="giveawaySettings" />
         </v-stepper-window-item>
 
         <!-- Step 2: Grant Allowance -->
         <v-stepper-window-item :value="3">
-          <AdminBalanceGrant @form-valid="stepChanged" :token-class-key="tokenClass"
+          <AdminBalanceGrant @form-valid="stepChanged" :token-class-key="giveawaySettings.giveawayToken"
             :giveaway-settings="giveawaySettings">
           </AdminBalanceGrant>
         </v-stepper-window-item>
 
         <v-stepper-window-item :value="4">
-          <GiveawaySettings @form-valid="updateGiveawaySettingsValidity" :token-class="tokenClass"
+          <GiveawaySettings @form-valid="updateGiveawaySettingsValidity" :token-class="giveawaySettings.giveawayToken"
             :giveaway-settings="giveawaySettings" read-only />
           <v-btn color="success" @click="launchGiveaway">Launch Giveaway</v-btn>
         </v-stepper-window-item>
@@ -108,7 +108,7 @@ import { useToast } from '@/composables/useToast'
 import { startGiveaway } from '@/services/BackendApi'
 import GiveawaySettings from '@/components/GiveawaySettings.vue'
 import AdminBalanceGrant from '@/components/AdminBalanceGrant.vue'
-import type { FullGiveawayDto, GiveawaySettingsDto } from '@/utils/types'
+import type { GiveawaySettingsDto, StartBasicGivewaySettingsDto } from '@/utils/types'
 import { BrowserConnectClient, GalaChainResponseError } from '@gala-chain/connect'
 import type BigNumber from 'bignumber.js'
 import UserBalances from '@/components/UserBalances.vue'
@@ -140,13 +140,6 @@ async function connect() {
 
 const currentStep = ref(1)
 
-const tokenClass = ref<TokenClassKeyProperties>({
-  collection: '',
-  category: '',
-  type: '',
-  additionalKey: ''
-})
-
 const burnTokenClass = ref<TokenClassKeyProperties>({
   collection: 'GALA',
   category: 'Unit',
@@ -157,12 +150,17 @@ const { showToast } = useToast()
 
 const giveawaySettings = ref<GiveawaySettingsDto>({
   endDateTime: new Date(new Date().setDate(new Date().getDate() + 1)),
-  winners: undefined,
-  tokenQuantity: undefined,
   telegramAuthRequired: false,
   requireBurnTokenToClaim: false,
   burnToken: burnTokenClass.value,
-  burnTokenQuantity: '1'
+  burnTokenQuantity: '1',
+  giveawayType: 'DistributedGiveway',
+  giveawayToken: {
+    collection: '',
+    category: '',
+    type: '',
+    additionalKey: ''
+  }
 })
 const tokenService = GalaChainApi.getInstance()
 
@@ -184,7 +182,7 @@ async function selectToken() {
 
   if (isValid.valid) {
     try {
-      const { tokenClassDto, tokenClassResponse } = await tokenService.fetchTokenClasses(tokenClass.value)
+      const { tokenClassDto, tokenClassResponse } = await tokenService.fetchTokenClasses(giveawaySettings.value.giveawayToken)
       if (
         tokenClassResponse.Status === 1 &&
         tokenClassResponse.Data &&
@@ -214,7 +212,7 @@ async function selectToken() {
 
 
 async function selectProjectToken(transaction: Transaction) {
-  tokenClass.value = transaction.tokenDetails.tokenClass
+  giveawaySettings.value.giveawayToken = transaction.tokenDetails.tokenClass
   await selectToken();
 }
 // Navigation functions
@@ -254,47 +252,41 @@ function stepChanged(payload: { stepNumber: number; isComplete: boolean }) {
   }
 }
 
-function deselectToken(){
+function deselectToken() {
   selectedToken.value = null;
   resetStep(1)
 }
 
 async function launchGiveaway() {
   const settings = giveawaySettings.value
-  const selectedToken = tokenClass
 
   const connectClient = new BrowserConnectClient()
   await connectClient.connect()
 
-  if (settings.endDateTime && settings.tokenQuantity && settings.winners) {
-    const unsignedGiveaway: FullGiveawayDto = {
-      giveawayToken: selectedToken.value,
-      tokenQuantity: settings.tokenQuantity,
-      winnerCount: settings.winners,
-      endDateTime: settings.endDateTime.toISOString(),
-      telegramAuthRequired: settings.telegramAuthRequired || false,
-      requireBurnTokenToClaim: settings.requireBurnTokenToClaim,
-      ...(settings.requireBurnTokenToClaim && {
-        burnTokenQuantity: settings.burnTokenQuantity,
-        burnToken: settings.burnToken,
-      }),
-    }
-    const signedGiveaway = await connectClient.sign('StartGiveaway', unsignedGiveaway)
+  const signableSettings = { ...settings } as any;
+  if (!settings.requireBurnTokenToClaim) {
+    delete signableSettings.burnToken
+    delete signableSettings.burnTokenQuantity
+  }
+  const unsignedGiveaway = {
+    ...signableSettings,
+    ...(settings.endDateTime && { endDateTime: settings.endDateTime.toISOString() }),
+  };
 
-    console.log(settings.endDateTime)
-    try {
-      const result = await startGiveaway(signedGiveaway)
-      if (result?.success) {
-        showToast('Giveaway launched!')
-        router.push('/')
-      } else {
-        console.log(result)
-        showToast(`Failed to launch giveaway. ${result?.message}`, true)
-      }
-    } catch (e: any) {
-      console.warn(e)
-      showToast(`Failed to launch giveaway. ${e.message || ''}`, true)
+  const signedGiveaway = await connectClient.sign('StartGiveaway', unsignedGiveaway)
+
+  try {
+    const result = await startGiveaway(signedGiveaway as StartBasicGivewaySettingsDto)
+    if (result?.success) {
+      showToast('Giveaway launched!')
+      router.push('/')
+    } else {
+      console.log(result)
+      showToast(`Failed to launch giveaway. ${result?.message}`, true)
     }
+  } catch (e: any) {
+    console.warn(e)
+    showToast(`Failed to launch giveaway. ${e.message || ''}`, true)
   }
 }
 

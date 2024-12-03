@@ -43,6 +43,7 @@
 </template>
 
 <script setup lang="ts">
+import { useToast } from '@/composables/useToast';
 import { getCreatedTokens, type Transaction } from '@/services/GalaSwapApi';
 import { ref, watch, type Ref } from 'vue';
 const selectedToken: Ref<Transaction | null> = ref(null);
@@ -60,14 +61,23 @@ const emit = defineEmits<{
 
 const createdTokens: Ref<Transaction[]> = ref([])
 const pendingTokens: Ref<Transaction[]> = ref([])
+const { showToast } = useToast()
 
 async function load() {
   if (!props.gcAddress) return;
-  loading.value = true;
-  const jobs = await getCreatedTokens(props.gcAddress);
-  createdTokens.value = jobs.completedJobs
-  pendingTokens.value = jobs.pendingJobs
-  loading.value = false;
+  try {
+
+    loading.value = true;
+    const jobs = await getCreatedTokens(props.gcAddress);
+    createdTokens.value = jobs.completedJobs
+    pendingTokens.value = jobs.pendingJobs
+    loading.value = false;
+  } catch (e) {
+    showToast((e as any).message || JSON.stringify(e), true);
+    console.error(e)
+  } finally {
+    loading.value = false;
+  }
 }
 
 function handleTokenClick(token: Transaction) {
