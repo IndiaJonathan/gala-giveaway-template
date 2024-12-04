@@ -8,7 +8,7 @@ import BigNumber from 'bignumber.js'
 import { AllowanceType } from '@gala-chain/api'
 import { Wallet } from 'ethers'
 
-const amount = 100;
+const amount = 100000;
 
 // Load environment variables from .env file
 async function mintToken() {

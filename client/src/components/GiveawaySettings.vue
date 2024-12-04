@@ -4,37 +4,82 @@
       <v-card-title class="headline">Giveaway Settings</v-card-title>
       <v-card-text>
         <v-form ref="form">
-          <!-- Number of Winners -->
           <v-row>
-            <v-col cols="12" sm="6">
-              <v-text-field v-model="giveawaySettings.winners" :rules="winnersRules" label="Number of Winners"
-                type="number" min="1" :max="MAX_WINNERS" outlined dense :readonly="props.readOnly"
-                :disabled="props.readOnly" class="flex-grow-1"></v-text-field>
-
-              <!-- Tooltip with information icon next to the input field -->
-
-            </v-col>
-            <v-col>
-              <v-tooltip>
-                <template #activator="{ props }">
-                  <v-icon small v-bind="props" class="ml-2">mdi-information-outline</v-icon>
-                </template>
-                <span>
-                  A winner may win multiple times, as winners are selected with replacement.
-                </span>
-              </v-tooltip>
+            <v-col cols="12">
+              <v-card outlined class="pa-3">
+                <v-card-title class="subheading">Giveaway Type</v-card-title>
+                <v-row>
+                  <v-col cols="12" sm="6">
+                    <v-radio-group v-model="giveawaySettings.giveawayType" row :disabled="props.readOnly">
+                      <v-radio label="First Come, First Serve" value="FirstComeFirstServe"></v-radio>
+                      <v-radio label="Random Giveaway" value="DistributedGiveway"></v-radio>
+                    </v-radio-group>
+                  </v-col>
+                </v-row>
+              </v-card>
             </v-col>
           </v-row>
 
-          <!-- Quantity of Tokens -->
-          <v-row>
-            <v-col cols="12" sm="6">
-              <v-text-field v-model="giveawaySettings.tokenQuantity" :rules="tokenQuantityRules"
-                label="Quantity of Tokens" type="number" min="1" outlined dense :readonly="props.readOnly"
-                :disabled="props.readOnly"></v-text-field>
-            </v-col>
-          </v-row>
+          <!-- First Come, First Serve Settings -->
+          <transition name="fade-slide">
+            <v-row v-if="giveawaySettings.giveawayType === 'FirstComeFirstServe'">
+              <v-col cols="12">
+                <v-card outlined class="pa-3">
+                  <v-card-title class="subheading">First Come, First Serve Settings</v-card-title>
+                  <v-row>
+                    <v-col cols="12" sm="6">
+                      <v-text-field v-model="giveawaySettings.claimPerUser" label="Claim Per User" type="number" min="1"
+                        outlined dense :readonly="props.readOnly" :disabled="props.readOnly"></v-text-field>
+                    </v-col>
+                    <v-col cols="12" sm="6">
+                      <v-text-field v-model="giveawaySettings.maxWinners" :rules="fcfsWinnerRules"
+                        label="Number of Winners" type="number" min="1" :max="MAX_WINNERS" outlined dense
+                        :readonly="props.readOnly" :disabled="props.readOnly" class="flex-grow-1"></v-text-field>
+                    </v-col>
+                    <v-col cols="12" sm="6">
+                      <v-text-field v-model="requiredAmount" label="Quantity of Tokens Needed" type="number" min="1"
+                        outlined dense readonly :disabled="props.readOnly"></v-text-field>
+                    </v-col>
+                  </v-row>
+                </v-card>
+              </v-col>
+            </v-row>
+          </transition>
 
+          <!-- Random Giveaway Settings -->
+          <transition name="fade-slide">
+            <v-row v-if="giveawaySettings.giveawayType === 'DistributedGiveway'">
+              <v-col cols="12">
+                <v-card outlined class="pa-3">
+                  <v-card-title class="subheading">Random Giveaway Settings</v-card-title>
+                  <!-- Number of Winners -->
+                  <v-row>
+                    <v-col cols="12" sm="6">
+                      <v-text-field v-model="giveawaySettings.maxWinners" :rules="distributedWinnerRules"
+                        label="Number of Winners" type="number" min="1" :max="MAX_WINNERS" outlined dense
+                        :readonly="props.readOnly" :disabled="props.readOnly" class="flex-grow-1"></v-text-field>
+
+                    </v-col>
+                    <v-col>
+                      <v-tooltip>
+                        <template #activator="{ props }">
+                          <v-icon small v-bind="props" class="ml-2">mdi-information-outline</v-icon>
+                        </template>
+                        <span>
+                          A winner may win multiple times, as winners are selected with replacement.
+                        </span>
+                      </v-tooltip>
+                    </v-col>
+                    <v-col cols="12" sm="6">
+                      <v-text-field v-model="giveawaySettings.tokenQuantity" :rules="tokenQuantityRules"
+                        label="Quantity of Tokens" type="number" min="1" outlined dense :readonly="props.readOnly"
+                        :disabled="props.readOnly"></v-text-field>
+                    </v-col>
+                  </v-row>
+                </v-card>
+              </v-col>
+            </v-row>
+          </transition>
 
           <v-row>
             <v-col cols="12">
@@ -148,7 +193,6 @@
 
 <script setup lang="ts">
 import type { TokenClassKey, TokenClassKeyProperties } from '@gala-chain/api';
-import type { GiveawaySettingsDto } from '@/utils/types'
 import { ref, computed, defineProps, watch, type PropType, type Ref, nextTick } from 'vue'
 import { MAX_WINNERS } from '../utils/constants'
 import TokenInput from '@/components/TokenInput.vue'
@@ -156,6 +200,8 @@ import { onMounted } from 'vue';
 import { GalaChainApi } from '@/services/GalaChainApi';
 import { GalaChainResponseError } from '@gala-chain/connect';
 import { useToast } from '@/composables/useToast';
+import { getRequiredAmount, getRequiredAmountForFCFS, type FirstComeFirstServeGiveawaySettingsDto, type RandomGiveawaySettingsDto } from '@/utils/types';
+import BigNumber from 'bignumber.js';
 
 
 const { showToast } = useToast()
@@ -166,7 +212,7 @@ const props = defineProps({
     required: true
   },
   giveawaySettings: {
-    type: Object as PropType<GiveawaySettingsDto>,
+    type: Object as PropType<RandomGiveawaySettingsDto | FirstComeFirstServeGiveawaySettingsDto>,
     required: true
   },
   readOnly: {
@@ -180,6 +226,18 @@ const timeMenu = ref<boolean>(false)
 const burnTokenInputRef = ref();
 let selectedBurnToken: Ref<TokenClassKey | null> = ref(null)
 const tokenService = GalaChainApi.getInstance()
+
+const requiredAmount = computed(() => {
+  switch (props.giveawaySettings.giveawayType) {
+    case 'DistributedGiveway':
+      if (!props.giveawaySettings.tokenQuantity) {
+        return null;
+      }
+      return BigNumber(props.giveawaySettings.tokenQuantity);
+    case 'FirstComeFirstServe':
+      return getRequiredAmountForFCFS(props.giveawaySettings);
+  }
+})
 
 
 function tokenClassUpdated() {
@@ -281,18 +339,44 @@ const formattedTime = computed({
 })
 
 // Validation rules
-const winnersRules = [
-  (v: number) => !!v || 'Number of winners is required',
-  (v: number) => v >= 1 || 'Must be at least 1',
-  (v: number) => v <= MAX_WINNERS || `May not exceed ${MAX_WINNERS}`
-]
+const distributedWinnerRules = [
+  (v: number) =>
+    props.giveawaySettings.giveawayType === 'DistributedGiveway'
+      ? !!v || 'Number of winners is required'
+      : true,
+  (v: number) =>
+    props.giveawaySettings.giveawayType === 'DistributedGiveway'
+      ? v >= 1 || 'Must be at least 1'
+      : true,
+  (v: number) =>
+    props.giveawaySettings.giveawayType === 'DistributedGiveway'
+      ? v <= MAX_WINNERS || `May not exceed ${MAX_WINNERS}`
+      : true,
+];
+
+const fcfsWinnerRules = [
+  (v: number) =>
+    props.giveawaySettings.giveawayType === 'FirstComeFirstServe'
+      ? !!v || 'Number of winners is required'
+      : true,
+  (v: number) =>
+    props.giveawaySettings.giveawayType === 'FirstComeFirstServe'
+      ? v >= 1 || 'Must be at least 1'
+      : true,
+  (v: number) =>
+    props.giveawaySettings.giveawayType === 'FirstComeFirstServe'
+      ? v <= MAX_WINNERS || `May not exceed ${MAX_WINNERS}`
+      : true,
+];
 
 const tokenQuantityRules = [
   (v: number) => !!v || 'Token quantity is required',
   (v: number) => v >= 1 || 'Must be at least 1',
   (v: number) =>
-    Number(v) >= Number(props.giveawaySettings.winners) ||
-    'Quantity must be greater than or equal to the number of winners'
+    props.giveawaySettings.giveawayType === 'DistributedGiveway'
+      ? Number(v) >= Number(props.giveawaySettings.maxWinners) ||
+      'Quantity must be greater than or equal to the number of winners'
+      : true,
 ]
 
 const dateRules = [
@@ -312,8 +396,8 @@ const timeRules = [
 async function checkValidation() {
   if (
     props.giveawaySettings.endDateTime &&
-    props.giveawaySettings.tokenQuantity &&
-    props.giveawaySettings.winners
+    getRequiredAmount(props.giveawaySettings) &&
+    (props.giveawaySettings.giveawayType === 'DistributedGiveway' && props.giveawaySettings.maxWinners) || ((props.giveawaySettings.giveawayType === 'FirstComeFirstServe') && props.giveawaySettings.maxWinners && props.giveawaySettings.claimPerUser)
   ) {
     let valid = true;
     if (props.giveawaySettings.requireBurnTokenToClaim) {
@@ -321,6 +405,9 @@ async function checkValidation() {
       valid = burnTokenInputRefValid.valid
       valid = !!(selectedBurnToken.value) && valid
 
+      if (props.giveawaySettings.giveawayType === 'DistributedGiveway') {
+        valid = !!props.giveawaySettings.maxWinners
+      }
     }
     const formValid = await form.value.validate();
     valid = (formValid).valid && valid;
