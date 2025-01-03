@@ -1,15 +1,12 @@
 <template>
   <v-container>
+    {{ isConnected }}
     <v-overlay :value="isLoading" absolute>
       <v-progress-circular indeterminate size="64"></v-progress-circular>
     </v-overlay>
     <v-list two-line>
       Currently Granted Allowances
-      <v-list-item
-        @click="startGiveaway(getTokenKey(allowance))"
-        v-for="(allowance, index) in allowances"
-        :key="index"
-      >
+      <v-list-item @click="startGiveaway(getTokenKey(allowance))" v-for="(allowance, index) in allowances" :key="index">
         <v-list-item-title>
           {{ getTokenKey(allowance) }}
         </v-list-item-title>
@@ -39,6 +36,7 @@ import { useRouter } from 'vue-router'
 import { getTokenKey, getTokenKeyFromString } from '@/utils/GalaHelper'
 import { useToast } from '@/composables/useToast'
 import { getProfile } from '../services/BackendApi'
+import { useProfile } from '@/composables/useProfile';
 const browserClient = new BrowserConnectClient()
 
 const tokenContractUrl = import.meta.env.VITE_TOKEN_CONTRACT_URL
@@ -54,18 +52,20 @@ function startGiveaway(tokenClass: string) {
   // router.push({ name: `CreateGiveaway`, params: { tokenClass } })
 }
 
+const { profile, isConnected } = useProfile();
+
+
 async function fetchBalances() {
   isLoading.value = true
   await browserClient.connect()
-  const profile = await getProfile(browserClient.galaChainAddress)
-  if (!profile || !profile.galaChainAddress) {
+  if (!profile.value || !profile.value.galaChainAddress) {
     showToast('Unable to get giveaway wallet info', true)
     isLoading.value = false
     return
   }
 
   const fetchBalanceDto = await createValidDTO<FetchAllowancesDto>(FetchAllowancesDto, {
-    grantedTo: profile.galaChainAddress
+    grantedTo: profile.value.galaChainAddress
   })
   const response = await tokenApi.FetchAllowances(fetchBalanceDto)
   console.log(response)

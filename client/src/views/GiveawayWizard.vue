@@ -17,10 +17,38 @@
       <v-stepper-window style="width: 100%; padding: 20px">
         <!-- Step 1: Select Token -->
         <v-stepper-window-item :value="1">
+          {{ giveawaySettings.giveawayTokenType }}
+          <h1> Option 1: Create Giveaway from balances</h1>
+          <UserBalances :token-class="giveawaySettings.giveawayToken" :clickable="true"
+            @item-clicked="handleBalanceClick" :data="balances"></UserBalances>
+
+
+          <v-divider style="padding-top: 30px;"></v-divider>
+
+
+          <v-row>
+
+            <h1>Option 2: Create Giveaway from Allowances</h1>
+
+            <v-tooltip>
+              <template #activator="{ props }">
+                <v-icon small v-bind="props" class="ml-2">mdi-information-outline</v-icon>
+              </template>
+              <span>
+                This requires that you are a token authority on the selected token
+              </span>
+            </v-tooltip>
+          </v-row>
+
           <!-- User Allowances Component -->
           <UserAllowances @clicked-token="selectProjectToken" :gc-address="connectedUserGCAddress"></UserAllowances>
 
-          <v-row>
+
+
+
+          <!-- Custom input section -->
+
+          <!-- <v-row>
             <v-checkbox v-model="showCustomInput" label="Show Custom Token Input"></v-checkbox>
             <v-tooltip>
               <template #activator="{ props }">
@@ -55,7 +83,7 @@
 
             </v-row>
 
-          </div>
+          </div> -->
 
 
           <div v-if="totalSupply !== null && maxSupply !== null && stepsComplete[1]">
@@ -63,14 +91,15 @@
           </div>
         </v-stepper-window-item>
 
-        <!-- Step 4: Giveaway Settings -->
+        <!-- Step 2: Giveaway Settings -->
         <v-stepper-window-item :value="2">
           <GiveawaySettings @form-valid="updateGiveawaySettingsValidity" :token-class="giveawaySettings.giveawayToken"
             :giveaway-settings="giveawaySettings" />
         </v-stepper-window-item>
 
-        <!-- Step 2: Grant Allowance -->
+        <!-- Step 3-->
         <v-stepper-window-item :value="3">
+          <!--  Grant Allowance (For allowance based giveaways)-->
           <AdminBalanceGrant @form-valid="stepChanged" :token-class-key="giveawaySettings.giveawayToken"
             :giveaway-settings="giveawaySettings">
           </AdminBalanceGrant>
@@ -98,28 +127,33 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, reactive, type Ref } from 'vue'
+import { ref, reactive, type Ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
 import TokenInput from '@/components/TokenInput.vue'
-import { type TokenClassKeyProperties } from '@gala-chain/api'
 import { GalaChainApi } from '@/services/GalaChainApi'
 import { useToast } from '@/composables/useToast'
 import { startGiveaway } from '@/services/BackendApi'
 import GiveawaySettings from '@/components/GiveawaySettings.vue'
 import AdminBalanceGrant from '@/components/AdminBalanceGrant.vue'
-import type { GiveawaySettingsDto, StartBasicGivewaySettingsDto } from '@/utils/types'
-import { BrowserConnectClient, GalaChainResponseError } from '@gala-chain/connect'
+import { type GiveawaySettingsDto, type StartBasicGivewaySettingsDto } from '@/utils/types'
+import { BrowserConnectClient, GalaChainResponseError, TokenApi, TokenBalance } from '@gala-chain/connect'
 import type BigNumber from 'bignumber.js'
 import UserBalances from '@/components/UserBalances.vue'
 import UserAllowances from '@/components/UserAllowances.vue'
 import type { Transaction } from '@/services/GalaSwapApi'
 import { getConnectedAddress } from '@/utils/GalaHelper'
+import type { TokenClassKeyProperties } from '@gala-chain/api'
+
+
 const tokenInputRef = ref<InstanceType<typeof TokenInput> | null>(null)
 const connectedUserGCAddress: Ref<string | null> = ref('')
 const showCustomInput = ref(false)
 const client = new BrowserConnectClient();
 const router = useRouter()
+const balances: Ref<TokenBalance[]> = ref([])
+
+const tokenContractUrl = import.meta.env.VITE_TOKEN_CONTRACT_URL
 
 
 
@@ -160,14 +194,23 @@ const giveawaySettings = ref<GiveawaySettingsDto>({
     category: '',
     type: '',
     additionalKey: ''
-  }
+  },
+  giveawayTokenType: undefined
 })
 const tokenService = GalaChainApi.getInstance()
 
-let selectedToken: Ref<TokenClassKeyProperties | null> = ref(null)
 const totalSupply: Ref<BigNumber | null> = ref(null)
 const maxSupply: Ref<BigNumber | null> = ref(null)
 const tokenSelectLoading = ref(false);
+
+
+async function handleBalanceClick(item: TokenBalance) {
+  giveawaySettings.value.giveawayToken = { additionalKey: item.additionalKey, category: item.category, collection: item.collection, type: item.type }
+  giveawaySettings.value.giveawayTokenType = 'Balance'
+  await selectToken();
+
+  markStepComplete(1)
+}
 
 async function selectToken() {
   tokenSelectLoading.value = true;
@@ -188,14 +231,12 @@ async function selectToken() {
         tokenClassResponse.Data &&
         tokenClassResponse.Data[0]
       ) {
-        selectedToken.value = tokenClassDto
         maxSupply.value = (tokenClassResponse).Data[0].maxSupply
         totalSupply.value = (tokenClassResponse).Data[0].totalSupply
         markStepComplete(1)
       }
     } catch (e: any) {
       resetStep(1)
-      selectedToken.value = null
       if (e instanceof GalaChainResponseError) {
         showToast(e.Message || 'Unable to get token class', true)
       } else {
@@ -213,6 +254,7 @@ async function selectToken() {
 
 async function selectProjectToken(transaction: Transaction) {
   giveawaySettings.value.giveawayToken = transaction.tokenDetails.tokenClass
+  giveawaySettings.value.giveawayTokenType = 'Allowance'
   await selectToken();
 }
 // Navigation functions
@@ -253,7 +295,6 @@ function stepChanged(payload: { stepNumber: number; isComplete: boolean }) {
 }
 
 function deselectToken() {
-  selectedToken.value = null;
   resetStep(1)
 }
 
@@ -295,6 +336,15 @@ async function load() {
 }
 
 load();
+
+watch(connectedUserGCAddress, async () => {
+  if (connectedUserGCAddress.value) {
+    const tokenApi = new TokenApi(tokenContractUrl, client)
+
+    balances.value = ((await tokenApi.FetchBalances({ owner: connectedUserGCAddress.value })) as any).Data
+
+  }
+})
 </script>
 
 <style scoped>

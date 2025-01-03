@@ -8,6 +8,7 @@ interface BasicGivewaySettingsBase {
   burnTokenQuantity?: string
   burnToken: TokenClassKeyProperties
   maxWinners?: string
+  giveawayTokenType?: "Balance" | "Allowance"
 }
 export interface BasicGivewaySettingsDto extends BasicGivewaySettingsBase {
   endDateTime?: Date
@@ -47,6 +48,8 @@ export function getRequiredAmountForFCFS(giveaway: GiveawaySettingsDto) {
     giveaway.claimPerUser
   ) {
     return BigNumber(giveaway.maxWinners).times(BigNumber(giveaway.claimPerUser))
+  } else {
+    throw new Error(`Unknown amout required for FCFS`)
   }
 }
 
@@ -81,9 +84,19 @@ export interface ClaimableWinDto {
   claimed: boolean
 }
 
-export interface GiveawayBalances {
-  allowances: { totalQuantity: string; unuseableQuantity: string }
-  balances: string
+export interface GiveawayDetails {
+  galaBalance: string
   giveawayWallet: string
   currentGalaFeesNeeded: string
+  detailsType: 'Balance' | 'Allowance'
+}
+
+export interface GiveawayAllowances extends GiveawayDetails {
+  allowances: { totalQuantity: string; unuseableQuantity: string }
+  detailsType: 'Allowance'
+}
+
+export interface GiveawayBalances extends GiveawayDetails {
+  tokenBalance: string
+  detailsType: 'Balance'
 }

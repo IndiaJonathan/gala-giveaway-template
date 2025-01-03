@@ -1,4 +1,3 @@
-// useToast.ts
 import { reactive } from 'vue'
 
 interface ToastOptions {

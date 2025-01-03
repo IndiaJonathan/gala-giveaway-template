@@ -17,3 +17,7 @@ export const getEndDateMessage = (dateString?: string): string => {
   }
   return 'No end date'
 }
+
+export function isErrorWithMessage(error: unknown): error is { Message: string } {
+  return typeof error === 'object' && error !== null && 'Message' in error;
+}

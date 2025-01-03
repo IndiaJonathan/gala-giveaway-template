@@ -3,9 +3,6 @@
     <div v-if="isLoading" class="text-center my-8">
       <v-progress-circular indeterminate size="48"></v-progress-circular>
     </div>
-    <v-alert v-if="!requiredAmount" type="info" class="mb-6">
-      Please go back to Step 2 to set all required settings.
-    </v-alert>
 
     <v-form v-else-if="!isLoading">
 
@@ -14,49 +11,38 @@
 
         <h1>Giveaway Token Requirements</h1>
 
-        <div v-if="giveawayBalanceData?.allowances" class="text-muted mb-4">
-          <p>You have a net allowance of <strong>{{ giveawayBalanceData.allowances.totalQuantity }}</strong> tokens
-            allocated to the giveaway wallet.
-          </p>
+
+        <div v-if="giveawayBalanceData.detailsType === 'Allowance' &&
+          giveawaySettings.giveawayTokenType === 'Allowance'">
+          <AllowanceCheck :giveaway-settings="giveawaySettings"
+            :granted-allowance-quantity="BigNumber(giveawayBalanceData.allowances.totalQuantity)"
+            :required-amount="requiredTokenAmount" v-on:allowance-granted="loadBalances"></AllowanceCheck>
         </div>
-        <div v-else class="text-muted mb-4">
-          <p>You have not granted any allowance of this token to the giveaway wallet yet.</p>
-        </div>
-
-
-        <v-alert v-if="BigNumber(giveawayBalanceData?.allowances.totalQuantity || 0).gte(requiredAmount)" type="success"
-          dense outlined class="mb-4">
-          You have sufficient allowance to start the giveaway.
-        </v-alert>
-
-        <div v-else class="text-muted mb-4">
-          <p>
-            You need to grant an additional
-            <strong> {{ requiredAmount.minus(new BigNumber(giveawayBalanceData?.allowances.totalQuantity ||
-              0)) }}
-            </strong>
-            tokens to meet the requirement.
-          </p>
-          <v-btn color="primary" @click="grantAdditionalAllowance" class="mt-2">
-            Grant Additional Allowance
-          </v-btn>
+        <div
+          v-else-if="giveawayBalanceData.detailsType === 'Balance' && giveawaySettings.giveawayTokenType === 'Balance'">
+          <BalanceCheck :giveaway-settings="giveawaySettings"
+            :admin-balance-quantity="BigNumber(giveawayBalanceData.tokenBalance)" :required-amount="requiredTokenAmount"
+            v-on:token-transfered="loadBalances">
+          </BalanceCheck>
         </div>
 
         <v-divider></v-divider>
 
         <h1>GALA Token Requirements</h1>
 
-        <div v-if="giveawayBalanceData?.balances" class="text-muted mb-4">
-          <p>You have a balance of <strong>{{ giveawayBalanceData.balances }}</strong> tokens in the giveaway wallet for
+        <div v-if="giveawayBalanceData?.galaBalance" class="text-muted mb-4">
+          <p>You have a balance of <strong>{{ giveawayBalanceData.galaBalance }}</strong> tokens in the giveaway wallet
+            for
             fees.
           </p>
         </div>
         <div v-else class="text-muted mb-4">
-          <p>You have no GALA in the giveaway wallet for fees, but need an estimated {{ getGalaCost(giveawayBalanceData) }}</p>
+          <p>You have no GALA in the giveaway wallet for fees, but need an estimated {{ getGalaCost(giveawayBalanceData)
+            }}</p>
         </div>
 
-        <v-alert v-if="BigNumber(giveawayBalanceData?.balances).gte(getGalaCost(giveawayBalanceData))" type="success" dense outlined
-          class="mb-4">
+        <v-alert v-if="BigNumber(giveawayBalanceData?.galaBalance).gte(getGalaCost(giveawayBalanceData))" type="success"
+          dense outlined class="mb-4">
           You have sufficient balance to start the giveaway.
         </v-alert>
 
@@ -64,7 +50,7 @@
 
 
         <div class="text-muted mb-4" v-else-if="
-          getGalaCost(giveawayBalanceData).plus(1).minus(new BigNumber(giveawayBalanceData?.balances || 0)).minus(personalGalaBalance ||
+          getGalaCost(giveawayBalanceData).plus(1).minus(new BigNumber(giveawayBalanceData?.galaBalance || 0)).minus(personalGalaBalance ||
             0).gt(0)">
           <p>
             <strong>
@@ -80,7 +66,7 @@
         <div v-else class="text-muted mb-4">
           <p>
             You need to transfer an additional
-            <strong>{{ getGalaCost(giveawayBalanceData).minus(new BigNumber(giveawayBalanceData.balances || 0))
+            <strong>{{ getGalaCost(giveawayBalanceData).minus(new BigNumber(giveawayBalanceData.galaBalance || 0))
               }}</strong>
             tokens to meet the requirement.
           </p>
@@ -95,7 +81,8 @@
               <v-icon small v-bind="props" class="ml-2">mdi-information-outline</v-icon>
             </template>
             <span>
-              One GALA will be burned as a transfer fee, so {{ getGalaCost(giveawayBalanceData).plus(1).minus(giveawayBalanceData.balances) }} GALA total is required
+              One GALA will be burned as a transfer fee, so {{
+                getGalaCost(giveawayBalanceData).plus(1).minus(giveawayBalanceData.galaBalance) }} GALA total is required
             </span>
           </v-tooltip>
 
@@ -124,18 +111,20 @@
 
 <script setup lang="ts">
 import { useToast } from '@/composables/useToast'
-import { GetGiveawayBalances, getProfile } from '@/services/BackendApi'
+import { GetGiveawayAllowances, GetGiveawayBalances, getProfile } from '@/services/BackendApi'
 import { GalaChainApi } from '@/services/GalaChainApi'
 import BigNumber from "bignumber.js";
-import {
-  type TokenClassKeyProperties
-} from '@gala-chain/api'
 import { computed, ref, watch, type PropType, type Ref } from 'vue'
-import { getRequiredAmountForFCFS, type GiveawayBalances, type GiveawaySettingsDto } from '@/utils/types'
+import { getRequiredAmountForFCFS, type GiveawayAllowances, type GiveawayBalances, type GiveawayDetails, type GiveawaySettingsDto } from '@/utils/types'
 import { BrowserConnectClient } from '@gala-chain/connect'
 import { GALA } from '@/utils/constants';
 import { BadRequestError } from '@tonconnect/sdk';
+import { useProfile } from '@/composables/useProfile';
+import AllowanceCheck from '@/components/AllowanceCheck.vue'
+import { isErrorWithMessage } from '@/utils/Helpers';
+import BalanceCheck from './BalanceCheck.vue';
 
+const { profile } = useProfile();
 const props = defineProps({
   giveawaySettings: {
     type: Object as PropType<GiveawaySettingsDto>,
@@ -161,70 +150,23 @@ function estimateGalaFees() {
   }
 }
 const { showToast } = useToast()
-const giveawayBalanceData: Ref<GiveawayBalances | undefined> = ref()
+const giveawayBalanceData: Ref<GiveawayAllowances | GiveawayBalances | undefined> = ref()
 const personalGalaBalance: Ref<BigNumber | undefined> = ref()
-// const totalAllowance: Ref<BigNumber | undefined> = ref()
-// const giveawayGalaBalance: Ref<BigNumber | undefined> = ref()
+
+
 const browserClient = new BrowserConnectClient()
 const giveawayWallet = ref();
-// const galaBalance: Ref<BigNumber | undefined> = ref()
-const requiredAmount = computed(() => {
+const requiredTokenAmount = computed(() => {
   switch (props.giveawaySettings.giveawayType) {
     case 'DistributedGiveway':
       if (!props.giveawaySettings.tokenQuantity) {
-        return null;
+        throw new Error('Token quantity not set')
       }
       return BigNumber(props.giveawaySettings.tokenQuantity);
     case 'FirstComeFirstServe':
       return getRequiredAmountForFCFS(props.giveawaySettings);
   }
 })
-
-async function grantAdditionalAllowance() {
-  await browserClient.connect()
-  const profile = await getProfile(browserClient.galaChainAddress)
-  if (!profile.giveawayWalletAddress) {
-    showToast(`Unable to get giveaway wallet`, true)
-    return
-  }
-  if (!giveawayBalanceData.value) {
-    showToast(`Please reload balance data`, true)
-    return
-  }
-
-  await tokenService.init()
-  if (!props.giveawaySettings.giveawayToken) {
-    showToast('Please select a token at step 1!')
-  } else {
-    const reqAmount = requiredAmount.value;
-    if (!reqAmount) {
-      showToast('Unable to find the token quantity, please make sure it is set in step 2!', true)
-      return
-    }
-    try {
-
-      const grant = await tokenService.grantAllowance(
-        props.giveawaySettings.giveawayToken,
-        reqAmount.minus(new BigNumber(giveawayBalanceData.value.allowances.totalQuantity || 0)),
-        profile.giveawayWalletAddress
-      )
-      if (grant.Status === 1) {
-        // Success!
-        showToast('Allowance Granted!')
-        await loadBalances()
-      }
-    } catch (e: unknown) {
-      let errorMessage = 'unknown error';
-
-      if (isErrorWithMessage(e)) {
-        errorMessage = e.Message
-      }
-
-      console.error(errorMessage)
-      showToast(`Unable to grant allowance. Error: ${errorMessage}`, true);
-    }
-  }
-}
 
 async function transferGala() {
   await browserClient.connect()
@@ -242,11 +184,12 @@ async function transferGala() {
     showToast('Please select a token at step 1!')
   } else {
     try {
-      const grant = await tokenService.transferGALA(
-        getGalaCost(giveawayBalanceData.value).minus(giveawayBalanceData.value.balances),
+      const transfer = await tokenService.transferToken(
+        GALA,
+        getGalaCost(giveawayBalanceData.value).minus(giveawayBalanceData.value.galaBalance).toString(),
         profile.giveawayWalletAddress
       )
-      if (grant.Status === 1) {
+      if (transfer.Status === 1) {
         // Success!
         showToast('GALA sent!')
         await loadBalances()
@@ -264,13 +207,15 @@ async function transferGala() {
   }
 }
 
-function getGalaCost(balanceData: GiveawayBalances) {
-  return BigNumber(balanceData.currentGalaFeesNeeded).plus(estimateGalaFees())
+function getGalaCost(balanceData: GiveawayDetails) {
+  let additional: BigNumber = BigNumber(0);
+  if (props.giveawaySettings.giveawayTokenType === 'Balance') {
+    additional = requiredTokenAmount.value;
+  }
+  return additional.plus(BigNumber(balanceData.currentGalaFeesNeeded).plus(estimateGalaFees()))
 }
 
-function isErrorWithMessage(error: unknown): error is { Message: string } {
-  return typeof error === 'object' && error !== null && 'Message' in error;
-}
+
 
 async function loadBalances() {
   try {
@@ -285,15 +230,29 @@ async function loadBalances() {
       return
     }
 
-    const balances = await tokenService.getBalances(browserClient.galaChainAddress, GALA);
-    const balance = balances.Data.reduce((total, item) => {
+    const GalaBalances = await tokenService.getBalances(browserClient.galaChainAddress, GALA);
+    const balance = GalaBalances.Data.reduce((total, item) => {
       return total.plus(item.quantity);
     }, new BigNumber(0));
 
+
     personalGalaBalance.value = balance;
-    const response = await GetGiveawayBalances(props.giveawaySettings.giveawayToken, profile.galaChainAddress)
-    giveawayBalanceData.value = response;
-    giveawayWallet.value = response?.giveawayWallet;
+
+    if (props.giveawaySettings.giveawayTokenType === 'Allowance') {
+      const response = await GetGiveawayAllowances({ ...props.giveawaySettings.giveawayToken, instance: '0' } as any, profile.galaChainAddress)
+      giveawayBalanceData.value = response;
+      giveawayWallet.value = response?.giveawayWallet;
+
+      // const giveawayBalance = GalaBalances.Data.reduce((total, item) => {
+      //   return total.plus(item.quantity);
+      // }, new BigNumber(0));
+    } else {
+      //Is balance
+      const response = await GetGiveawayBalances({ ...props.giveawaySettings.giveawayToken, instance: '0' } as any, profile.galaChainAddress)
+      giveawayBalanceData.value = response;
+      giveawayWallet.value = response?.giveawayWallet;
+    }
+
   } catch (e: any) {
     showToast(e.message || 'An error occured', true)
     console.warn(e)
@@ -303,15 +262,22 @@ async function loadBalances() {
 }
 
 watch(
-  [requiredAmount, giveawayBalanceData, props.giveawaySettings, personalGalaBalance],
+  [requiredTokenAmount, giveawayBalanceData, props.giveawaySettings, personalGalaBalance],
   ([tokenQuantity, totalAllowance, winners, galaBalance]) => {
-    if (tokenQuantity && totalAllowance && (BigNumber(giveawayBalanceData.value?.allowances.totalQuantity || 0).gte(tokenQuantity)) && galaBalance?.gt(estimateGalaFees())) {
-      console.log("form-valid")
-      emit('form-valid', { stepNumber: 3, isComplete: true })
-    } else {
-      console.log("form-invalid")
-      emit('form-valid', { stepNumber: 3, isComplete: false })
+    let isComplete = false;
+    if (requiredTokenAmount.value && giveawayBalanceData.value && galaBalance?.gt(estimateGalaFees())) {
+      if (giveawayBalanceData.value.detailsType === 'Allowance' && props.giveawaySettings.giveawayTokenType === 'Allowance'
+        && BigNumber(giveawayBalanceData.value.allowances.totalQuantity).gte(requiredTokenAmount.value)
+      ) {
+        isComplete = true;
+      } else if (giveawayBalanceData.value.detailsType === 'Balance' && props.giveawaySettings.giveawayTokenType === 'Balance'
+        && BigNumber(giveawayBalanceData.value.tokenBalance).gte(requiredTokenAmount.value)
+      ) {
+        isComplete = true;
+      }
     }
+    emit('form-valid', { stepNumber: 3, isComplete })
+
   }, { deep: true }
 )
 loadBalances()

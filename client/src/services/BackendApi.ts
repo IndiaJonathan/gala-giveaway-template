@@ -1,17 +1,48 @@
 import { useToast } from '@/composables/useToast'
-import type { BasicGivewaySettingsDto, ClaimableWinDto, ClaimFCFSDto, GiveawayBalances, Profile, SignupForGiveawayDto, StartBasicGivewaySettingsDto } from '@/utils/types'
+import {
+  type ClaimFCFSDto,
+  type GiveawayAllowances,
+  type GiveawayBalances,
+  type Profile,
+  type SignupForGiveawayDto,
+  type StartBasicGivewaySettingsDto
+} from '@/utils/types'
 import type { Giveaway } from '@/views/AvailableGiveaways.vue'
-import type { GalaChainResponse, TokenClassKeyProperties } from '@gala-chain/api'
-import type { BurnTokensRequest, GalaChainResponseSuccess, TokenBalance } from '@gala-chain/connect'
-import type BigNumber from 'bignumber.js'
+import type { TokenClassKeyProperties } from '@gala-chain/api'
+import type { BurnTokensRequest } from '@gala-chain/connect'
 
 const baseURL = import.meta.env.VITE_TELEGRAM_SERVER
+
+export async function GetGiveawayAllowances(
+  tokenClassKey: TokenClassKeyProperties,
+  gc_address: string
+) {
+  const response = await fetch(`${baseURL}/api/wallet/allowance-available/${gc_address}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(tokenClassKey)
+  })
+
+  if (!response.ok) {
+    throw new Error('Network response was not ok')
+  }
+
+  const data: GiveawayAllowances = await response.json()
+
+  if (data) {
+    return data
+  }
+
+  return undefined
+}
 
 export async function GetGiveawayBalances(
   tokenClassKey: TokenClassKeyProperties,
   gc_address: string
 ) {
-  const response = await fetch(`${baseURL}/api/wallet/allowance-available/${gc_address}`, {
+  const response = await fetch(`${baseURL}/api/wallet/balance-available/${gc_address}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'

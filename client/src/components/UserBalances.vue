@@ -6,7 +6,10 @@
         <v-card class="pa-4">
           <v-divider></v-divider>
           <v-list v-if="data && data.length">
-            <v-list-item v-for="(item, index) in data" :key="index" class="my-4">
+            <v-list-item v-for="(item, index) in data" :key="index" class="my-4"
+              v-bind="clickable ? { onClick: () => handleClick(item, index) } : {}" @item-clicked=""
+              :class="{ 'selected-token': checkEquivalance(item, tokenClass) }">
+
               <v-list-item-title class="text-h6">
                 Token: <strong>{{ tokenToReadable(item) }}</strong>
               </v-list-item-title>
@@ -25,17 +28,34 @@
   </v-container>
 </template>
 
-
 <script lang="ts" setup>
-import type { PropType } from 'vue';
-import { type TokenClassKeyProperties } from "@gala-chain/api";
-import type { TokenBalance } from '@gala-chain/connect';
+import { TokenBalance } from '@gala-chain/connect';
 import { tokenToReadable } from '@/utils/GalaHelper';
+import type { PropType } from 'vue';
+import type { TokenClassKeyProperties } from '@gala-chain/api';
 
-const props = defineProps<{
-  data?: TokenBalance[],
-}>();
+const props = defineProps({
+  data: { type: Object as PropType<TokenBalance[]> },
+  clickable: {
+    type: Boolean, default: false, required: false
+  },
+  tokenClass: {
+    type: Object as PropType<TokenClassKeyProperties>,
+    required: false
+  },
+});
 
+const emit = defineEmits<{
+  (e: 'item-clicked', item: TokenBalance): void
+}>()
+
+const handleClick = (item: TokenBalance, index: number) => {
+  emit('item-clicked', item);
+};
+
+function checkEquivalance(item1: TokenBalance, item2?: TokenClassKeyProperties) {
+  return item2 && item1.additionalKey === item2.additionalKey && item1.category === item2.category && item1.collection === item2.collection && item1.type === item2.type
+}
 </script>
 
 <style scoped>
@@ -46,5 +66,9 @@ const props = defineProps<{
 
 .v-list-item-title {
   font-weight: bold;
+}
+
+.selected-token {
+  border: 2px solid #09f211;
 }
 </style>

@@ -68,19 +68,20 @@ export class GalaChainApi {
       throw new Error("TokenService is not initialized. Call 'init()' first.")
     }
     const fetchBalanceDto = await createValidDTO<FetchBalancesDto>(FetchBalancesDto, {
-        ...tokenClassKey,
-        owner: gcAddress
-    })
+      ...tokenClassKey,
+      instance: '0',
+      owner: gcAddress
+    } as any)
     const response = await this.tokenClient.FetchBalances(fetchBalanceDto)
     return response
   }
 
-  public async getAllowances(adminGCAddress: string, tokenClassKey: TokenClassKeyProperties) {
+  public async getAllowances(gcAddress: string, tokenClassKey: TokenClassKeyProperties) {
     if (!this.tokenClient) {
       throw new Error("TokenService is not initialized. Call 'init()' first.")
     }
     const fetchBalanceDto = await createValidDTO<FetchAllowancesDto>(FetchAllowancesDto, {
-      grantedTo: adminGCAddress,
+      grantedTo: gcAddress,
       ...tokenClassKey
     })
     const response = await this.tokenClient.FetchAllowances(fetchBalanceDto)
@@ -112,22 +113,26 @@ export class GalaChainApi {
     return allowanceGrant
   }
 
-  public async transferGALA(quantity: BigNumber, adminWalletGC: string) {
+  public async transferToken(
+    token: TokenClassKeyProperties,
+    quantity: string,
+    adminWalletGC: string
+  ) {
     if (!this.tokenClient) {
       throw new Error("TokenService is not initialized. Call 'init()' first.")
     }
 
     const tokenInstanceQuery = await createValidDTO<TokenInstanceQueryKey>(TokenInstanceQueryKey, {
-      ...GALA,
+      ...token,
       instance: BigNumber(0)
     })
 
-    const balanceTransfer = await createValidDTO<TransferTokenDto>(TransferTokenDto, {
+ 
+    const transferBalance = await this.tokenClient.TransferToken({
       tokenInstance: tokenInstanceQuery as any,
-      quantity,
+      quantity: quantity as any as BigNumber,
       to: adminWalletGC
     })
-    const transferBalance = await this.tokenClient.TransferToken(balanceTransfer)
 
     return transferBalance
   }

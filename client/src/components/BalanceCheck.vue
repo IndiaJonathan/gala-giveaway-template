@@ -1,24 +1,22 @@
 <template>
     <div>
-
-        <div v-if="grantedAllowanceQuantity" class="text-muted mb-4">
-            <p>You have a net allowance of <strong>{{ grantedAllowanceQuantity }}</strong> tokens
-                allocated to the giveaway wallet.
+        <div v-if="adminBalanceQuantity" class="text-muted mb-4">
+            <p>You have a net balance of <strong>{{ adminBalanceQuantity }}</strong> tokens
+                in the giveaway wallet.
             </p>
 
-
-            <v-alert v-if="BigNumber(grantedAllowanceQuantity).gte(requiredAmount)" type="success" dense outlined
+            <v-alert v-if="BigNumber(adminBalanceQuantity).gte(requiredAmount)" type="success" dense outlined
                 class="mb-4">
-                You have sufficient allowance to start the giveaway.
+                The giveaway wallet has sufficient balance to start the giveaway.
             </v-alert>
             <div v-else class="text-muted mb-4">
                 <p>
-                    You need to grant an additional
-                    <strong> {{ requiredAmount.minus(grantedAllowanceQuantity) }} </strong>
+                    You need to transfer an additional
+                    <strong> {{ requiredAmount.minus(adminBalanceQuantity) }} </strong>
                     tokens to meet the requirement.
                 </p>
-                <v-btn color="primary" @click="grantAdditionalAllowance" class="mt-2">
-                    Grant Additional Allowance
+                <v-btn color="primary" @click="transferToken" class="mt-2">
+                    Transfer Token
                 </v-btn>
             </div>
         </div>
@@ -47,7 +45,7 @@ import { useProfile } from '@/composables/useProfile';
 import { isErrorWithMessage } from '@/utils/Helpers';
 
 
-const { profile } = useProfile();
+const { profile, browserClient } = useProfile();
 const { showToast } = useToast()
 
 
@@ -56,11 +54,11 @@ const props = defineProps({
         type: Object as PropType<GiveawaySettingsDto>,
         required: true
     },
-    requiredAmount: {
+    adminBalanceQuantity: {
         type: BigNumber,
         required: true
     },
-    grantedAllowanceQuantity: {
+    requiredAmount: {
         type: BigNumber,
         required: true
     }
@@ -68,13 +66,12 @@ const props = defineProps({
 
 
 const emit = defineEmits<{
-    (e: 'allowanceGranted'): void
+    (e: 'tokenTransfered'): void
 }>()
 
 
-async function grantAdditionalAllowance() {
-    const browserClient = new BrowserConnectClient();
-    await browserClient.connect()
+async function transferToken() {
+    await browserClient.value.connect()
 
     const tokenService = GalaChainApi.getInstance()
 
@@ -89,15 +86,15 @@ async function grantAdditionalAllowance() {
     } else {
         try {
 
-            const grant = await tokenService.grantAllowance(
+            const grant = await tokenService.transferToken(
                 props.giveawaySettings.giveawayToken,
-                props.requiredAmount.minus(new BigNumber(props.grantedAllowanceQuantity)),
+                props.requiredAmount.minus(new BigNumber(props.adminBalanceQuantity)).toString(),
                 profile.value.giveawayWalletAddress
             )
             if (grant.Status === 1) {
                 // Success!
-                showToast('Allowance Granted!')
-                emit('allowanceGranted')
+                showToast('Token transfered!')
+                emit('tokenTransfered')
             }
         } catch (e: unknown) {
             let errorMessage = 'unknown error';
@@ -105,7 +102,7 @@ async function grantAdditionalAllowance() {
                 errorMessage = e.Message
             }
             console.error(errorMessage)
-            showToast(`Unable to grant allowance. Error: ${errorMessage}`, true);
+            showToast(`Unable to transfer token. Error: ${errorMessage}`, true);
         }
     }
 }
