@@ -11,6 +11,7 @@ import * as directives from 'vuetify/directives'
 import { aliases, mdi } from 'vuetify/iconsets/mdi'
 import '@mdi/font/css/materialdesignicons.css'
 import { VTimePicker } from 'vuetify/labs/VTimePicker'
+import { createPinia } from 'pinia'
 
 const app = createApp(App);
 
@@ -43,7 +44,9 @@ const vuetify = createVuetify({
         },
     }
 });
+const pinia = createPinia()
 
+app.use(pinia)
 app.use(router);
 app.use(vuetify);
 

@@ -43,11 +43,13 @@ import { getRequiredAmountForFCFS, type GiveawayAllowances, type GiveawaySetting
 import { BrowserConnectClient } from '@gala-chain/connect'
 import { GALA } from '@/utils/constants';
 import { BadRequestError } from '@tonconnect/sdk';
-import { useProfile } from '@/composables/useProfile';
 import { isErrorWithMessage } from '@/utils/Helpers';
+import { useProfileStore } from '@/stores/profile';
+import { storeToRefs } from 'pinia';
 
 
-const { profile } = useProfile();
+const profileStore = useProfileStore();
+const { profile } = storeToRefs(profileStore)
 const { showToast } = useToast()
 
 

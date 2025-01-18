@@ -1,7 +1,10 @@
 <template>
 
   <div class="d-flex justify-center" style="padding-top: 20px;">
-    <v-btn color="primary" v-if="!connectedUserGCAddress" @click="connect">Sign In</v-btn>
+    <v-btn color="primary" v-if="!connectedEthAddress" @click="connectAndFetch">Sign In</v-btn>
+  </div>
+  <div class="d-flex justify-center" style="padding-top: 20px;">
+    <v-btn color="primary" v-if="connectedEthAddress && !profile" @click="signUpForGalachain">Sign Up</v-btn>
   </div>
 
   <v-dialog :model-value="!!selectedGiveaway" v-if="!!selectedGiveaway" max-width="400px">
@@ -81,6 +84,8 @@ import { getConnectedAddress, tokenToReadable } from '../utils/GalaHelper'
 import DistributedGiveaway from '@/components/DistributedGiveaway.vue'
 import { getEndDateMessage } from '@/utils/Helpers'
 import FirstComeFirstServe from '@/components/FirstComeFirstServe.vue'
+import { storeToRefs } from 'pinia'
+import { useProfileStore } from '@/stores/profile'
 
 export interface Giveaway {
   _id: string
@@ -102,17 +107,18 @@ export interface Giveaway {
 
 const selectedGiveaway: Ref<Giveaway | null> = ref(null)
 const { showToast } = useToast()
-const connectedUserGCAddress = ref<string | null>(null)
 const giveaways = ref<Giveaway[]>([])
 const loading = ref(true)
 
+const profileStore = useProfileStore()
+// Destructure to get reactive variables
+const { profile, isConnected, error, connectedEthAddress } = storeToRefs(profileStore)
+
 const fetchGiveaways = async () => {
   try {
-
     loading.value = true
-    connectedUserGCAddress.value = await getConnectedAddress()
-    if (connectedUserGCAddress.value) {
-      giveaways.value = await getGiveaways(connectedUserGCAddress.value)
+    if (connectedEthAddress.value) {
+      giveaways.value = await getGiveaways(connectedEthAddress.value)
     } else {
       giveaways.value = await getActiveGiveaways()
     }
@@ -153,8 +159,6 @@ const completedGiveaways = computed(() => {
 })
 
 const requestSignDistributedGiveaway = async (giveaway: Giveaway) => {
-  const connectClient = new BrowserConnectClient()
-  connectedUserGCAddress.value = await connectClient.connect()
   const userAlreadySigned = isUserSignedUp(giveaway)
   if (userAlreadySigned) {
     switch (giveaway.giveawayType) {
@@ -188,8 +192,6 @@ async function requestClickGiveaway(giveaway: Giveaway) {
 }
 
 const requestSignFCFSGiveaway = async (giveaway: Giveaway) => {
-  const connectClient = new BrowserConnectClient()
-  connectedUserGCAddress.value = await connectClient.connect()
   const userAlreadyClaimed = hasUserClaimed(giveaway)
   if (userAlreadyClaimed) {
     showToast("You've already claimed this!", true)
@@ -207,26 +209,23 @@ const requestSignFCFSGiveaway = async (giveaway: Giveaway) => {
 
 const isUserSignedUp = (giveaway: Giveaway): boolean => {
   return (
-    !!connectedUserGCAddress.value &&
-    giveaway.usersSignedUp.includes(connectedUserGCAddress.value)
+    !!connectedEthAddress.value &&
+    giveaway.usersSignedUp.includes(connectedEthAddress.value)
   )
 }
 const hasUserClaimed = (giveaway: Giveaway): boolean => {
   return (
-    !!connectedUserGCAddress.value &&
+    !!connectedEthAddress.value &&
     !!giveaway.isWinner
   )
 }
-watch(connectedUserGCAddress, () => {
-  // fetchGiveaways();
+watch(connectedEthAddress, () => {
+  fetchGiveaways();
 });
 
 
 const claimFCFS = async (giveaway: Giveaway) => {
   try {
-    const connectClient = new BrowserConnectClient()
-    connectedUserGCAddress.value = await connectClient.connect()
-
     const signupDto: ClaimFCFSDto = {
       giveawayId: giveaway._id,
     }
@@ -234,7 +233,7 @@ const claimFCFS = async (giveaway: Giveaway) => {
     if (giveaway.burnToken && giveaway.burnTokenQuantity && giveaway.requireBurnTokenToClaim) {
       signupDto.tokenInstances = [{ quantity: giveaway.burnTokenQuantity.toString() as any, tokenInstanceKey: { ...giveaway.burnToken, instance: '0' as any } as TokenInstanceKey }]
     }
-    const signedDto = await connectClient.sign('Claim Giveaway', signupDto as any)
+    const signedDto = await profileStore.sign('Claim Giveaway', signupDto as any)
     await requestClaimFCFS(signedDto)
 
     // giveaway.usersSignedUp.push(connectedUserGCAddress.value)
@@ -254,16 +253,14 @@ const claimFCFS = async (giveaway: Giveaway) => {
 }
 const signGiveaway = async (giveaway: Giveaway) => {
   try {
-    const connectClient = new BrowserConnectClient()
-    connectedUserGCAddress.value = await connectClient.connect()
-
     const signupDto: SignupForGiveawayDto = {
       giveawayId: giveaway._id
     }
-    const signedDto = await connectClient.sign('Signup for Giveaway', signupDto as any)
+    const signedDto = await profileStore.sign('Signup for Giveaway', signupDto as any)
+
     await signupForGiveaway(signedDto)
 
-    giveaway.usersSignedUp.push(connectedUserGCAddress.value)
+    giveaway.usersSignedUp.push(connectedEthAddress.value)
 
     switch (giveaway.giveawayType) {
       case 'DistributedGiveway':
@@ -283,10 +280,13 @@ const signGiveaway = async (giveaway: Giveaway) => {
   }
 }
 
-async function connect() {
-  const connectClient = new BrowserConnectClient()
-  connectedUserGCAddress.value = await connectClient.connect()
+async function connectAndFetch() {
+  await profileStore.connect();
   await fetchGiveaways();
+}
+
+async function signUpForGalachain() {
+  console.log("Galachain signup")
 }
 
 function cancel() {

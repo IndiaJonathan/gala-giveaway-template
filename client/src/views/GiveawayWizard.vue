@@ -1,8 +1,8 @@
 <template>
   <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;">
-    <div v-if="!connectedUserGCAddress" style="width: 100%; text-align: center;">
+    <div v-if="!connectedEthAddress" style="width: 100%; text-align: center;">
       <h1>Start A Giveaway</h1>
-      <v-btn color="success" @click="connect">Sign in With your Web3 Wallet To Continue</v-btn>
+      <v-btn color="success" @click="profileStore.connect">Sign in With your Web3 Wallet To Continue</v-btn>
     </div>
     <v-stepper v-else v-model="currentStep" style="width: 100%; height: 100%;">
       <!-- Stepper Header -->
@@ -144,14 +144,16 @@ import UserAllowances from '@/components/UserAllowances.vue'
 import type { Transaction } from '@/services/GalaSwapApi'
 import { getConnectedAddress } from '@/utils/GalaHelper'
 import type { TokenClassKeyProperties } from '@gala-chain/api'
+import { useProfileStore } from '@/stores/profile'
+import { storeToRefs } from 'pinia'
 
 
 const tokenInputRef = ref<InstanceType<typeof TokenInput> | null>(null)
-const connectedUserGCAddress: Ref<string | null> = ref('')
 const showCustomInput = ref(false)
-const client = new BrowserConnectClient();
 const router = useRouter()
-const balances: Ref<TokenBalance[]> = ref([])
+
+const profileStore = useProfileStore();
+const { profile, isConnected, error, balances, connectedEthAddress, connectedUserGCAddress } = storeToRefs(profileStore)
 
 const tokenContractUrl = import.meta.env.VITE_TOKEN_CONTRACT_URL
 
@@ -167,9 +169,6 @@ const resetStep = (stepNumber: number) => {
   stepsComplete.value[stepNumber] = false
 }
 
-async function connect() {
-  connectedUserGCAddress.value = await client.connect();
-}
 
 
 const currentStep = ref(1)
@@ -331,18 +330,10 @@ async function launchGiveaway() {
   }
 }
 
-async function load() {
-  connectedUserGCAddress.value = await getConnectedAddress();
-}
 
-load();
-
-watch(connectedUserGCAddress, async () => {
+watch(connectedEthAddress, async () => {
   if (connectedUserGCAddress.value) {
-    const tokenApi = new TokenApi(tokenContractUrl, client)
-
-    balances.value = ((await tokenApi.FetchBalances({ owner: connectedUserGCAddress.value })) as any).Data
-
+    await profileStore.getBalances();
   }
 })
 </script>

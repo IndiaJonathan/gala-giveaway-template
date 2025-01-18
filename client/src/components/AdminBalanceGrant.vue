@@ -119,12 +119,10 @@ import { getRequiredAmountForFCFS, type GiveawayAllowances, type GiveawayBalance
 import { BrowserConnectClient } from '@gala-chain/connect'
 import { GALA } from '@/utils/constants';
 import { BadRequestError } from '@tonconnect/sdk';
-import { useProfile } from '@/composables/useProfile';
 import AllowanceCheck from '@/components/AllowanceCheck.vue'
 import { isErrorWithMessage } from '@/utils/Helpers';
 import BalanceCheck from './BalanceCheck.vue';
 
-const { profile } = useProfile();
 const props = defineProps({
   giveawaySettings: {
     type: Object as PropType<GiveawaySettingsDto>,
