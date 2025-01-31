@@ -14,7 +14,7 @@
 
       <v-main>
         <router-view></router-view>
-        <Modal :show="!!connectedEthAddress && !connectedUserGCAddress"></Modal>
+        <SignupModal :title="connectedUserGCAddress" :show="!!connectedEthAddress && !connectedUserGCAddress && !isFetchingProfile"></SignupModal>
       </v-main>
 
       <v-snackbar v-model="toast.visible" :timeout="toast.timeout" :color="toast.isError ? 'error' : 'success'">
@@ -29,11 +29,13 @@
 
 <script lang="ts" setup>
 import { useToast } from '@/composables/useToast'
-import Modal from './modals/modal.vue';
+import Modal from './modals/ModalBase.vue';
 import { useProfileStore } from './stores/profile';
 import { storeToRefs } from 'pinia';
+import SignupModal from './modals/SignupModal.vue';
+import ModalBase from './modals/ModalBase.vue';
 
 const { toast, showToast } = useToast()
 const profileStore = useProfileStore()
-const { connectedEthAddress, connectedUserGCAddress } = storeToRefs(profileStore)
+const { connectedEthAddress, connectedUserGCAddress, isFetchingProfile } = storeToRefs(profileStore)
 </script>

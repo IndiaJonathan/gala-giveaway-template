@@ -7,18 +7,18 @@
 
       <v-divider></v-divider>
 
-      <v-btn v-if="!galaChainAddress" color="primary" large block class="mt-5" @click="connectEthereumWallet">
+      <v-btn v-if="!connectedUserGCAddress" color="primary" large block class="mt-5" @click="connect">
         <v-icon left>mdi-wallet</v-icon>
         Connect Ethereum Wallet
       </v-btn>
 
       <div v-else class="mt-5">
-        <h3 class="white--text">Ethereum Address: {{ galaChainAddress }}</h3>
+        <h3 class="white--text">Ethereum Address: {{ connectedEthAddress }}</h3>
       </div>
 
       <v-card-text>
         <div v-if="!telegramUser && !telegramUserLinked">
-          <telegram-login :disabled="!galaChainAddress" :bot-name="telegramBotUsername"
+          <telegram-login :disabled="!connectedUserGCAddress" :bot-name="telegramBotUsername"
             @auth="onTelegramAuth"></telegram-login>
         </div>
         <div v-else class="mt-5">
@@ -30,20 +30,20 @@
           </h3>
         </div>
 
-        <v-btn v-if="!telegramUserLinked" :disabled="!telegramUser?.id || !galaChainAddress" color="success" dark large
-          block class="mt-5" @click="linkWallets">
+        <v-btn v-if="!telegramUserLinked" :disabled="!telegramUser?.id || !connectedUserGCAddress" color="success" dark
+          large block class="mt-5" @click="linkWallets">
           <v-icon left>mdi-link-variant</v-icon>
           Link Wallets
         </v-btn>
       </v-card-text>
 
-      <div v-if="giveawayWallet" class="mt-5">
-        <h3 class="white--text">Your Giveaway Wallet Address: {{ giveawayWallet }}</h3>
+      <div v-if="profile?.giveawayWalletAddress" class="mt-5">
+        <h3 class="white--text">Your Giveaway Wallet Address: {{ profile?.giveawayWalletAddress }}</h3>
       </div>
     </v-card>
   </v-container>
 
-  <UserBalances v-if="galaChainAddress" :data="balances"> </UserBalances>
+  <UserBalances v-if="connectedUserGCAddress" :data="balances"> </UserBalances>
   <ClaimableWins v-if="claimableWins" :balances="balances" v-on:reload="load()" :data="claimableWins">
   </ClaimableWins>
 </template>
@@ -88,6 +88,8 @@ import { getProfile } from '@/services/BackendApi'
 import UserBalances from '../components/UserBalances.vue'
 import ClaimableWins from '@/components/ClaimableWins.vue'
 import type { ClaimableWinDto } from '@/utils/types'
+import { useProfileStore } from '@/stores/profile'
+import { storeToRefs } from 'pinia'
 
 const w3wConnection = new BrowserConnectClient()
 
@@ -103,39 +105,29 @@ interface TelegramUser {
 
 const telegramUser = ref<TelegramUser | null>(null)
 const telegramUserLinked = ref(false)
-const giveawayWallet: Ref<string | null> = ref(null)
-const galaChainAddress = ref<string>('')
 const telegramBotUsername = import.meta.env.VITE_TELEGRAM_BOT_USERNAME as string
 const telegramServer = import.meta.env.VITE_TELEGRAM_SERVER
 const { showToast } = useToast()
-const tokenContractUrl = import.meta.env.VITE_TOKEN_CONTRACT_URL
-const browserClient = new BrowserConnectClient()
-let balances: Ref<TokenBalance[]> = ref([])
 let claimableWins: Ref<ClaimableWinDto[]> = ref([])
 
-const connectEthereumWallet = async () => {
-  try {
-    const account = await w3wConnection.connect()
-    galaChainAddress.value = account
-    load();
-  } catch (error) {
-    console.error('User rejected the request:', error)
-  }
-}
+const profileStore = useProfileStore();
+const { connect } = profileStore
+const { connectedUserGCAddress, connectedEthAddress, profile, balances } = storeToRefs(profileStore)
 
 const onTelegramAuth = (user: TelegramUser) => {
   telegramUser.value = user
 }
 
 const linkWallets = async () => {
-  if (!telegramUser.value || !galaChainAddress.value) {
+  if (!telegramUser.value || !connectedUserGCAddress.value) {
     showToast('Please connect all wallets and login with Telegram.', true)
     return
   }
 
-  await connectEthereumWallet()
+
+  await connect()
   const signedData = await w3wConnection.sign('Link GalaChain and Telegram', {
-    'GalaChain Address': galaChainAddress.value,
+    'GalaChain Address': connectedUserGCAddress.value,
     ...(telegramUser.value as any)
   })
 
@@ -162,16 +154,7 @@ const linkWallets = async () => {
 }
 
 async function load() {
-  const currentAddress = await getConnectedAddress()
-  if (currentAddress) {
-    galaChainAddress.value = currentAddress.replace('0x', 'eth|')
-    const profile = await getProfile(galaChainAddress.value)
-    claimableWins.value = profile.claimableWins
-    telegramUserLinked.value = profile.hasTelegramLinked
-    giveawayWallet.value = profile.giveawayWalletAddress
-    const tokenApi = new TokenApi(tokenContractUrl, browserClient)
-    balances.value = ((await tokenApi.FetchBalances({ owner: currentAddress })) as any).Data
-  }
+
 }
 load()
 </script>

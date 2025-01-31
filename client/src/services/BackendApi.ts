@@ -1,4 +1,5 @@
 import { useToast } from '@/composables/useToast'
+import type { SignedDto } from '@/types/web3'
 import {
   type ClaimFCFSDto,
   type GiveawayAllowances,
@@ -63,6 +64,25 @@ export async function GetGiveawayBalances(
   return undefined
 }
 
+export async function createWallet(payload: SignedDto) {
+  const response = await fetch(`${baseURL}/api/wallet/register`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      operation: 'set-giveaway-public-key',
+      payload
+    })
+  })
+
+  if (response.ok) {
+    return true
+  }
+
+  return false
+}
+
 export async function getProfile(gc_address: string): Promise<Profile> {
   const response = await fetch(`${baseURL}/api/profile/info/${gc_address}`, {
     method: 'GET',
@@ -81,34 +101,14 @@ export async function getProfile(gc_address: string): Promise<Profile> {
   return data
 }
 
-export async function getGiveaways(gcAddress: string): Promise<Giveaway[]> {
+export async function getGiveaways(gcAddress?: string): Promise<Giveaway[]> {
   const { showToast } = useToast()
 
   const response = await fetch(`${baseURL}/api/giveaway/all`, {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',
-      'GC-Address': gcAddress
-    }
-  })
-
-  if (!response.ok) {
-    const message = await response.text()
-    showToast(message, true)
-    throw new Error(message)
-  }
-
-  const data = await response.json()
-
-  return data
-}
-export async function getActiveGiveaways(): Promise<Giveaway[]> {
-  const { showToast } = useToast()
-
-  const response = await fetch(`${baseURL}/api/giveaway/active`, {
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/json'
+      ...(gcAddress && { 'GC-Address': gcAddress })
     }
   })
 

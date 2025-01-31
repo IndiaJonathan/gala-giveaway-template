@@ -1,10 +1,13 @@
 <template>
 
   <div class="d-flex justify-center" style="padding-top: 20px;">
-    <v-btn color="primary" v-if="!connectedEthAddress" @click="connectAndFetch">Sign In</v-btn>
+    <Web3Button color="primary" v-if="!connectedEthAddress || isFetchingProfile" @click="connectAndFetch"
+      primary-text="Sign In">
+    </Web3Button>
   </div>
   <div class="d-flex justify-center" style="padding-top: 20px;">
-    <v-btn color="primary" v-if="connectedEthAddress && !profile" @click="signUpForGalachain">Sign Up</v-btn>
+    <v-btn color="primary" v-if="connectedEthAddress && !profile && !isFetchingProfile" @click="signUpForGalachain">Sign
+      Up</v-btn>
   </div>
 
   <v-dialog :model-value="!!selectedGiveaway" v-if="!!selectedGiveaway" max-width="400px">
@@ -74,7 +77,7 @@
 </template>
 
 <script lang="ts" setup>
-import { getActiveGiveaways, getGiveaways, requestClaimFCFS, signupForGiveaway } from '@/services/BackendApi'
+import { getGiveaways, requestClaimFCFS, signupForGiveaway } from '@/services/BackendApi'
 import type { ClaimFCFSDto, SignupForGiveawayDto } from '@/utils/types'
 import type { TokenClassKeyProperties, TokenInstanceKey } from '@gala-chain/api'
 import { BrowserConnectClient } from '@gala-chain/connect'
@@ -86,6 +89,7 @@ import { getEndDateMessage } from '@/utils/Helpers'
 import FirstComeFirstServe from '@/components/FirstComeFirstServe.vue'
 import { storeToRefs } from 'pinia'
 import { useProfileStore } from '@/stores/profile'
+import Web3Button from '@/components/Web3Button.vue'
 
 export interface Giveaway {
   _id: string
@@ -112,16 +116,12 @@ const loading = ref(true)
 
 const profileStore = useProfileStore()
 // Destructure to get reactive variables
-const { profile, isConnected, error, connectedEthAddress } = storeToRefs(profileStore)
+const { profile, isConnected, error, connectedEthAddress, isFetchingProfile } = storeToRefs(profileStore)
 
 const fetchGiveaways = async () => {
   try {
     loading.value = true
-    if (connectedEthAddress.value) {
-      giveaways.value = await getGiveaways(connectedEthAddress.value)
-    } else {
-      giveaways.value = await getActiveGiveaways()
-    }
+    giveaways.value = await getGiveaways(connectedEthAddress.value)
   } catch (e) {
     showToast((e as any).message || JSON.stringify(e), true);
     console.error(e)
@@ -253,6 +253,9 @@ const claimFCFS = async (giveaway: Giveaway) => {
 }
 const signGiveaway = async (giveaway: Giveaway) => {
   try {
+    if (!connectedEthAddress.value) {
+      throw Error('Not Connected')
+    }
     const signupDto: SignupForGiveawayDto = {
       giveawayId: giveaway._id
     }
@@ -281,8 +284,10 @@ const signGiveaway = async (giveaway: Giveaway) => {
 }
 
 async function connectAndFetch() {
-  await profileStore.connect();
-  await fetchGiveaways();
+  const connection = await profileStore.connect();
+  if (connection) {
+    await fetchGiveaways();
+  }
 }
 
 async function signUpForGalachain() {

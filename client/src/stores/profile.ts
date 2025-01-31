@@ -4,17 +4,45 @@ import { defineStore } from 'pinia'
 import { getProfile } from '@/services/BackendApi'
 import type { Profile } from '@/utils/types'
 import { BrowserConnectClient, TokenApi, TokenBalance } from '@gala-chain/connect'
-import { ref, shallowRef, onMounted, watch, type Ref } from 'vue'
+import { ref, shallowRef, onMounted, watch, type Ref, type ShallowRef } from 'vue'
+import { openNoWeb3WalletDialog } from '@/composables/useDialogue'
+import { getConnectedAddress } from '@/utils/GalaHelper'
 
 export const useProfileStore = defineStore('profile', () => {
   // State
   const profile = ref<Profile | null>(null)
   const isConnected = ref(false)
   const error = ref<Error | null>(null)
-  const browserClient = shallowRef<BrowserConnectClient>(new BrowserConnectClient())
-  const connectedEthAddress: Ref<string> = ref('')
-  const connectedUserGCAddress = ref('')
+  let browserClient: ShallowRef<BrowserConnectClient, BrowserConnectClient> | null
+  try {
+    browserClient = shallowRef<BrowserConnectClient>(new BrowserConnectClient())
+    // Listen for account changes
+    if (typeof window.ethereum !== 'undefined') {
+      window.ethereum.on('accountsChanged', async (accounts) => {
+        if (accounts.length === 0) {
+          connectedUserGCAddress.value = undefined
+          connectedEthAddress.value = undefined
+        } else {
+          connectedEthAddress.value = accounts[0]
+        }
+        await walletAddressChanged()
+      })
+    }
+
+    //TODO GALA_SDK: this should handle locked accounts
+    // browserClient.value?.on('accountChanged', async () => {
+    //   if (!browserClient) throw new Error('No wallet connection')
+    //   connectedEthAddress.value = browserClient.value.ethereumAddress
+    //   console.log(connectedEthAddress.value)
+    //   await walletAddressChanged()
+    // })
+  } catch (e) {
+    browserClient = null
+  }
+  const connectedEthAddress: Ref<string | undefined> = ref()
+  const connectedUserGCAddress: Ref<string | undefined> = ref(undefined)
   const balances: Ref<TokenBalance[]> = ref([])
+  const isFetchingProfile = ref(false)
 
   //W3w status
   const isAwaitingConnect = ref(false)
@@ -24,30 +52,56 @@ export const useProfileStore = defineStore('profile', () => {
 
   // Actions
   async function fetchProfile() {
+    isFetchingProfile.value = true
+    if (!browserClient) {
+      openNoWeb3WalletDialog()
+      return
+    }
+    if (!connectedEthAddress.value) return
+
     try {
-      profile.value = await getProfile(browserClient.value.ethereumAddress)
+      profile.value = await getProfile(connectedEthAddress.value)
       connectedUserGCAddress.value = profile.value.galaChainAddress
+      return profile.value
     } catch (err) {
       error.value = err as Error
       isConnected.value = false
+    } finally {
+      isFetchingProfile.value = false
     }
   }
 
   async function connect() {
-    isAwaitingConnect.value = true
+    if (!browserClient) {
+      openNoWeb3WalletDialog()
+      return false
+    }
+
     try {
-      const oldAddress = connectedEthAddress.value
-      connectedEthAddress.value = await browserClient.value.connect()
-      console.log('Updated address ', connectedEthAddress.value)
-      if (connectedEthAddress.value !== oldAddress) {
-        await walletAddressChanged()
+      const newAdress = await getConnectedAddress()
+      if (newAdress !== connectedEthAddress.value) {
+        await walletAddressChanged(newAdress)
       }
+      if (!connectedEthAddress.value) {
+        isAwaitingConnect.value = true
+        await browserClient.value.connect()
+        await walletAddressChanged(browserClient.value.ethereumAddress)
+      } else {
+        //Ensure connection
+        await browserClient.value.connect()
+      }
+
+      return connectedEthAddress.value
     } finally {
       isAwaitingConnect.value = false
     }
   }
 
   async function sign(method: string, dto: any) {
+    if (!browserClient) {
+      openNoWeb3WalletDialog()
+      return
+    }
     await connect()
     try {
       isAwaitingSign.value = true
@@ -58,24 +112,35 @@ export const useProfileStore = defineStore('profile', () => {
   }
 
   async function getBalances(forceRefresh = false) {
+    if (!browserClient) {
+      openNoWeb3WalletDialog()
+      return
+    }
     const tokenApi = new TokenApi(tokenContractUrl, browserClient.value)
-    if (forceRefresh || !balances.value) {
+    if (forceRefresh || (!balances.value.length && connectedEthAddress)) {
       balances.value = (
         (await tokenApi.FetchBalances({ owner: connectedUserGCAddress.value })) as any
       ).Data
     }
   }
 
-  async function walletAddressChanged() {
-    console.log("wallet address changed")
+  async function walletAddressChanged(newAddress?: string) {
+    connectedEthAddress.value = newAddress
     if (connectedEthAddress.value && connectedEthAddress.value != '') await fetchProfile()
   }
 
-  // Listen for account changes
-  browserClient.value?.on('accountChanged', async () => {
-    connectedEthAddress.value = browserClient.value.ethereumAddress
-    await walletAddressChanged()
+  async function refreshConnectedAddress() {
+    connectedEthAddress.value = await getConnectedAddress()
+  }
+
+  watch(connectedEthAddress, async () => {
+    const profile = await fetchProfile()
+    if (profile) {
+      await getBalances()
+    }
   })
+
+  refreshConnectedAddress()
 
   return {
     // State
@@ -87,6 +152,7 @@ export const useProfileStore = defineStore('profile', () => {
     isAwaitingConnect,
     isAwaitingSign,
     balances,
+    isFetchingProfile,
     // Actions
     fetchProfile,
     connect,

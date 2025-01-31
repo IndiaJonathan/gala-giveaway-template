@@ -1,8 +1,9 @@
 <template>
   <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;">
-    <div v-if="!connectedEthAddress" style="width: 100%; text-align: center;">
+    <div v-if="!connectedEthAddress || !connectedUserGCAddress" style="width: 100%; text-align: center;">
       <h1>Start A Giveaway</h1>
-      <v-btn color="success" @click="profileStore.connect">Sign in With your Web3 Wallet To Continue</v-btn>
+      <Web3Button color="success" @click="profileStore.connect"
+        primary-text="Sign in With your Web3 Wallet To Continue"></Web3Button>
     </div>
     <v-stepper v-else v-model="currentStep" style="width: 100%; height: 100%;">
       <!-- Stepper Header -->
@@ -146,6 +147,7 @@ import { getConnectedAddress } from '@/utils/GalaHelper'
 import type { TokenClassKeyProperties } from '@gala-chain/api'
 import { useProfileStore } from '@/stores/profile'
 import { storeToRefs } from 'pinia'
+import Web3Button from '@/components/Web3Button.vue'
 
 
 const tokenInputRef = ref<InstanceType<typeof TokenInput> | null>(null)
@@ -330,12 +332,6 @@ async function launchGiveaway() {
   }
 }
 
-
-watch(connectedEthAddress, async () => {
-  if (connectedUserGCAddress.value) {
-    await profileStore.getBalances();
-  }
-})
 </script>
 
 <style scoped>

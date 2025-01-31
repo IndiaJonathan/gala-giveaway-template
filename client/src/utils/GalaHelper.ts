@@ -41,16 +41,20 @@ export async function getConnectedAddress() {
       // If there is at least one account connected
       if (accounts.length > 0) {
         const connectedAddress = getAddress(accounts[0])
-        return connectedAddress.replace('0x', 'eth|')
+        return connectedAddress;
       } else {
-        return null
+        return undefined
       }
     } catch (error) {
       console.error('Error getting connected account:', error)
-      return null
+      return undefined
     }
   } else {
     console.log('No Ethereum provider found')
-    return null
+    return undefined
   }
+}
+
+export const randomId = () => {
+  return `${Math.random()}-${new Date().getTime()}`
 }

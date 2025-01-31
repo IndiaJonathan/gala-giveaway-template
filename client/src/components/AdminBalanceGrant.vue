@@ -111,7 +111,7 @@
 
 <script setup lang="ts">
 import { useToast } from '@/composables/useToast'
-import { GetGiveawayAllowances, GetGiveawayBalances, getProfile } from '@/services/BackendApi'
+import { GetGiveawayAllowances, GetGiveawayBalances } from '@/services/BackendApi'
 import { GalaChainApi } from '@/services/GalaChainApi'
 import BigNumber from "bignumber.js";
 import { computed, ref, watch, type PropType, type Ref } from 'vue'
@@ -122,6 +122,8 @@ import { BadRequestError } from '@tonconnect/sdk';
 import AllowanceCheck from '@/components/AllowanceCheck.vue'
 import { isErrorWithMessage } from '@/utils/Helpers';
 import BalanceCheck from './BalanceCheck.vue';
+import { useProfileStore } from '@/stores/profile';
+import { storeToRefs } from 'pinia';
 
 const props = defineProps({
   giveawaySettings: {
@@ -148,9 +150,19 @@ function estimateGalaFees() {
   }
 }
 const { showToast } = useToast()
+const profileStore = useProfileStore()
+const { profile } = storeToRefs(profileStore)
+
 const giveawayBalanceData: Ref<GiveawayAllowances | GiveawayBalances | undefined> = ref()
 const personalGalaBalance: Ref<BigNumber | undefined> = ref()
 
+function ensureLoggedIn() {
+  if (!profile || !profile.value) {
+    showToast("Please Log In first!", true)
+    throw Error("Not Logged In")
+  }
+  return profile.value;
+}
 
 const browserClient = new BrowserConnectClient()
 const giveawayWallet = ref();
@@ -167,8 +179,8 @@ const requiredTokenAmount = computed(() => {
 })
 
 async function transferGala() {
+  const profile = ensureLoggedIn();
   await browserClient.connect()
-  const profile = await getProfile(browserClient.galaChainAddress)
   if (!giveawayBalanceData.value) {
     showToast(`Please reload balance data`, true)
     return
@@ -217,10 +229,11 @@ function getGalaCost(balanceData: GiveawayDetails) {
 
 async function loadBalances() {
   try {
+    const profile = ensureLoggedIn();
+
     isLoading.value = true;
     await browserClient.connect()
 
-    const profile = await getProfile(browserClient.galaChainAddress)
     await tokenService.init()
 
     if (!profile || !profile.galaChainAddress) {
