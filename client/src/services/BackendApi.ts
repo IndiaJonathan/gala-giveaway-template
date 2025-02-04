@@ -43,7 +43,7 @@ export async function GetGiveawayBalances(
   tokenClassKey: TokenClassKeyProperties,
   gc_address: string
 ) {
-  const response = await fetch(`${baseURL}/api/wallet/balance-available/${gc_address}`, {
+  const response = await fetch(`${baseURL}/api/giveaway/balance-available/${gc_address}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
