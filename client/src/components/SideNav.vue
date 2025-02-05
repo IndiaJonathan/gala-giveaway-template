@@ -37,14 +37,9 @@
           value="refer"
           class="mb-2"
         ></v-list-item>
-        <v-list-item>
-          <v-img :src="SweepStakesPNG"></v-img>
-        </v-list-item>
       </v-list>
     </template>
   </v-navigation-drawer>
 </template>
 
-<script lang="ts" setup>
-import SweepStakesPNG from '@/assets/images/sweepstakes.png'
-</script>
+<script lang="ts" setup></script>
