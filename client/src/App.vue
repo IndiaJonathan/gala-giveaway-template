@@ -3,7 +3,7 @@
   <v-responsive>
     <v-app>
       <v-app-bar app flat sticky style="background-color: inherit" class="pa-8" height="96px">
-        <v-app-bar-title>Gala GiveAways</v-app-bar-title>
+        <v-app-bar-title>GalaChain GiveAways</v-app-bar-title>
 
         <v-spacer></v-spacer>
 
