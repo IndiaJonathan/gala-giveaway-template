@@ -8,7 +8,7 @@ interface BasicGivewaySettingsBase {
   burnTokenQuantity?: string
   burnToken: TokenClassKeyProperties
   maxWinners?: string
-  giveawayTokenType?: "Balance" | "Allowance"
+  giveawayTokenType?: 'Balance' | 'Allowance'
 }
 export interface BasicGivewaySettingsDto extends BasicGivewaySettingsBase {
   endDateTime?: Date
@@ -58,6 +58,7 @@ export type RandomRequiredGiveawaySettingsDto = Required<RandomGiveawaySettingsD
 
 export interface SignupForGiveawayDto {
   giveawayId: string
+  uniqueKey: string
 }
 
 export interface ClaimFCFSDto {

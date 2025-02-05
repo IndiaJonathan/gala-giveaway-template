@@ -103,7 +103,7 @@ import type { TokenClassKeyProperties, TokenInstanceKey } from '@gala-chain/api'
 import { BrowserConnectClient } from '@gala-chain/connect'
 import { ref, onMounted, computed, watch, type Ref } from 'vue'
 import { useToast } from '../composables/useToast'
-import { getConnectedAddress, tokenToReadable } from '../utils/GalaHelper'
+import { getConnectedAddress, randomId, tokenToReadable } from '../utils/GalaHelper'
 import DistributedGiveaway from '@/components/DistributedGiveaway.vue'
 import { getEndDateMessage } from '@/utils/Helpers'
 import FirstComeFirstServe from '@/components/FirstComeFirstServe.vue'
@@ -136,13 +136,13 @@ const loading = ref(true)
 
 const profileStore = useProfileStore()
 // Destructure to get reactive variables
-const { profile, isConnected, error, connectedEthAddress, isFetchingProfile } =
-  storeToRefs(profileStore)
+const { profile, isConnected, error, connectedEthAddress, connectedUserGCAddress, isFetchingProfile } = storeToRefs(profileStore)
 
 const fetchGiveaways = async () => {
   try {
     loading.value = true
-    giveaways.value = await getGiveaways(connectedEthAddress.value)
+    console.log("hit")
+    giveaways.value = await getGiveaways(connectedUserGCAddress.value)
   } catch (e) {
     showToast((e as any).message || JSON.stringify(e), true)
     console.error(e)
@@ -226,14 +226,20 @@ const requestSignFCFSGiveaway = async (giveaway: Giveaway) => {
 }
 
 const isUserSignedUp = (giveaway: Giveaway): boolean => {
-  return !!connectedEthAddress.value && giveaway.usersSignedUp.includes(connectedEthAddress.value)
+  return (
+    !!connectedUserGCAddress.value &&
+    giveaway.usersSignedUp.includes(connectedUserGCAddress.value)
+  )
 }
 const hasUserClaimed = (giveaway: Giveaway): boolean => {
-  return !!connectedEthAddress.value && !!giveaway.isWinner
+  return (
+    !!connectedUserGCAddress.value &&
+    !!giveaway.isWinner
+  )
 }
-watch(connectedEthAddress, () => {
-  fetchGiveaways()
-})
+watch(connectedUserGCAddress, () => {
+  fetchGiveaways();
+});
 
 const claimFCFS = async (giveaway: Giveaway) => {
   try {
@@ -268,17 +274,18 @@ const claimFCFS = async (giveaway: Giveaway) => {
 }
 const signGiveaway = async (giveaway: Giveaway) => {
   try {
-    if (!connectedEthAddress.value) {
+    if (!connectedEthAddress.value || !connectedUserGCAddress.value) {
       throw Error('Not Connected')
     }
     const signupDto: SignupForGiveawayDto = {
-      giveawayId: giveaway._id
+      giveawayId: giveaway._id,
+      uniqueKey: 'giveaway-signup-' + randomId(),
     }
     const signedDto = await profileStore.sign('Signup for Giveaway', signupDto as any)
 
     await signupForGiveaway(signedDto)
 
-    giveaway.usersSignedUp.push(connectedEthAddress.value)
+    giveaway.usersSignedUp.push(connectedUserGCAddress.value)
 
     switch (giveaway.giveawayType) {
       case 'DistributedGiveway':
