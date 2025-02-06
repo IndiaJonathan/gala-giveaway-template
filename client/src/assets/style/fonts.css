@@ -1,0 +1,85 @@
+/* Base styles for headings (desktop size as default) */
+h1, h2, h3, h4, h5 {
+    line-height: 1.15;
+}
+
+h1 {
+    font-size: 60px;
+    line-height: 115%;
+}
+
+h2 {
+    font-size: 45px;
+    line-height: 120%;
+}
+
+h3 {
+    font-size: 35px;
+    line-height: 120%;
+}
+
+h4 {
+    font-size: 30px;
+    line-height: 125%;
+}
+
+h5 {
+    font-size: 24px;
+    line-height: 125%;
+}
+
+/* Tablet styles */
+@media screen and (max-width: 1024px) {
+    h1 {
+        font-size: 48px;
+        line-height: 115%;
+    }
+
+    h2 {
+        font-size: 38px;
+        line-height: 120%;
+    }
+
+    h3 {
+        font-size: 32px;
+        line-height: 120%;
+    }
+
+    h4 {
+        font-size: 28px;
+        line-height: 125%;
+    }
+
+    h5 {
+        font-size: 22px;
+        line-height: 125%;
+    }
+}
+
+/* Mobile styles */
+@media screen and (max-width: 768px) {
+    h1 {
+        font-size: 40px;
+        line-height: 115%;
+    }
+
+    h2 {
+        font-size: 32px;
+        line-height: 120%;
+    }
+
+    h3 {
+        font-size: 28px;
+        line-height: 120%;
+    }
+
+    h4 {
+        font-size: 24px;
+        line-height: 125%;
+    }
+
+    h5 {
+        font-size: 20px;
+        line-height: 125%;
+    }
+}

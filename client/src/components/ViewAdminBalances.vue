@@ -36,7 +36,8 @@ import { useRouter } from 'vue-router'
 import { getTokenKey, getTokenKeyFromString } from '@/utils/GalaHelper'
 import { useToast } from '@/composables/useToast'
 import { getProfile } from '../services/BackendApi'
-import { useProfile } from '@/composables/useProfile';
+import { useProfileStore } from '@/stores/profile'
+import { storeToRefs } from 'pinia'
 const browserClient = new BrowserConnectClient()
 
 const tokenContractUrl = import.meta.env.VITE_TOKEN_CONTRACT_URL
@@ -52,7 +53,8 @@ function startGiveaway(tokenClass: string) {
   // router.push({ name: `CreateGiveaway`, params: { tokenClass } })
 }
 
-const { profile, isConnected } = useProfile();
+const profileStore = useProfileStore();
+const { profile, isConnected } = storeToRefs(profileStore);
 
 
 async function fetchBalances() {
