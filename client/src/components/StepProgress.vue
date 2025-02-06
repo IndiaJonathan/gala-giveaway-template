@@ -14,10 +14,12 @@
                     <div class="step-circle">
                         <img v-if="index === currentStep" src="@/assets/svgs/selected-step.svg" alt="Step Icon"
                             class="step-icon" />
-                        <img v-else src="@/assets/svgs/unselected-step.svg" alt="Step Icon"
-                            class="step-icon" />
+                        <img v-else src="@/assets/svgs/unselected-step.svg" alt="Step Icon" class="step-icon" />
                     </div>
-                    <span class="step-name">{{ step }}</span>
+
+                    <p :class="index === currentStep ? 'paragraph-small-bold' : 'paragraph-small-regular'">
+                        {{ step }}
+                    </p>
                 </div>
             </div>
         </div>
