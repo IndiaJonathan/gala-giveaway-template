@@ -59,13 +59,13 @@ const getLineStyle = (index: number) => {
     height: 2px;
     background-color: rgba(236, 236, 236, 0.2);
     z-index: 1;
-    margin-bottom: 40px;
+    margin-bottom: 28px;
 }
 
 .step-circle {
-    width: 40px;
+    width: 24px;
     /* Circle size */
-    height: 40px;
+    height: 24px;
     /* Circle size */
     border-radius: 50%;
     background-color: lightgray;
@@ -81,8 +81,8 @@ const getLineStyle = (index: number) => {
 }
 
 .step-icon {
-    width: 40px;
-    height: 40px;
+    width: 24px;
+    height: 24px;
     object-fit: contain;
     /* Ensure the image fits within the circle without distortion */
 }
@@ -129,9 +129,9 @@ const getLineStyle = (index: number) => {
 }
 
 .step-circle {
-    width: 40px;
+    width: 24px;
     /* Increased size of circle */
-    height: 40px;
+    height: 24px;
     /* Increased size of circle */
     border-radius: 50%;
     display: flex;

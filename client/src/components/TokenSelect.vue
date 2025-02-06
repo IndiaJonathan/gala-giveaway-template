@@ -7,8 +7,8 @@
             <div v-else class="token-icon-circle"></div>
 
             <div class="token-details">
-                <div class="token-name">{{ token.name }}</div>
-                <div class="token-balance">Balance: {{ token.balance }}</div>
+                <div class="token-name paragraph-medium-regular">{{ token.name }}</div>
+                <div class="token-balance paragraph-medium-bold">Balance: {{ token.balance }}</div>
             </div>
         </div>
     </div>
@@ -91,13 +91,11 @@ const tokens = ref<Token[]>([
 }
 
 .token-name {
-    font-size: 14px;
     color: white;
 }
 
 .token-balance {
-    font-size: 12px;
-    color: rgba(236, 236, 236, 0.5);
-    margin-top: 8px;
+    color: #9E9E9E;
+    margin-top: 4px;
 }
 </style>

@@ -1,53 +1,56 @@
 <template>
   <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;">
+    <div style="width: 100%; max-width: 670px; height: 100%">
 
-    <div v-if="!connectedEthAddress || !connectedUserGCAddress" style="width: 100%; text-align: center;">
-      <h1>Start A Giveaway</h1>
-      {{ connectedEthAddress }} {{ connectedUserGCAddress }}
-      <Web3Button color="success" @click="profileStore.connect"
-        primary-text="Sign in With your Web3 Wallet To Continue"></Web3Button>
-    </div>
-
-    <div v-else style="width: 100%; height: 100%;">
-
-      <StepProgress :current-step="currentStep" :steps=steps>
-
-      </StepProgress>
-
-      <div style="width: 100%; padding: 20px">
-        <!-- Step 1: Select Token -->
-        <TokenSelect></TokenSelect v-if="currentStep === 0">
-
-        <!-- Step 2: Giveaway Settings -->
-        <div v-if="currentStep === 1">
-          <GiveawaySettings @form-valid="updateGiveawaySettingsValidity" :token-class="giveawaySettings.giveawayToken"
-            :giveaway-settings="giveawaySettings" />
-        </div>
-
-        <!-- Step 3-->
-        <div v-if="currentStep === 2">
-          <!--  Grant Allowance (For allowance based giveaways)-->
-          <AdminBalanceGrant @form-valid="stepChanged" :token-class-key="giveawaySettings.giveawayToken"
-            :giveaway-settings="giveawaySettings">
-          </AdminBalanceGrant>
-        </div>
-
-        <div v-if="currentStep === 3">
-          <GiveawaySettings @form-valid="updateGiveawaySettingsValidity" :token-class="giveawaySettings.giveawayToken"
-            :giveaway-settings="giveawaySettings" read-only />
-          <v-btn color="success" @click="launchGiveaway">Launch Giveaway</v-btn>
-        </div>
+      <div v-if="!connectedEthAddress || !connectedUserGCAddress" style="width: 100%; text-align: center;">
+        <h1>Start A Giveaway</h1>
+        {{ connectedEthAddress }} {{ connectedUserGCAddress }}
+        <Web3Button color="success" @click="profileStore.connect"
+          primary-text="Sign in With your Web3 Wallet To Continue"></Web3Button>
       </div>
 
-      <div class="stepper-actions">
-        <v-btn color="primary" :disabled="!allowPrevious(currentStep)" @click="prevStep">
-          <v-icon>mdi-chevron-left</v-icon> Back
-        </v-btn>
+      <div v-else style="width: 100%; height: 100%;">
 
-        <v-btn color="primary" v-if="currentStep < 4" :disabled="!allowNext(currentStep)" @click="nextStep">
-          Next
-          <v-icon>mdi-chevron-right</v-icon>
-        </v-btn>
+        <h2>Create giveaway</h2>
+        <StepProgress :current-step="currentStep" :steps=steps>
+
+        </StepProgress>
+
+        <div style="width: 100%; padding: 20px">
+          <!-- Step 1: Select Token -->
+          <TokenSelect></TokenSelect v-if="currentStep === 0">
+
+          <!-- Step 2: Giveaway Settings -->
+          <div v-if="currentStep === 1">
+            <GiveawaySettings @form-valid="updateGiveawaySettingsValidity" :token-class="giveawaySettings.giveawayToken"
+              :giveaway-settings="giveawaySettings" />
+          </div>
+
+          <!-- Step 3-->
+          <div v-if="currentStep === 2">
+            <!--  Grant Allowance (For allowance based giveaways)-->
+            <AdminBalanceGrant @form-valid="stepChanged" :token-class-key="giveawaySettings.giveawayToken"
+              :giveaway-settings="giveawaySettings">
+            </AdminBalanceGrant>
+          </div>
+
+          <div v-if="currentStep === 3">
+            <GiveawaySettings @form-valid="updateGiveawaySettingsValidity" :token-class="giveawaySettings.giveawayToken"
+              :giveaway-settings="giveawaySettings" read-only />
+            <v-btn color="success" @click="launchGiveaway">Launch Giveaway</v-btn>
+          </div>
+        </div>
+
+        <div class="stepper-actions">
+          <v-btn color="primary" :disabled="!allowPrevious(currentStep)" @click="prevStep">
+            <v-icon>mdi-chevron-left</v-icon> Back
+          </v-btn>
+
+          <v-btn color="primary" v-if="currentStep < 4" :disabled="!allowNext(currentStep)" @click="nextStep">
+            Next
+            <v-icon>mdi-chevron-right</v-icon>
+          </v-btn>
+        </div>
       </div>
     </div>
   </div>
