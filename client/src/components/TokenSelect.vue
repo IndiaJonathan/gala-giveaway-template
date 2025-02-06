@@ -1,7 +1,7 @@
 <template>
     <div class="token-selection">
 
-        <h5 for="token">Select Giveaway Token <span class="required">*</span></h5>
+        <h5 style="margin-bottom: 32px;" for="token">Select Giveaway Token <span class="required">*</span></h5>
         <div v-for="(token, index) in tokens" :key="index" class="token-item">
             <img v-if="token.icon" class="token-icon" :src="token.icon" alt="token icon" />
             <div v-else class="token-icon-circle"></div>

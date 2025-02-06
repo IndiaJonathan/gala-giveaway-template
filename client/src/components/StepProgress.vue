@@ -101,7 +101,8 @@ const getLineStyle = (index: number) => {
     justify-content: center;
     align-items: center;
     width: 100%;
-    padding: 20px;
+    padding-top: 20px;
+    padding-bottom: 20px;
 }
 
 .steps-container {

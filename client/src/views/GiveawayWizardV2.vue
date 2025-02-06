@@ -12,13 +12,18 @@
       <div v-else style="width: 100%; height: 100%;">
 
         <h2>Create giveaway</h2>
+        <p class="paragraph-small-regular" style="color: rgba(255, 255, 255, 0.6);">Est. 15min</p>
         <StepProgress :current-step="currentStep" :steps=steps>
 
         </StepProgress>
 
         <div style="width: 100%; padding: 20px">
           <!-- Step 1: Select Token -->
-          <TokenSelect></TokenSelect v-if="currentStep === 0">
+          <div v-if="currentStep === 0">
+            <TokenSelect style="margin-bottom: 40px;"></TokenSelect>
+            <WinnerSelector></WinnerSelector>
+          </div>
+          
 
           <!-- Step 2: Giveaway Settings -->
           <div v-if="currentStep === 1">
@@ -79,6 +84,8 @@ import { storeToRefs } from 'pinia'
 import Web3Button from '@/components/Web3Button.vue'
 import StepProgress from '@/components/StepProgress.vue'
 import TokenSelect from '@/components/TokenSelect.vue'
+import WinnerSelector from '@/components/WinnerSelector.vue'
+import ToggleSwitch from '@/components/ToggleSwitch.vue'
 
 
 const tokenInputRef = ref<InstanceType<typeof TokenInput> | null>(null)
