@@ -5,7 +5,7 @@
         <p style="margin-bottom: 32px;" class="explanatory-text"> Lorem ipsum dolor sit amet, consectetur adipiscing
             elit. Curabitur iaculis pharetra lectus quis dictum. Etiam vulputate orci vel orci auctor pellentesque. </p>
 
-        <ToggleSwitch :options="['1st come, 1st served', 'Raffle']"></ToggleSwitch>
+        <ToggleSwitch style="margin-bottom: 32px;" :options="['1st come, 1st served', 'Raffle']"></ToggleSwitch>
 
         <div class="container">
             <div class="row">
@@ -23,12 +23,21 @@
                 </div>
             </div>
         </div>
+
+        <InputBox style="margin-bottom: 32px;" placeholder="Total Token Prize Pool in Giveaway">
+            <span>Max</span>
+        </InputBox>
+        <InputBox style="margin-bottom: 32px;" placeholder="Number of winners">
+        </InputBox>
+        <InputBox placeholder="Total Token Prize Pool in Giveaway">
+        </InputBox>
     </div>
 </template>
 
 <script lang="ts" setup>
 import { ref } from 'vue';
 import ToggleSwitch from './ToggleSwitch.vue';
+import InputBox from './InputBox.vue';
 
 // Define a Token interface to type the tokens array
 interface Token {

@@ -17,13 +17,13 @@
 
         </StepProgress>
 
-        <div style="width: 100%; padding: 20px">
+        <div style="width: 100%">
           <!-- Step 1: Select Token -->
           <div v-if="currentStep === 0">
             <TokenSelect style="margin-bottom: 40px;"></TokenSelect>
             <WinnerSelector></WinnerSelector>
           </div>
-          
+
 
           <!-- Step 2: Giveaway Settings -->
           <div v-if="currentStep === 1">
@@ -47,14 +47,18 @@
         </div>
 
         <div class="stepper-actions">
-          <v-btn color="primary" :disabled="!allowPrevious(currentStep)" @click="prevStep">
-            <v-icon>mdi-chevron-left</v-icon> Back
-          </v-btn>
+          <StyledButton  v-if="currentStep < 4" :disabled="!allowNext(currentStep)" @click="nextStep">
+            Cancel
+          </StyledButton>
 
-          <v-btn color="primary" v-if="currentStep < 4" :disabled="!allowNext(currentStep)" @click="nextStep">
+
+          <!-- <v-btn color="primary" :disabled="!allowPrevious(currentStep)" @click="prevStep">
+            <v-icon>mdi-chevron-left</v-icon> Back
+          </v-btn> -->
+
+          <StyledButton  v-if="currentStep < 4" :disabled="!allowNext(currentStep)" @click="nextStep">
             Next
-            <v-icon>mdi-chevron-right</v-icon>
-          </v-btn>
+          </StyledButton>
         </div>
       </div>
     </div>
@@ -86,6 +90,7 @@ import StepProgress from '@/components/StepProgress.vue'
 import TokenSelect from '@/components/TokenSelect.vue'
 import WinnerSelector from '@/components/WinnerSelector.vue'
 import ToggleSwitch from '@/components/ToggleSwitch.vue'
+import StyledButton from '@/components/StyledButton.vue'
 
 
 const tokenInputRef = ref<InstanceType<typeof TokenInput> | null>(null)
@@ -276,7 +281,8 @@ async function launchGiveaway() {
 .stepper-actions {
   display: flex;
   justify-content: space-between;
-  padding: 10px 0;
+  margin-bottom: 32px;
+  margin-top: 32px;
 }
 
 .stepper-actions .v-btn {

@@ -2,6 +2,7 @@
     <div class="token-selection">
 
         <h5 style="margin-bottom: 32px;" for="token">Select Giveaway Token <span class="required">*</span></h5>
+        <ToggleSwitch style="margin-bottom: 32px;" :options="options"></ToggleSwitch>
         <div v-for="(token, index) in tokens" :key="index" class="token-item">
             <img v-if="token.icon" class="token-icon" :src="token.icon" alt="token icon" />
             <div v-else class="token-icon-circle"></div>
@@ -16,6 +17,7 @@
 
 <script lang="ts" setup>
 import { ref } from 'vue';
+import ToggleSwitch from './ToggleSwitch.vue';
 
 // Define a Token interface to type the tokens array
 interface Token {
@@ -31,6 +33,8 @@ const tokens = ref<Token[]>([
     { name: '$TOKEN', balance: '100,000,000', icon: null },
     { name: '$TOKEN', balance: '100,000,000', icon: null },
 ]);
+
+const options: [string, string] = ["From balances", "From allowances"]
 </script>
 
 <style scoped>
