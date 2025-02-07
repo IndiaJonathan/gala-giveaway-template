@@ -19,10 +19,7 @@
 
         <div style="width: 100%">
           <!-- Step 1: Select Token -->
-          <div v-if="currentStep === 0">
-            <TokenSelect style="margin-bottom: 40px;"></TokenSelect>
-            <WinnerSelector></WinnerSelector>
-          </div>
+          <GiveawayDetails v-if="currentStep === 0"></GiveawayDetails>
 
 
           <!-- Step 2: Giveaway Settings -->
@@ -47,8 +44,8 @@
         </div>
 
         <div class="stepper-actions">
-          <StyledButton  v-if="currentStep < 4" :disabled="!allowNext(currentStep)" @click="nextStep">
-            Cancel
+          <StyledButton v-if="currentStep < 4" :disabled="!allowNext(currentStep)" @click="nextStep">
+            <span style="color: rgba(255, 255, 255, 1)">Cancel</span>
           </StyledButton>
 
 
@@ -56,7 +53,9 @@
             <v-icon>mdi-chevron-left</v-icon> Back
           </v-btn> -->
 
-          <StyledButton  v-if="currentStep < 4" :disabled="!allowNext(currentStep)" @click="nextStep">
+
+          <StyledButton :class="['NextButton', { enabled: allowNext(currentStep) }]" v-if="currentStep < 4"
+            :disabled="!allowNext(currentStep)" @click="nextStep">
             Next
           </StyledButton>
         </div>
@@ -91,6 +90,7 @@ import TokenSelect from '@/components/TokenSelect.vue'
 import WinnerSelector from '@/components/WinnerSelector.vue'
 import ToggleSwitch from '@/components/ToggleSwitch.vue'
 import StyledButton from '@/components/StyledButton.vue'
+import GiveawayDetails from './GiveawayDetails.vue'
 
 
 const tokenInputRef = ref<InstanceType<typeof TokenInput> | null>(null)
@@ -278,6 +278,15 @@ async function launchGiveaway() {
 </script>
 
 <style scoped>
+.NextButton.enabled {
+  background-color: white;
+  /* Background when enabled */
+  color: black;
+  /* Text color when enabled */
+}
+
+
+
 .stepper-actions {
   display: flex;
   justify-content: space-between;

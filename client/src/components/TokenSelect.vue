@@ -3,21 +3,38 @@
 
         <h5 style="margin-bottom: 32px;" for="token">Select Giveaway Token <span class="required">*</span></h5>
         <ToggleSwitch style="margin-bottom: 32px;" :options="options"></ToggleSwitch>
-        <div v-for="(token, index) in tokens" :key="index" class="token-item">
-            <img v-if="token.icon" class="token-icon" :src="token.icon" alt="token icon" />
+
+        <div v-if="!balances">
+            <v-progress-circular indeterminate></v-progress-circular>
+        </div>
+        <div v-else-if="balances.length === 0">
+            <p>No current balances</p>
+        </div>
+        <div v-else v-for="(token, index) in balances" :key="index" class="token-item">
+            <!-- {{ JSON.stringify(token) }} -->
+            <img v-if="token.token.image" class="token-icon" :src="token.token.image" alt="token icon" />
             <div v-else class="token-icon-circle"></div>
 
             <div class="token-details">
-                <div class="token-name paragraph-medium-regular">{{ token.name }}</div>
-                <div class="token-balance paragraph-medium-bold">Balance: {{ token.balance }}</div>
+                <div class="token-name paragraph-medium-regular">{{ token.token.collection }}</div>
+                <div class="token-balance paragraph-medium-bold">Balance: {{ token.balance.getQuantityTotal() }}</div>
             </div>
         </div>
     </div>
 </template>
 
 <script lang="ts" setup>
-import { ref } from 'vue';
+import { type PropType, ref } from 'vue';
 import ToggleSwitch from './ToggleSwitch.vue';
+import { TokenBalance, TokenBalanceWithMetadata } from '@gala-chain/api';
+
+
+const props = defineProps({
+    balances: { type: Object as PropType<TokenBalanceWithMetadata[]>, required: false },
+    clickable: {
+        type: Boolean, default: false, required: false
+    },
+});
 
 // Define a Token interface to type the tokens array
 interface Token {

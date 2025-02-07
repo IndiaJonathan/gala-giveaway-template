@@ -18,7 +18,6 @@
       <v-stepper-window style="width: 100%; padding: 20px">
         <!-- Step 1: Select Token -->
         <v-stepper-window-item :value="1">
-          {{ giveawaySettings.giveawayTokenType }}
           <h1> Option 1: Create Giveaway from balances</h1>
           <UserBalances :token-class="giveawaySettings.giveawayToken" :clickable="true"
             @item-clicked="handleBalanceClick" :data="balances"></UserBalances>
