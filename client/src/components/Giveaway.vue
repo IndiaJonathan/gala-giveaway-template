@@ -1,6 +1,6 @@
 <template>
-  <v-card class="mx-auto my-4" max-width="256px" style="background-color: inherit">
-    <v-img :src="giveaway.image || MysteryBoxPNG">
+  <v-card class="mx-auto my-4" max-width="256px" rounded="lg" style="background-color: inherit">
+    <v-img :src="giveaway.image || GiveawayPlaceholderJPG">
       <v-row v-if="isUpcoming" class="image-overlay ma-0">
         <v-col cols="12" align-self="center" class="text-center">
           <h5>Available in</h5>
@@ -27,7 +27,7 @@
 <script lang="ts" setup>
 import { type PropType, computed } from 'vue'
 import type { Giveaway } from '@/types/giveaway'
-import MysteryBoxPNG from '@/assets/mystery-box.png'
+import GiveawayPlaceholderJPG from '@/assets/giveaway-placeholder.jpg'
 import { tokenToReadable } from '@/utils/GalaHelper'
 
 const { giveaway } = defineProps({
