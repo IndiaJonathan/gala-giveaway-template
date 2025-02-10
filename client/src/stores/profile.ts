@@ -3,7 +3,7 @@
 import { defineStore } from 'pinia'
 import { getProfile } from '@/services/BackendApi'
 import type { Profile } from '@/utils/types'
-import { BrowserConnectClient, TokenApi, TokenBalance } from '@gala-chain/connect'
+import { BrowserConnectClient, TokenApi, TokenBalance, TokenBalanceWithMetadata } from '@gala-chain/connect'
 import { ref, shallowRef, onMounted, watch, type Ref, type ShallowRef } from 'vue'
 import { openNoWeb3WalletDialog } from '@/composables/useDialogue'
 import { getConnectedAddress } from '@/utils/GalaHelper'
@@ -41,7 +41,7 @@ export const useProfileStore = defineStore('profile', () => {
   }
   const connectedEthAddress: Ref<string | undefined> = ref()
   const connectedUserGCAddress: Ref<string | undefined> = ref(undefined)
-  const balances: Ref<TokenBalance[]> = ref([])
+  const balances: Ref<TokenBalanceWithMetadata[]> = ref([])
   const isFetchingProfile = ref(false)
 
   //W3w status
@@ -119,8 +119,9 @@ export const useProfileStore = defineStore('profile', () => {
     const tokenApi = new TokenApi(tokenContractUrl, browserClient.value)
     if (forceRefresh || (!balances.value.length && connectedEthAddress)) {
       balances.value = (
-        (await tokenApi.FetchBalances({ owner: connectedUserGCAddress.value })) as any
-      ).Data
+        (await tokenApi.FetchBalancesWithTokenMetadata({ owner: connectedUserGCAddress.value })) as any
+      ).Data.results
+      console.log("loaded")
     }
   }
 

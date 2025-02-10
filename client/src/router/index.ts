@@ -3,6 +3,7 @@ import TelegramCallback from '@/views/TelegramCallback.vue'
 import GiveawayWizard from '@/views/GiveawayWizard.vue'
 import AvailableGiveaways from '@/views/AvailableGiveaways.vue'
 import Profile from '../views/Profile.vue'
+import GiveawayWizardV2 from '@/views/GiveawayWizardV2.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -12,20 +13,26 @@ const router = createRouter({
       name: 'profile',
       component: Profile
     },
+
     {
-      path: '/',
-      name: 'Giveaways',
-      component: AvailableGiveaways
+      path: '/test',
+      name: 'GiveawayWizard2',
+      component: GiveawayWizard
     },
     {
-      path: '/giveaway',
+      path: '/giveaway2',
       name: 'GiveawayWizard',
-      component: GiveawayWizard,
+      component: GiveawayWizardV2
     },
     {
       path: '/telegram-callback',
       name: 'TelegramCallback',
-      component: TelegramCallback,
+      component: TelegramCallback
+    },
+    {
+      path: '/',
+      name: 'Giveaways',
+      component: AvailableGiveaways
     }
   ]
 })

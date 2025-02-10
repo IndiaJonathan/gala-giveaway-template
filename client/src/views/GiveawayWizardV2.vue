@@ -1,128 +1,66 @@
 <template>
   <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;">
-    <div v-if="!connectedEthAddress || !connectedUserGCAddress" style="width: 100%; text-align: center;">
-      <h1>Start A Giveaway</h1>
-      <Web3Button color="success" @click="profileStore.connect"
-        primary-text="Sign in With your Web3 Wallet To Continue"></Web3Button>
-    </div>
-    <v-stepper v-else v-model="currentStep" style="width: 100%; height: 100%;">
-      <!-- Stepper Header -->
-      <v-stepper-header>
-        <v-stepper-item :complete="stepsComplete[1]" :value="1"> Select Token </v-stepper-item>
-        <v-stepper-item :complete="stepsComplete[2]" :value="2"> Giveaway Settings </v-stepper-item>
-        <v-stepper-item :complete="stepsComplete[3]" :value="3"> Grant Allowance </v-stepper-item>
-        <v-stepper-item :complete="stepsComplete[4]" :value="4"> Launch Giveaway </v-stepper-item>
-      </v-stepper-header>
+    <div style="width: 100%; max-width: 670px; height: 100%">
 
-      <!-- Stepper Content -->
-      <v-stepper-window style="width: 100%; padding: 20px">
-        <!-- Step 1: Select Token -->
-        <v-stepper-window-item :value="1">
-          <h1> Option 1: Create Giveaway from balances</h1>
-          <UserBalances :token-class="giveawaySettings.giveawayToken" :clickable="true"
-            @item-clicked="handleBalanceClick" :data="balances"></UserBalances>
-
-
-          <v-divider style="padding-top: 30px;"></v-divider>
-
-
-          <v-row>
-
-            <h1>Option 2: Create Giveaway from Allowances</h1>
-
-            <v-tooltip>
-              <template #activator="{ props }">
-                <v-icon small v-bind="props" class="ml-2">mdi-information-outline</v-icon>
-              </template>
-              <span>
-                This requires that you are a token authority on the selected token
-              </span>
-            </v-tooltip>
-          </v-row>
-
-          <!-- User Allowances Component -->
-          <UserAllowances @clicked-token="selectProjectToken" :gc-address="connectedUserGCAddress"></UserAllowances>
-
-
-
-
-          <!-- Custom input section -->
-
-          <!-- <v-row>
-            <v-checkbox v-model="showCustomInput" label="Show Custom Token Input"></v-checkbox>
-            <v-tooltip>
-              <template #activator="{ props }">
-                <v-icon small v-bind="props" class="ml-2">mdi-information-outline</v-icon>
-              </template>
-              <span>
-                Only select this if you know what you're doing!
-              </span>
-            </v-tooltip>
-          </v-row>
-
-
-          <div v-if="showCustomInput">
-
-            <TokenInput @update:token-class="deselectToken" ref="tokenInputRef"
-              v-model:tokenClass="giveawaySettings.giveawayToken" :showQuantity="false" />
-
-            <v-row no-gutters>
-
-              <v-btn :disabled="stepsComplete[1]" color="success" @click="selectToken" :loading="tokenSelectLoading">
-                <div v-if="stepsComplete[1]">
-                  <template v-if="stepsComplete[1]">
-                    <v-icon left>mdi-check</v-icon>
-                    Token Selected
-                  </template>
-                </div>
-                <template v-else> Select Token </template>
-              </v-btn>
-              <v-spacer></v-spacer>
-
-
-
-            </v-row>
-
-          </div> -->
-
-
-          <div v-if="totalSupply !== null && maxSupply !== null && stepsComplete[1]">
-            <p>Total Supply: {{ totalSupply }} Max Supply: {{ maxSupply }}</p>
-          </div>
-        </v-stepper-window-item>
-
-        <!-- Step 2: Giveaway Settings -->
-        <v-stepper-window-item :value="2">
-          <GiveawaySettings @form-valid="updateGiveawaySettingsValidity" :token-class="giveawaySettings.giveawayToken"
-            :giveaway-settings="giveawaySettings" />
-        </v-stepper-window-item>
-
-        <!-- Step 3-->
-        <v-stepper-window-item :value="3">
-          <!--  Grant Allowance (For allowance based giveaways)-->
-          <AdminBalanceGrant @form-valid="stepChanged" :token-class-key="giveawaySettings.giveawayToken"
-            :giveaway-settings="giveawaySettings">
-          </AdminBalanceGrant>
-        </v-stepper-window-item>
-
-        <v-stepper-window-item :value="4">
-          <GiveawaySettings @form-valid="updateGiveawaySettingsValidity" :token-class="giveawaySettings.giveawayToken"
-            :giveaway-settings="giveawaySettings" read-only />
-          <v-btn color="success" @click="launchGiveaway">Launch Giveaway</v-btn>
-        </v-stepper-window-item>
-      </v-stepper-window>
-
-      <div class="stepper-actions">
-        <v-btn color="primary" :disabled="!allowPrevious(currentStep)" @click="prevStep">
-          <v-icon>mdi-chevron-left</v-icon> Back
-        </v-btn>
-
-        <v-btn color="primary" v-if="currentStep < 4" :disabled="!allowNext(currentStep)" @click="nextStep">
-          Next
-          <v-icon>mdi-chevron-right</v-icon>
-        </v-btn>
+      <div v-if="!connectedEthAddress || !connectedUserGCAddress" style="width: 100%; text-align: center;">
+        <h1>Start A Giveaway</h1>
+        {{ connectedEthAddress }} {{ connectedUserGCAddress }}
+        <Web3Button color="success" @click="profileStore.connect"
+          primary-text="Sign in With your Web3 Wallet To Continue"></Web3Button>
       </div>
-    </v-stepper>
+
+      <div v-else style="width: 100%; height: 100%;">
+
+        <h2>Create giveaway</h2>
+        <p class="paragraph-small-regular" style="color: rgba(255, 255, 255, 0.6);">Est. 15min</p>
+        <StepProgress :current-step="currentStep" :steps=steps>
+
+        </StepProgress>
+
+        <div style="width: 100%">
+          <!-- Step 1: Select Token -->
+          <GiveawayDetails v-if="currentStep === 0"></GiveawayDetails>
+
+
+          <!-- Step 2: Giveaway Settings -->
+          <div v-if="currentStep === 1">
+            <GiveawaySettings @form-valid="updateGiveawaySettingsValidity" :token-class="giveawaySettings.giveawayToken"
+              :giveaway-settings="giveawaySettings" />
+          </div>
+
+          <!-- Step 3-->
+          <div v-if="currentStep === 2">
+            <!--  Grant Allowance (For allowance based giveaways)-->
+            <AdminBalanceGrant @form-valid="stepChanged" :token-class-key="giveawaySettings.giveawayToken"
+              :giveaway-settings="giveawaySettings">
+            </AdminBalanceGrant>
+          </div>
+
+          <div v-if="currentStep === 3">
+            <GiveawaySettings @form-valid="updateGiveawaySettingsValidity" :token-class="giveawaySettings.giveawayToken"
+              :giveaway-settings="giveawaySettings" read-only />
+            <v-btn color="success" @click="launchGiveaway">Launch Giveaway</v-btn>
+          </div>
+        </div>
+
+        <div class="stepper-actions">
+          <StyledButton v-if="currentStep < 4" :disabled="!allowNext(currentStep)" @click="nextStep">
+            <span style="color: rgba(255, 255, 255, 1)">Cancel</span>
+          </StyledButton>
+
+
+          <!-- <v-btn color="primary" :disabled="!allowPrevious(currentStep)" @click="prevStep">
+            <v-icon>mdi-chevron-left</v-icon> Back
+          </v-btn> -->
+
+
+          <StyledButton :class="['NextButton', { enabled: allowNext(currentStep) }]" v-if="currentStep < 4"
+            :disabled="!allowNext(currentStep)" @click="nextStep">
+            Next
+          </StyledButton>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -147,6 +85,12 @@ import type { TokenClassKeyProperties } from '@gala-chain/api'
 import { useProfileStore } from '@/stores/profile'
 import { storeToRefs } from 'pinia'
 import Web3Button from '@/components/Web3Button.vue'
+import StepProgress from '@/components/StepProgress.vue'
+import TokenSelect from '@/components/TokenSelect.vue'
+import WinnerSelector from '@/components/WinnerSelector.vue'
+import ToggleSwitch from '@/components/ToggleSwitch.vue'
+import StyledButton from '@/components/StyledButton.vue'
+import GiveawayDetails from './GiveawayDetails.vue'
 
 
 const tokenInputRef = ref<InstanceType<typeof TokenInput> | null>(null)
@@ -158,7 +102,7 @@ const { profile, isConnected, error, balances, connectedEthAddress, connectedUse
 
 const tokenContractUrl = import.meta.env.VITE_TOKEN_CONTRACT_URL
 
-
+const steps = ['Details', 'Settings', 'Allowance', 'Review']
 
 const stepsComplete: Ref<Record<number, boolean>> = ref({})
 
@@ -172,7 +116,7 @@ const resetStep = (stepNumber: number) => {
 
 
 
-const currentStep = ref(1)
+const currentStep = ref(0)
 
 const burnTokenClass = ref<TokenClassKeyProperties>({
   collection: 'GALA',
@@ -259,7 +203,7 @@ async function selectProjectToken(transaction: Transaction) {
 }
 // Navigation functions
 function nextStep() {
-  if (currentStep.value < 5) {
+  if (currentStep.value < 4) {
     currentStep.value += 1
   }
 }
@@ -334,10 +278,20 @@ async function launchGiveaway() {
 </script>
 
 <style scoped>
+.NextButton.enabled {
+  background-color: white;
+  /* Background when enabled */
+  color: black;
+  /* Text color when enabled */
+}
+
+
+
 .stepper-actions {
   display: flex;
   justify-content: space-between;
-  padding: 10px 0;
+  margin-bottom: 32px;
+  margin-top: 32px;
 }
 
 .stepper-actions .v-btn {
@@ -351,5 +305,53 @@ async function launchGiveaway() {
 .stepper-actions .v-btn[disabled] {
   opacity: 0.5;
   /* Make disabled buttons less prominent */
+}
+
+.v-stepper-header .v-stepper-item .v-stepper-item__icon {
+  display: none;
+}
+
+
+/* Custom styles for stepper item */
+.custom-stepper-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+/* Text below the dot */
+.step-label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 8px;
+}
+
+.step-label span {
+  font-size: 14px;
+  color: white;
+}
+
+/* Adjust dot icon position */
+.step-label v-icon {
+  font-size: 24px;
+  color: #9e9e9e;
+}
+
+/* Active and completed styles */
+.step-label.active v-icon {
+  color: #00bcd4;
+}
+
+.step-label.completed v-icon {
+  color: #4caf50;
+}
+
+.v-avatar {
+  display: none !important;
+  width: 0px;
+  height: 0px;
 }
 </style>

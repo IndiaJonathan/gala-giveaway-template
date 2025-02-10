@@ -22,10 +22,10 @@
 
       <v-main style="margin-top: 108px">
         <router-view></router-view>
-        <!-- <SignupModal
+        <SignupModal
           :title="connectedUserGCAddress"
           :show="!!connectedEthAddress && !connectedUserGCAddress && !isFetchingProfile"
-        ></SignupModal> -->
+        ></SignupModal>
       </v-main>
 
       <!-- <v-snackbar
@@ -45,6 +45,13 @@
 <script lang="ts" setup>
 import SignupModal from './modals/SignupModal.vue'
 import SideNav from './components/SideNav.vue'
+import { useProfileStore } from './stores/profile';
+import { storeToRefs } from 'pinia';
+
+const profileStore = useProfileStore()
+// Destructure to get reactive variables
+const { profile, isConnected, error, connectedEthAddress, connectedUserGCAddress, isFetchingProfile } = storeToRefs(profileStore)
+
 </script>
 
 <style scoped>
