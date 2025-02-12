@@ -71,18 +71,6 @@ const tokens = ref<Token[]>([
 }
 
 
-.subtitle {
-    font-size: 10px;
-    font-weight: 500;
-    line-height: 16px;
-    text-align: left;
-    text-underline-position: from-font;
-    text-decoration-skip-ink: none;
-    color: rgba(158, 158, 158, 1);
-}
-
-
-
 
 .token-selection {
     box-sizing: border-box;
