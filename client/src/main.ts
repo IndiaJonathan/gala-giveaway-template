@@ -12,6 +12,7 @@ import { aliases, mdi } from 'vuetify/iconsets/mdi'
 import '@mdi/font/css/materialdesignicons.css'
 import { VTimePicker } from 'vuetify/labs/VTimePicker'
 import { createPinia } from 'pinia'
+import '@vuepic/vue-datepicker/dist/main.css'
 
 
 const app = createApp(App)
