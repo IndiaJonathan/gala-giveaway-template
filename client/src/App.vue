@@ -7,15 +7,7 @@
 
         <v-spacer></v-spacer>
 
-        <v-btn
-          class="connect-wallet-btn"
-          rounded="pill"
-          width="152px"
-          height="44px"
-          color="#000"
-          flat
-          >Connect Wallet</v-btn
-        >
+        <Web3Button primary-text="Connect Wallet"></Web3Button>
       </v-app-bar>
 
       <SideNav />
@@ -47,6 +39,7 @@ import SignupModal from './modals/SignupModal.vue'
 import SideNav from './components/SideNav.vue'
 import { useProfileStore } from './stores/profile';
 import { storeToRefs } from 'pinia';
+import Web3Button from './components/Web3Button.vue';
 
 const profileStore = useProfileStore()
 // Destructure to get reactive variables

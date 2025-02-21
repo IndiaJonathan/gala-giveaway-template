@@ -1,43 +1,58 @@
 <template>
     <div class="toggle-container">
-        <div :class="['toggle', { 'is-selected': selected === options[0] }]" @click="selectOption(options[0])">
-            <p :class="['label-medium', selected === options[0] ? 'selected-text' : 'unselected-text']">{{ options[0] }}</p>
+        <div :class="['toggle', { 'is-selected': selectedVal === options[0].key }]"
+            @click="selectOption(options[0].key)">
+            <p :class="['label-medium', selectedVal === options[0].key ? 'selected-text' : 'unselected-text']">
+                {{ options[0].label }}
+            </p>
         </div>
-        <div :class="['toggle', { 'is-selected': selected === options[1] }]" @click="selectOption(options[1])">
-            <p :class="['label-medium', selected === options[1] ? 'selected-text' : 'unselected-text']">{{ options[1] }}</p>
+        <div :class="['toggle', { 'is-selected': selectedVal === options[1].key }]"
+            @click="selectOption(options[1].key)">
+            <p :class="['label-medium', selectedVal === options[1].key ? 'selected-text' : 'unselected-text']">
+                {{ options[1].label }}
+            </p>
         </div>
     </div>
 </template>
 
 <script lang="ts" setup>
-import { ref } from 'vue';
-
-const emit = defineEmits<{
-    (e: 'update:selected', option: string): void
-}>()
+import { computed } from 'vue';
 
 const props = defineProps<{
-    options: [string, string]; // accepts an array of two options
+    options: [
+        { key: string; label: string },
+        { key: string; label: string }
+    ];
+    selected?: string;
 }>();
 
-const selected = ref(props.options[0]); // default selected option
+const emit = defineEmits<{
+    (e: 'update:selected', option: string): void;
+}>();
 
-// Emit the selected option when it's clicked
-const selectOption = (option: string) => {
-    selected.value = option;
-    emit('update:selected', selected.value); // Emits the selected option back to the parent
+const selectedVal = computed({
+    get: () => {
+        console.log("compuitin222...")
+        return props.selected ?? props.options[0].key
+    },
+    set: (value: string) => {
+        emit('update:selected', value);
+    }
+});
+
+const selectOption = (optionKey: string) => {
+    selectedVal.value = optionKey;
 };
 </script>
 
 <style scoped>
 .selected-text {
-    color: rgba(10, 10, 10, 1)
+    color: rgba(10, 10, 10, 1);
 }
 
 .unselected-text {
-    color: rgba(255, 255, 255, 0.6)
+    color: rgba(255, 255, 255, 0.6);
 }
-
 
 .toggle-container {
     display: flex;
@@ -61,6 +76,7 @@ const selectOption = (option: string) => {
 }
 
 .is-selected {
+    margin: 5px;
     background: #ffff;
     height: 34px;
     color: #000;

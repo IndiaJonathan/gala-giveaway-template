@@ -33,9 +33,6 @@
 import { useToast } from '@/composables/useToast'
 import { GalaChainApi } from '@/services/GalaChainApi'
 import BigNumber from "bignumber.js";
-import {
-    type TokenClassKeyProperties
-} from '@gala-chain/api'
 import { computed, ref, watch, type PropType, type Ref } from 'vue'
 import { getRequiredAmountForFCFS, type GiveawayAllowances, type GiveawaySettingsDto } from '@/utils/types'
 import { BrowserConnectClient } from '@gala-chain/connect'

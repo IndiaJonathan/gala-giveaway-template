@@ -3,14 +3,25 @@
 import { defineStore } from 'pinia'
 import { getProfile } from '@/services/BackendApi'
 import type { Profile } from '@/utils/types'
-import { BrowserConnectClient, TokenApi, TokenBalance, TokenBalanceWithMetadata } from '@gala-chain/connect'
-import { ref, shallowRef, onMounted, watch, type Ref, type ShallowRef } from 'vue'
+import {
+  BrowserConnectClient,
+  TokenApi,
+  TokenBalance,
+  TokenBalanceWithMetadata,
+  TokenClass,
+  TokenClassKey
+} from '@gala-chain/connect'
+import { ref, shallowRef, onMounted, watch, type Ref, type ShallowRef, computed } from 'vue'
 import { openNoWeb3WalletDialog } from '@/composables/useDialogue'
 import { getConnectedAddress } from '@/utils/GalaHelper'
+import type { TokenClassKeyProperties } from '@gala-chain/api'
+import { getCreatedTokens, type Transaction } from '@/services/GalaSwapApi'
 
 export const useProfileStore = defineStore('profile', () => {
   // State
   const profile = ref<Profile | null>(null)
+  const createdTokens: Ref<Transaction[]> = ref([])
+
   const isConnected = ref(false)
   const error = ref<Error | null>(null)
   let browserClient: ShallowRef<BrowserConnectClient, BrowserConnectClient> | null
@@ -41,7 +52,8 @@ export const useProfileStore = defineStore('profile', () => {
   }
   const connectedEthAddress: Ref<string | undefined> = ref()
   const connectedUserGCAddress: Ref<string | undefined> = ref(undefined)
-  const balances: Ref<TokenBalanceWithMetadata[]> = ref([])
+  const balances: Ref<TokenBalance[]> = ref([])
+  const metadata: Ref<TokenClass[]> = ref([])
   const isFetchingProfile = ref(false)
 
   //W3w status
@@ -119,11 +131,53 @@ export const useProfileStore = defineStore('profile', () => {
     const tokenApi = new TokenApi(tokenContractUrl, browserClient.value)
     if (forceRefresh || (!balances.value.length && connectedEthAddress)) {
       balances.value = (
-        (await tokenApi.FetchBalancesWithTokenMetadata({ owner: connectedUserGCAddress.value })) as any
-      ).Data.results
-      console.log("loaded")
+        (await tokenApi.FetchBalances({ owner: connectedUserGCAddress.value })) as any
+      ).Data
+      console.log('loaded')
     }
   }
+
+  function getTokenClasses() {
+    let classes: TokenClassKeyProperties[] = []
+    if (balances.value) {
+      classes = classes.concat(
+        balances.value.map((balance) => ({
+          additionalKey: balance.additionalKey,
+          collection: balance.collection,
+          category: balance.category,
+          type: balance.type
+        }))
+      )
+    }
+
+    return classes
+  }
+  watch(
+    () => getTokenClasses(), // Track changes to getTokenClasses
+    async (newTokenClasses) => {
+      if (!browserClient || !newTokenClasses || !newTokenClasses.length) {
+        metadata.value = []
+        return
+      }
+
+      const tokenApi = new TokenApi(tokenContractUrl, browserClient.value)
+      try {
+        const foo = ((await tokenApi.FetchTokenClasses({ tokenClasses: newTokenClasses })) as any)
+          .Data
+        metadata.value = foo
+      } catch (error) {
+        console.error('Error fetching token classes:', error)
+        metadata.value = []
+      }
+    },
+    { deep: true, immediate: true } // Runs initially & watches deeply for changes
+  )
+
+  watch(connectedUserGCAddress, async () => {
+    if (!connectedUserGCAddress.value) return
+    const jobs = await getCreatedTokens(connectedUserGCAddress.value)
+    createdTokens.value = jobs.completedJobs
+  })
 
   async function walletAddressChanged(newAddress?: string) {
     connectedEthAddress.value = newAddress
@@ -154,6 +208,8 @@ export const useProfileStore = defineStore('profile', () => {
     isAwaitingSign,
     balances,
     isFetchingProfile,
+    metadata,
+    createdTokens,
     // Actions
     fetchProfile,
     connect,

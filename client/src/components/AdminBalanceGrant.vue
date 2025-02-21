@@ -141,7 +141,7 @@ const emit = defineEmits<{
 }>()
 
 function estimateGalaFees() {
-  if (props.giveawaySettings.giveawayType === 'DistributedGiveway') {
+  if (props.giveawaySettings.giveawayType === 'DistributedGiveaway') {
     return BigNumber(props.giveawaySettings.maxWinners || 1).dividedBy(1000).integerValue(BigNumber.ROUND_CEIL);
   } else if (props.giveawaySettings.giveawayType === 'FirstComeFirstServe') {
     return BigNumber(props.giveawaySettings.maxWinners || 1)
@@ -168,7 +168,7 @@ const browserClient = new BrowserConnectClient()
 const giveawayWallet = ref();
 const requiredTokenAmount = computed(() => {
   switch (props.giveawaySettings.giveawayType) {
-    case 'DistributedGiveway':
+    case 'DistributedGiveaway':
       if (!props.giveawaySettings.tokenQuantity) {
         throw new Error('Token quantity not set')
       }

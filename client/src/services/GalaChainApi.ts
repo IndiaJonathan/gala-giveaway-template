@@ -13,7 +13,6 @@ import {
   FetchBalancesDto
 } from '@gala-chain/api'
 import BigNumber from 'bignumber.js'
-import { GALA } from '@/utils/constants'
 
 export class GalaChainApi {
   private static instance: GalaChainApi

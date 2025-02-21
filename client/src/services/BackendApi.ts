@@ -1,14 +1,15 @@
 import { useToast } from '@/composables/useToast'
+import type { Giveaway } from '@/types/giveaway'
 import type { SignedDto } from '@/types/web3'
 import {
   type ClaimFCFSDto,
+  type GasFeeEstimateRequestDto,
   type GiveawayAllowances,
   type GiveawayBalances,
   type Profile,
   type SignupForGiveawayDto,
   type StartBasicGivewaySettingsDto
 } from '@/utils/types'
-import type { Giveaway } from '@/views/AvailableGiveaways.vue'
 import type { TokenClassKeyProperties } from '@gala-chain/api'
 import type { BurnTokensRequest } from '@gala-chain/connect'
 
@@ -163,6 +164,25 @@ export async function requestClaimFCFS(claim: ClaimFCFSDto) {
 
 export async function startGiveaway(giveaway: StartBasicGivewaySettingsDto) {
   const response = await fetch(`${baseURL}/api/giveaway/start`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(giveaway)
+  })
+
+  if (!response.ok) {
+    const message = await response.json()
+    throw message?.error || 'Unable to start giveway'
+  }
+
+  const data = await response.json()
+
+  return data
+}
+
+export async function getGiveawayGasFee(giveaway: GasFeeEstimateRequestDto) {
+  const response = await fetch(`${baseURL}/api/giveaway/estimate-fee`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'

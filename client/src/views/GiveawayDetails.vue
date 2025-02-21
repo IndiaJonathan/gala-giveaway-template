@@ -1,7 +1,13 @@
 <template>
-    <TokenSelect :balances="balances" style="margin-bottom: 40px;"></TokenSelect>
-    <WinnerSelector style="margin-bottom: 40px;"></WinnerSelector>
-    <DateSelector></DateSelector>
+    <TokenSelect ref="tokenSelectRef" @is-valid="handleValidityChange" :balances="balances"
+        v-model:selected-token="giveawaySettings.giveawayToken" :created-tokens="createdTokens" :metadata="metadata"
+        :clickable="true" style="margin-bottom: 40px;">
+    </TokenSelect>
+    <WinnerSelector ref="winnerSelectorRef" @is-valid="handleValidityChange" style="margin-bottom: 40px;"
+        :isOpen="!!giveawaySettings.giveawayToken">
+    </WinnerSelector>
+    <DateSelector ref="dateSelectorRef" @is-valid="handleValidityChange" :isOpen="!!giveawaySettings.giveawayToken">
+    </DateSelector>
 </template>
 
 <script lang="ts" setup>
@@ -10,16 +16,23 @@ import TokenSelect from '@/components/TokenSelect.vue'
 import DateSelector from '@/components/DateSelector.vue';
 import { useProfileStore } from '@/stores/profile';
 import { storeToRefs } from 'pinia';
-import { ref } from 'vue';
-
-
-const emit = defineEmits<{
-    (e: 'form-valid', formIsValid: boolean): void
-}>()
+import { ref, watch, type Ref } from 'vue';
+import { useCreateGiveawayStore } from '@/stores/createGiveaway';
 
 const profileStore = useProfileStore();
-const { profile, isConnected, error, balances, connectedEthAddress, connectedUserGCAddress } = storeToRefs(profileStore)
+const giveawayStore = useCreateGiveawayStore();
+const { giveawaySettings } = storeToRefs(giveawayStore)
 
+
+const tokenSelectRef = ref();
+const winnerSelectorRef = ref();
+const dateSelectorRef = ref();
+
+const isValid = ref(false);
+
+
+const { profile, isConnected, error, balances, metadata, createdTokens, connectedEthAddress, connectedUserGCAddress } = storeToRefs(profileStore)
+const emit = defineEmits(['is-valid']);
 
 const date = ref(new Date());
 
@@ -27,17 +40,20 @@ const date = ref(new Date());
 const tomorrow = new Date();
 tomorrow.setDate(tomorrow.getDate() + 1); // Set to tomorrow
 
-// Format the date to 'YYYY-MM-DD' for comparison
-const formatDate = (date: Date) => {
-    const year = date.getFullYear();
-    const month = (date.getMonth() + 1).toString().padStart(2, '0');
-    const day = date.getDate().toString().padStart(2, '0');
-    return `${year}-${month}-${day}`;
+
+const handleValidityChange = () => {
+    const isTokenRefValid = tokenSelectRef.value && tokenSelectRef.value.isValid;
+    const isWinnerRefValid = winnerSelectorRef.value && winnerSelectorRef.value.isValid;
+    const isDateRefValid = dateSelectorRef.value && dateSelectorRef.value.isValid;
+
+    isValid.value = isTokenRefValid && isWinnerRefValid && isDateRefValid;
 };
 
-// Allowed dates function to only allow tomorrow and beyond
-const allowedDates = (val: string) => {
-    return formatDate(new Date(val)) >= formatDate(tomorrow);
-};
+watch(isValid, (newValue) => {
+    emit('is-valid', newValue);
+});
+
+
+defineExpose({ isValid });
+
 </script>
-

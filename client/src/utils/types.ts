@@ -1,20 +1,28 @@
 import type { BurnTokenQuantity, TokenClassKeyProperties } from '@gala-chain/api'
+import type { TokenBalance } from '@gala-chain/connect'
 import BigNumber from 'bignumber.js'
+
+export enum GiveawayTokenType {
+  BALANCE = 'Balance',
+  ALLOWANCE = 'Allowance'
+}
 
 interface BasicGivewaySettingsBase {
   telegramAuthRequired?: boolean
   requireBurnTokenToClaim: boolean
-  giveawayToken: TokenClassKeyProperties
+  giveawayToken: TokenBalance
   burnTokenQuantity?: string
   burnToken: TokenClassKeyProperties
   maxWinners?: string
-  giveawayTokenType?: 'Balance' | 'Allowance'
+  giveawayTokenType?: GiveawayTokenType
 }
 export interface BasicGivewaySettingsDto extends BasicGivewaySettingsBase {
+  startDateTime: Date
   endDateTime?: Date
 }
 
 export interface StartBasicGivewaySettingsDto extends BasicGivewaySettingsBase {
+  startDateTime: Date
   endDateTime?: String
 }
 
@@ -24,12 +32,12 @@ export interface FirstComeFirstServeGiveawaySettingsDto extends BasicGivewaySett
 }
 export interface RandomGiveawaySettingsDto extends BasicGivewaySettingsDto {
   tokenQuantity?: string
-  giveawayType: 'DistributedGiveway'
+  giveawayType: 'DistributedGiveaway'
 }
 
 export type GiveawaySettingsDto = FirstComeFirstServeGiveawaySettingsDto | RandomGiveawaySettingsDto
 export function getRequiredAmount(giveaway: GiveawaySettingsDto): BigNumber | undefined {
-  if (giveaway.giveawayType === 'DistributedGiveway') {
+  if (giveaway.giveawayType === 'DistributedGiveaway') {
     if (giveaway.tokenQuantity !== undefined) {
       return BigNumber(giveaway.tokenQuantity)
     } else {
@@ -100,4 +108,10 @@ export interface GiveawayAllowances extends GiveawayDetails {
 export interface GiveawayBalances extends GiveawayDetails {
   tokenBalance: string
   detailsType: 'Balance'
+}
+
+export interface GasFeeEstimateRequestDto {
+  giveawayType: 'FirstComeFirstServe' | 'DistributedGiveaway'
+  maxWinners: number
+  giveawayTokenType: GiveawayTokenType
 }

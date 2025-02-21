@@ -1,47 +1,23 @@
 <template>
-    <Collapsible title="Winner type" :collapsible="true" :isOpen="!!giveawaySettings.giveawayToken">
+    <Collapsible title="Telegram authentication" :collapsible="false" isOpen class="mb-4">
 
 
         <p style="margin-bottom: 32px;" class="explanatory-text"> Lorem ipsum dolor sit amet, consectetur adipiscing
             elit. Curabitur iaculis pharetra lectus quis dictum. Etiam vulputate orci vel orci auctor pellentesque.
         </p>
 
-        {{ giveawaySettings.giveawayType }}
-
-        <ToggleSwitch v-model:selected="selectedVal" style="margin-bottom: 32px; width: 100%;" :options="[{ key: 'FirstComeFirstServe', label: '1st come, 1st served' },
-        { key: 'DistributedGiveaway', label: 'Raffle' }]">
-        </ToggleSwitch>
-
-        <div class="container" v-if="giveawaySettings.giveawayToken">
-            <div class="row">
-                <div class="info-item">
-                    <span class="subtitle">$TOKEN BALANCE</span>
-                    <span class="paragraph-small-regular">{{ formatNumber(new
-                        BigNumber(giveawaySettings.giveawayToken.quantity))
-                        }}</span>
-                </div>
-                <div class="info-item">
-                    <span class="subtlitle">$TOKEN PRIZE POOL</span>
-                    <span class="paragraph-small-regular">{{ formatNumber(totalTokenPrizePool) }}</span>
-                </div>
-                <div class="info-item">
-                    <span class="subtitle">EST. $GALA GAS FEE</span>
-                    <span class="paragraph-small-regular">{{ estimatedGasFee }}</span>
-                </div>
-            </div>
-        </div>
-
-
-        <InputBox v-model="totalWinners" style="margin-bottom: 32px;" placeholder="Number of winners">
-        </InputBox>
-        <InputBox placeholder="Prize per winner" v-model="prizePerWinner" style="margin-bottom: 32px;" :onSlotClick="() => {
-            prizePerWinner = calculateMaxPrize()
-        }">
-            MAX
-        </InputBox>
-
-
+        <StyledCheckmark />
     </Collapsible>
+
+    <Collapsible title="Telegram authentication" :collapsible="false" isOpen>
+
+
+<p style="margin-bottom: 32px;" class="explanatory-text"> Lorem ipsum dolor sit amet, consectetur adipiscing
+    elit. Curabitur iaculis pharetra lectus quis dictum. Etiam vulputate orci vel orci auctor pellentesque.
+</p>
+
+<StyledCheckmark />
+</Collapsible>
 </template>
 
 <script lang="ts" setup>
@@ -54,6 +30,7 @@ import BigNumber from 'bignumber.js';
 import { getGiveawayGasFee } from '@/services/BackendApi';
 import { useCreateGiveawayStore } from '@/stores/createGiveaway';
 import { storeToRefs } from 'pinia';
+import StyledCheckmark from './inputs/StyledCheckmark.vue'
 
 
 const emit = defineEmits(['is-valid']);

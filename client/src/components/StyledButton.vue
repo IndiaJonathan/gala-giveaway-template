@@ -27,4 +27,7 @@ defineProps<{
     transform: scale(1.05);
 }
 
+.custom-button:disabled {
+    cursor: not-allowed;
+}
 </style>

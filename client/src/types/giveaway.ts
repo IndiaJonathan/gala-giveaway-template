@@ -17,5 +17,5 @@ export interface Giveaway {
   isWinner?: boolean
   claimPerUser?: string
   claimsLeft?: number
-  giveawayType: 'FirstComeFirstServe' | 'DistributedGiveway'
+  giveawayType: 'FirstComeFirstServe' | 'DistributedGiveaway'
 }
