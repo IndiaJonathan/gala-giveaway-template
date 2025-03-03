@@ -24,7 +24,7 @@
 
           <!-- Step 2: Giveaway Settings -->
           <div v-if="currentStep === 1">
-            <SettingsStep></SettingsStep>
+            <SettingsStep @is-valid="handleValidityChange($event, 1)"></SettingsStep>
             <!-- <GiveawaySettings @form-valid="updateGiveawaySettingsValidity" :token-class="giveawaySettings.giveawayToken"
               :giveaway-settings="giveawaySettings" /> -->
           </div>

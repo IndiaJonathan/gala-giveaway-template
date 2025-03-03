@@ -1,12 +1,11 @@
 <template>
   <div class="collapsible-container" :class="{ 'collapsed-bg': collapsible && !isOpen }">
     <div class="collapsible-header" @click="collapsible && toggle" style="cursor: pointer;">
-      <h5 style="margin-bottom: 12px;">
+      <h5 v-if="title" style="margin-bottom: 12px;">
         {{ title }} <span class="required">*</span>
       </h5>
     </div>
-    <!-- Wrap the content slot in a transition for animation -->
-    <transition name="collapse">
+    <transition name="collapse" style="width: 100%;">
       <div v-show="!collapsible || isOpen">
         <slot />
       </div>
@@ -18,7 +17,7 @@
 import { defineProps, defineEmits } from 'vue';
 
 const props = defineProps({
-  title: { type: String, required: true },
+  title: { type: String, required: false },
   collapsible: { type: Boolean, default: false },
   isOpen: { type: Boolean, default: true },
 });
@@ -49,6 +48,10 @@ const toggle = () => {
 
 .required {
   color: red;
+}
+
+.collapsible-header{
+  width: 100%;
 }
 
 /* Animation for folding out/in */

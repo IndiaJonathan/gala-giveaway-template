@@ -44,6 +44,14 @@ export class GalaChainApi {
     }
   }
 
+  public async fetchOwnedTokens() {
+    if (!this.tokenClient) {
+      throw new Error("TokenService is not initialized. Call 'init()' first.")
+    }
+
+    const balances = await this.tokenClient.FetchBalancesWithTokenMetadata({ category: 'GalaRocks' })
+  }
+
   public async fetchTokenClasses(tokenClass: TokenClassKeyProperties) {
     if (!this.tokenClient) {
       throw new Error("TokenService is not initialized. Call 'init()' first.")
@@ -126,7 +134,6 @@ export class GalaChainApi {
       instance: BigNumber(0)
     })
 
- 
     const transferBalance = await this.tokenClient.TransferToken({
       tokenInstance: tokenInstanceQuery as any,
       quantity: quantity as any as BigNumber,

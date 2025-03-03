@@ -5,21 +5,29 @@
 </template>
 
 <script lang="ts" setup>
-import { ref } from 'vue';
+import { ref, defineProps, defineEmits, watch } from 'vue';
 
 const props = defineProps({
   label: {
     type: String,
     default: 'Require'
+  },
+  modelValue: {
+    type: Boolean,
+    default: false
   }
 });
 
-const isChecked = ref(false);
+const emit = defineEmits(['update:modelValue']);
+
+const isChecked = ref(props.modelValue);
+
+watch(isChecked, (newValue) => {
+  emit('update:modelValue', newValue);
+});
 </script>
 
 <style scoped>
-
-
 :deep(.v-label) {
   font-size: 16px;
   color: rgba(255, 255, 255, 0.6); 

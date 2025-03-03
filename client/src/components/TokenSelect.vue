@@ -1,8 +1,10 @@
 <template>
     <div class="token-selection">
 
-        <h5 style="margin-bottom: 32px;" for="token">Select Giveaway Token <span class="required">*</span></h5>
-        <ToggleSwitch v-model:selected="selectedVal" style="margin-bottom: 32px; width: 100%;" :options="options">
+        <h5 v-if="!justSelector" style="margin-bottom: 32px;" for="token">Select Giveaway Token<span
+                class="required">*</span></h5>
+        <ToggleSwitch v-if="!justSelector" v-model:selected="selectedVal" style="margin-bottom: 32px; width: 100%;"
+            :options="options">
         </ToggleSwitch>
 
         <!-- Balances -->
@@ -22,6 +24,14 @@
                 <div class="token-details">
                     <div class="token-name paragraph-medium-regular">{{ token.collection }}</div>
                     <div class="token-balance paragraph-small-bold">Balance: {{ token.quantity }}</div>
+                </div>
+
+                <div
+                    v-if="!!giveawaySettings.giveawayToken && checkTokenEquivalancy(giveawaySettings.giveawayToken, token)">
+                    <img src="@/assets/radio-checked.png" alt="Chevron Icon" class="icon" />
+                </div>
+                <div v-else>
+                    <img src="@/assets/radio-unchecked.png" alt="Chevron Icon" class="icon" />
                 </div>
             </div>
         </div>
@@ -47,6 +57,14 @@
                     <div class="token-name paragraph-medium-regular">{{ token.collection }}</div>
                     <div class="token-balance paragraph-small-bold">Balance: {{ token.quantity }}</div>
                 </div>
+
+                <div
+                    v-if="!!giveawaySettings.giveawayToken && checkTokenEquivalancy(giveawaySettings.giveawayToken, token)">
+                    <img src="@/assets/radio-checked.png" alt="Chevron Icon" class="icon" />
+                </div>
+                <div v-else>
+                    <img src="@/assets/radio-unchecked.png" alt="Chevron Icon" class="icon" />
+                </div>
             </div>
         </div>
     </div>
@@ -70,6 +88,14 @@ const profileStore = useProfileStore();
 
 const { giveawaySettings } = storeToRefs(giveawayStore)
 const { profile, isConnected, error, balances, metadata, createdTokens, connectedEthAddress, connectedUserGCAddress } = storeToRefs(profileStore)
+
+
+const props = defineProps({
+    justSelector: {
+        type: Boolean,
+        default: false
+    }
+})
 
 
 const options: [
@@ -202,6 +228,7 @@ defineExpose({ isValid });
 .token-details {
     display: flex;
     flex-direction: column;
+    flex-grow: 1;
 }
 
 .token-name {

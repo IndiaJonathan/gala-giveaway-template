@@ -1,4 +1,5 @@
 <template>
+    
     <TokenSelect ref="tokenSelectRef" @is-valid="handleValidityChange" :balances="balances"
         v-model:selected-token="giveawaySettings.giveawayToken" :created-tokens="createdTokens" :metadata="metadata"
         :clickable="true" style="margin-bottom: 40px;">
