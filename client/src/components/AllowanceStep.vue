@@ -11,86 +11,18 @@
             </div>
         </Collapsible>
 
-        <Collapsible title="Giveaway token allowance" :collapsible="false" isOpen class="mb-4">
-            <p class="explanatory-text mb-8">
-                Lorem ipsum dolor sit amet, consectetur adipiscing elit. Curabitur iaculis pharetra
-                lectus quis dictum. Etiam vulputate orci vel orci auctor pellentesque.
-            </p>
-
-            <div class="token-info">
-                <div class="token-label">TOKEN:</div>
-                <div class="token-value">
-                    <div class="token-icon">
-                        <span>{{ tokenSymbol }}</span>
-                    </div>
-                </div>
-            </div>
-
-            <div v-if="giveawayAllowances" class="text-muted mb-4">
-                <p>You have a net allowance of <strong>{{ formatNumber(Number(giveawayAllowances.allowances))
-                        }}</strong> tokens
-                    allocated to the giveaway wallet.
-                </p>
-
-                <div v-if="BigNumber(giveawayAllowances.allowances).gte(requiredBalance)" class="success-alert mb-4">
-                    You have sufficient allowance to start the giveaway.
-                </div>
-                <div v-else class="text-muted mb-4">
-                    <p>
-                        You need to grant an additional
-                        <strong> {{ formatNumber(Number(requiredBalance.minus(giveawayAllowances.allowances))) }}
-                        </strong>
-                        tokens to meet the requirement.
-                    </p>
-                    <button class="grant-allowance-btn" @click="grantAdditionalAllowance">
-                        Grant Additional Allowance
-                    </button>
-                </div>
-            </div>
-            <div v-else class="text-muted mb-4">
-                <p>You have not granted any allowance of this token to the giveaway wallet yet.</p>
-                <button class="grant-allowance-btn" @click="grantAdditionalAllowance">
-                    Grant Allowance
-                </button>
-            </div>
-        </Collapsible>
-
-        <Collapsible title="Gas fee balance" :collapsible="false" isOpen>
-            <p class="explanatory-text mb-8">
-                Lorem ipsum dolor sit amet, consectetur adipiscing elit. Curabitur iaculis pharetra
-                lectus quis dictum. Etiam vulputate orci vel orci auctor pellentesque.
-            </p>
-
-            <div class="token-info">
-                <div class="token-label">TOKEN:</div>
-                <div class="token-value">
-                    <div class="token-icon">
-                        <span>$GALA</span>
-                    </div>
-                </div>
-            </div>
-
-            <div v-if="hasMissingGasBalance" class="missing-allowance">MISSING BALANCE</div>
-
-            <div class="balance-info">
-                <div class="balance-item">
-                    <div class="balance-label">REQUIRED BALANCE</div>
-                    <div class="balance-value">{{ formatNumber(Number(estimateGalaFees())) }}</div>
-                </div>
-                <div class="balance-item">
-                    <div class="balance-label">YOUR BALANCE</div>
-                    <div class="balance-value">{{ formatNumber(Number(yourGasBalance)) }}</div>
-                </div>
-                <div class="balance-item">
-                    <div class="balance-label">MISSING BALANCE</div>
-                    <div class="balance-value">{{ formatNumber(Number(missingGasBalance)) }}</div>
-                </div>
-            </div>
-
-            <button class="transfer-token-btn" :class="{ 'disabled': !hasMissingGasBalance }" @click="transferToken">
-                Transfer Token
-            </button>
-        </Collapsible>
+        <AllowanceCheck v-if="giveawaySettings.giveawayTokenType === 'Allowance'" 
+            :giveawaySettings="giveawaySettings as GiveawaySettingsDto" 
+            :requiredAmount="requiredBalance"
+            :grantedAllowanceQuantity="BigNumber(giveawayTokenBalances?.allowances || 0)" />
+            
+        <BalanceCheck v-else-if="giveawaySettings.giveawayTokenType === 'Balance'"
+            :giveawaySettings="giveawaySettings as GiveawaySettingsDto"
+            :requiredAmount="requiredBalance"
+            :adminBalanceQuantity="BigNumber(giveawayTokenBalances?.tokenBalance || 0)"
+            @token-transferred="checkValidity" />
+            
+        <GasFeeBalance :giveawaySettings="giveawaySettings as GiveawaySettingsDto" @token-transferred="checkValidity" />
     </div>
 </template>
 
@@ -108,13 +40,16 @@ import { BrowserConnectClient } from '@gala-chain/connect';
 import { getRequiredAmount, type GiveawayDetails, type GiveawaySettingsDto, type Profile } from '@/utils/types';
 import type { TokenClassKeyProperties } from '@gala-chain/api';
 import { GALA } from '@/utils/constants';
+import AllowanceCheck from './AllowanceCheck.vue';
+import BalanceCheck from './BalanceCheck.vue';
+import GasFeeBalance from './GasFeeBalance.vue';
 
 const emit = defineEmits(['is-valid']);
 
 const giveawayStore = useCreateGiveawayStore();
 const { giveawaySettings } = storeToRefs(giveawayStore);
 const profileStore = useProfileStore();
-const { profile, balances, connectedEthAddress, giveawayAllowances } = storeToRefs(profileStore);
+const { profile, balances, connectedEthAddress, giveawayTokenBalances } = storeToRefs(profileStore);
 const { showToast } = useToast();
 
 // Get wallet address from profile store
@@ -132,9 +67,6 @@ const tokenSymbol = computed(() => {
     return 'Select token';
 });
 
-// Gas token is always GALA
-const gasTokenSymbol = ref('$GALA');
-
 // Calculate required balance based on giveaway settings
 const requiredBalance = computed(() => {
     if (giveawaySettings.value && giveawaySettings.value.giveawayType) {
@@ -149,127 +81,10 @@ const requiredBalance = computed(() => {
     return new BigNumber(0);
 });
 
-// Gas fee data
-const yourGasBalance = ref(new BigNumber(505));
-const missingGasBalance = computed(() => {
-    return BigNumber.max(0, estimateGalaFees().minus(yourGasBalance.value));
-});
-const hasMissingGasBalance = computed(() => missingGasBalance.value.gt(0));
-
 // Check if all requirements are met
 const isValid = computed(() => {
-    return BigNumber(giveawayAllowances.value?.allowances || 0).gte(requiredBalance.value) && !hasMissingGasBalance.value;
+    return BigNumber(giveawayTokenBalances.value?.allowances || 0).gte(requiredBalance.value);
 });
-
-function getGalaCost(balanceData: GiveawayDetails) {
-    let additional: BigNumber = BigNumber(0);
-    if (giveawaySettings.value.giveawayTokenType === 'Balance') {
-        additional = requiredBalance.value;
-    }
-    return additional.plus(BigNumber(balanceData.currentGalaFeesNeeded).plus(estimateGalaFees()))
-}
-
-function estimateGalaFees() {
-    if (giveawaySettings.value.giveawayType === 'DistributedGiveaway') {
-        return BigNumber(giveawaySettings.value.maxWinners || 1).dividedBy(1000).integerValue(BigNumber.ROUND_CEIL);
-    } else if (giveawaySettings.value.giveawayType === 'FirstComeFirstServe') {
-        return BigNumber(giveawaySettings.value.maxWinners || 1)
-    } else {
-        throw new Error(`Unknown giveaway type`)
-    }
-}
-
-// Functions to handle actions
-const grantAdditionalAllowance = async () => {
-    const browserClient = new BrowserConnectClient();
-    await browserClient.connect();
-
-    const tokenService = GalaChainApi.getInstance();
-
-    if (!profile.value || !profile.value.giveawayWalletAddress) {
-        showToast(`Unable to get giveaway wallet`, true);
-        return;
-    }
-
-    await tokenService.init();
-    if (!giveawaySettings.value.giveawayToken) {
-        showToast('Please select a token at step 1!');
-    } else {
-        try {
-            const additionalAllowance = requiredBalance.value.minus(giveawayAllowances.value?.allowances || 0);
-            const grant = await tokenService.grantAllowance(
-                giveawaySettings.value.giveawayToken as TokenClassKeyProperties,
-                additionalAllowance,
-                profile.value.giveawayWalletAddress
-            );
-
-            if (grant.Status === 1) {
-                // Success!
-                showToast('Allowance Granted!');
-
-                try {
-                    // Fetch the updated allowance data using the profile store
-                    await profileStore.getGiveawayAllowances(
-                        giveawaySettings.value.giveawayToken as TokenClassKeyProperties
-                    );
-
-                    checkValidity();
-                } catch (fetchError) {
-                    console.error('Error fetching updated allowance:', fetchError);
-                    // If we can't get the updated value, use the required balance as an estimate
-                    // This is handled by the store now
-                }
-            }
-        } catch (e: unknown) {
-            let errorMessage = 'unknown error';
-            if (isErrorWithMessage(e)) {
-                errorMessage = e.Message;
-            }
-            console.error(errorMessage);
-            showToast(`Unable to grant allowance. Error: ${errorMessage}`, true);
-        }
-    }
-};
-
-const transferToken = async () => {
-    // Implement the logic to transfer tokens
-    const browserClient = new BrowserConnectClient();
-    await browserClient.connect();
-
-    const tokenService = GalaChainApi.getInstance();
-
-    if (!profile.value || !profile.value.giveawayWalletAddress) {
-        showToast(`Unable to get giveaway wallet`, true);
-        return;
-    }
-
-    await tokenService.init();
-    try {
-        // Use the GALA token constant for gas token transfers
-
-        const grant = await tokenService.transferToken(
-            GALA,
-            missingGasBalance.value.toString(),
-            profile.value.giveawayWalletAddress
-        );
-
-        if (grant.Status === 1) {
-            // Success!
-            showToast('Gas tokens transferred successfully!');
-
-            // Update the balance after successful transfer
-            yourGasBalance.value = estimateGalaFees();
-            checkValidity();
-        }
-    } catch (e: unknown) {
-        let errorMessage = 'unknown error';
-        if (isErrorWithMessage(e)) {
-            errorMessage = e.Message;
-        }
-        console.error(errorMessage);
-        showToast(`Unable to transfer gas tokens. Error: ${errorMessage}`, true);
-    }
-};
 
 const checkValidity = () => {
     emit('is-valid', isValid.value);
@@ -285,7 +100,7 @@ onMounted(async () => {
     if (giveawaySettings.value.giveawayToken && profile.value?.galaChainAddress) {
         try {
             // Use the profile store to fetch allowances
-            await profileStore.getGiveawayAllowances(
+            await profileStore.refreshGiveawayTokenBalances(
                 {
                     collection: giveawaySettings.value.giveawayToken?.collection,
                     category: giveawaySettings.value.giveawayToken?.category,

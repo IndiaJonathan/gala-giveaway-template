@@ -100,14 +100,9 @@ export interface GiveawayDetails {
   detailsType: 'Balance' | 'Allowance'
 }
 
-export interface GiveawayAllowances extends GiveawayDetails {
-  allowances: string;
-  detailsType: 'Allowance'
-}
-
-export interface GiveawayBalances extends GiveawayDetails {
+export interface TokenBalances extends GiveawayDetails {
   tokenBalance: string
-  detailsType: 'Balance'
+  allowances: string
 }
 
 export interface GasFeeEstimateRequestDto {

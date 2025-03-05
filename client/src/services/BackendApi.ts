@@ -4,11 +4,10 @@ import type { SignedDto } from '@/types/web3'
 import {
   type ClaimFCFSDto,
   type GasFeeEstimateRequestDto,
-  type GiveawayAllowances,
-  type GiveawayBalances,
   type Profile,
   type SignupForGiveawayDto,
-  type StartBasicGivewaySettingsDto
+  type StartBasicGivewaySettingsDto,
+  type TokenBalances
 } from '@/utils/types'
 import type { TokenClassKeyProperties } from '@gala-chain/api'
 import type { BurnTokensRequest } from '@gala-chain/connect'
@@ -16,46 +15,16 @@ import type { BurnTokensRequest } from '@gala-chain/connect'
 const baseURL = import.meta.env.VITE_TELEGRAM_SERVER
 
 
-export async function GetGiveawayAllowancesFromGiveaway(
+
+export async function getGiveawayTokensAvailable(
   tokenClassKey: TokenClassKeyProperties,
   gc_address: string | undefined
-) {
+): Promise<TokenBalances | undefined> {
   if (!gc_address) {
     throw new Error('GalaChain address is required')
   }
 
-  const response = await fetch(`${baseURL}/api/giveaway/allowance-available/${gc_address}`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({ 
-      collection: tokenClassKey.collection,
-      category: tokenClassKey.category,
-      type: tokenClassKey.type,
-      additionalKey: tokenClassKey.additionalKey,
-      instance: '0' 
-    })
-  })
-
-  if (!response.ok) {
-    throw new Error('Network response was not ok')
-  }
-
-  const data: GiveawayAllowances = await response.json()
-
-  if (data) {
-    return data
-  }
-
-  return undefined
-}
-
-export async function GetGiveawayBalances(
-  tokenClassKey: TokenClassKeyProperties,
-  gc_address: string
-) {
-  const response = await fetch(`${baseURL}/api/giveaway/balance-available/${gc_address}`, {
+  const response = await fetch(`${baseURL}/api/giveaway/tokens-available/${gc_address}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
@@ -64,7 +33,8 @@ export async function GetGiveawayBalances(
       collection: tokenClassKey.collection,
       category: tokenClassKey.category,
       type: tokenClassKey.type,
-      additionalKey: tokenClassKey.additionalKey
+      additionalKey: tokenClassKey.additionalKey,
+      instance: '0'
     })
   })
 
@@ -72,13 +42,8 @@ export async function GetGiveawayBalances(
     throw new Error('Network response was not ok')
   }
 
-  const data: GiveawayBalances = await response.json()
-
-  if (data) {
-    return data
-  }
-
-  return undefined
+  const data = await response.json()
+  return data
 }
 
 export async function createWallet(payload: SignedDto) {

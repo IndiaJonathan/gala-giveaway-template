@@ -1,6 +1,8 @@
 import { ref } from 'vue'
 import { defineStore } from 'pinia'
 import { GiveawayTokenType, type GiveawaySettingsDto } from '@/utils/types'
+import { watch } from 'vue'
+import { useProfileStore } from '@/stores/profile'
 
 export const useCreateGiveawayStore = defineStore('createGiveaway', () => {
   const giveawaySettings = ref<Partial<GiveawaySettingsDto>>({
@@ -25,6 +27,14 @@ export const useCreateGiveawayStore = defineStore('createGiveaway', () => {
       ...newSettings
     } as Partial<GiveawaySettingsDto>
   }
+
+  const profileStore = useProfileStore()
+
+  watch(giveawaySettings, async () => {
+    if (giveawaySettings.value?.giveawayToken) {
+      await profileStore.refreshGiveawayTokenBalances(giveawaySettings.value.giveawayToken)
+    }
+  })
 
   function setEndDateTime(newDate: Date) {
     giveawaySettings.value.endDateTime = newDate

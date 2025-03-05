@@ -1,4 +1,4 @@
-<template>
+<!-- <template>
   <v-container>
     <div v-if="isLoading" class="text-center my-8">
       <v-progress-circular indeterminate size="48"></v-progress-circular>
@@ -111,11 +111,10 @@
 
 <script setup lang="ts">
 import { useToast } from '@/composables/useToast'
-import { GetGiveawayAllowancesFromGiveaway, GetGiveawayBalances } from '@/services/BackendApi'
 import { GalaChainApi } from '@/services/GalaChainApi'
 import BigNumber from "bignumber.js";
 import { computed, ref, watch, type PropType, type Ref } from 'vue'
-import { getRequiredAmountForFCFS, type GiveawayAllowances, type GiveawayBalances, type GiveawayDetails, type GiveawaySettingsDto } from '@/utils/types'
+import { getRequiredAmountForFCFS, type GiveawayDetails, type GiveawaySettingsDto } from '@/utils/types'
 import { BrowserConnectClient } from '@gala-chain/connect'
 import { GALA } from '@/utils/constants';
 import { BadRequestError } from '@tonconnect/sdk';
@@ -153,7 +152,6 @@ const { showToast } = useToast()
 const profileStore = useProfileStore()
 const { profile } = storeToRefs(profileStore)
 
-const giveawayBalanceData: Ref<GiveawayAllowances | GiveawayBalances | undefined> = ref()
 const personalGalaBalance: Ref<BigNumber | undefined> = ref()
 
 function ensureLoggedIn() {
@@ -292,4 +290,9 @@ watch(
   }, { deep: true }
 )
 loadBalances()
-</script>
+</script> -->
+<template>
+  <div>
+    <h1>Admin Balance Grant</h1>
+  </div>
+</template>

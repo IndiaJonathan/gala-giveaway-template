@@ -1,8 +1,8 @@
 // stores/profile.ts
 
 import { defineStore } from 'pinia'
-import { getProfile, GetGiveawayAllowancesFromGiveaway } from '@/services/BackendApi'
-import type { Profile, GiveawayAllowances } from '@/utils/types'
+import { getProfile, getGiveawayTokensAvailable } from '@/services/BackendApi'
+import type { Profile, TokenBalances } from '@/utils/types'
 import {
   BrowserConnectClient,
   TokenApi,
@@ -22,7 +22,7 @@ export const useProfileStore = defineStore('profile', () => {
   // State
   const profile = ref<Profile | null>(null)
   const createdTokens: Ref<Transaction[]> = ref([])
-  const giveawayAllowances = ref<GiveawayAllowances | undefined>(undefined)
+  const giveawayTokenBalances = ref<TokenBalances | undefined>(undefined)
 
   const isConnected = ref(false)
   const error = ref<Error | null>(null)
@@ -139,33 +139,20 @@ export const useProfileStore = defineStore('profile', () => {
     }
   }
 
-
-  async function getGiveawayAllowances(
-    tokenClassKey: TokenClassKeyProperties,
-    forceRefresh = false
-  ) {
+  async function refreshGiveawayTokenBalances(tokenClassKey: TokenClassKeyProperties) {
     if (!connectedUserGCAddress.value) {
       return null
     }
 
+    console.log('refreshing giveaway token balances', tokenClassKey)
 
     try {
-      // Call the server API to get allowances using the user's galachain address
-      const response = await GetGiveawayAllowancesFromGiveaway(
-        {
-          collection: tokenClassKey.collection,
-          category: tokenClassKey.category,
-          type: tokenClassKey.type,
-          additionalKey: tokenClassKey.additionalKey
-        } as TokenClassKeyProperties,
-        connectedUserGCAddress.value
-      )
-
-      giveawayAllowances.value = response
-
+      const response = await getGiveawayTokensAvailable(tokenClassKey, connectedUserGCAddress.value)
+      giveawayTokenBalances.value = response
+      console.log('giveaway token balances', giveawayTokenBalances.value)
       return response
     } catch (err) {
-      console.error('Error fetching allowances:', err)
+      console.error('Error fetching wallet allowances:', err)
       error.value = err as Error
       return null
     }
@@ -245,12 +232,12 @@ export const useProfileStore = defineStore('profile', () => {
     isFetchingProfile,
     metadata,
     createdTokens,
-    giveawayAllowances,
+    giveawayTokenBalances,
     // Actions
     fetchProfile,
     connect,
     sign,
     getBalances,
-    getGiveawayAllowances
+    refreshGiveawayTokenBalances
   }
 })
