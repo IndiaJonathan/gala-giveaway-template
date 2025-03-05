@@ -13,6 +13,7 @@ import {
   FetchBalancesDto
 } from '@gala-chain/api'
 import BigNumber from 'bignumber.js'
+import { ethers } from 'ethers'
 
 export class GalaChainApi {
   private static instance: GalaChainApi
@@ -49,7 +50,9 @@ export class GalaChainApi {
       throw new Error("TokenService is not initialized. Call 'init()' first.")
     }
 
-    const balances = await this.tokenClient.FetchBalancesWithTokenMetadata({ category: 'GalaRocks' })
+    const balances = await this.tokenClient.FetchBalancesWithTokenMetadata({
+      category: 'GalaRocks'
+    })
   }
 
   public async fetchTokenClasses(tokenClass: TokenClassKeyProperties) {
@@ -58,7 +61,10 @@ export class GalaChainApi {
     }
 
     const tokenClassDto = await createValidDTO<TokenClassKey>(TokenClassKey, {
-      ...tokenClass
+      collection: tokenClass.collection,
+      category: tokenClass.category,
+      type: tokenClass.type,
+      additionalKey: tokenClass.additionalKey
     })
 
     const fetchDto = await createValidDTO<FetchTokenClassesDto>(FetchTokenClassesDto, {
@@ -75,23 +81,14 @@ export class GalaChainApi {
       throw new Error("TokenService is not initialized. Call 'init()' first.")
     }
     const fetchBalanceDto = await createValidDTO<FetchBalancesDto>(FetchBalancesDto, {
-      ...tokenClassKey,
+      collection: tokenClassKey.collection,
+      category: tokenClassKey.category,
+      type: tokenClassKey.type,
+      additionalKey: tokenClassKey.additionalKey,
       instance: '0',
-      owner: gcAddress
+      owner: gcAddress as any
     } as any)
     const response = await this.tokenClient.FetchBalances(fetchBalanceDto)
-    return response
-  }
-
-  public async getAllowances(gcAddress: string, tokenClassKey: TokenClassKeyProperties) {
-    if (!this.tokenClient) {
-      throw new Error("TokenService is not initialized. Call 'init()' first.")
-    }
-    const fetchBalanceDto = await createValidDTO<FetchAllowancesDto>(FetchAllowancesDto, {
-      grantedTo: gcAddress,
-      ...tokenClassKey
-    })
-    const response = await this.tokenClient.FetchAllowances(fetchBalanceDto)
     return response
   }
 
@@ -105,15 +102,19 @@ export class GalaChainApi {
     }
 
     const tokenInstanceQuery = await createValidDTO<TokenInstanceQueryKey>(TokenInstanceQueryKey, {
-      ...tokenClassDto,
+      collection: tokenClassDto.collection,
+      category: tokenClassDto.category,
+      type: tokenClassDto.type,
+      additionalKey: tokenClassDto.additionalKey,
       instance: BigNumber(0)
     })
 
     const allowanceDto = await createValidDTO<GrantAllowanceDto>(GrantAllowanceDto, {
       tokenInstance: tokenInstanceQuery,
-      quantities: [{ quantity, user: adminWalletGC }],
+      quantities: [{ quantity, user: adminWalletGC as any }],
       allowanceType: AllowanceType.Mint,
-      uses: quantity
+      uses: quantity,
+      uniqueKey: `allowance-${Date.now()}`
     })
     const allowanceGrant = await this.tokenClient.GrantAllowance(allowanceDto)
 
@@ -130,14 +131,18 @@ export class GalaChainApi {
     }
 
     const tokenInstanceQuery = await createValidDTO<TokenInstanceQueryKey>(TokenInstanceQueryKey, {
-      ...token,
-      instance: BigNumber(0)
+      collection: token.collection,
+      category: token.category,
+      type: token.type,
+      additionalKey: token.additionalKey,
+      instance: '0' as any
     })
 
     const transferBalance = await this.tokenClient.TransferToken({
       tokenInstance: tokenInstanceQuery as any,
       quantity: quantity as any as BigNumber,
-      to: adminWalletGC
+      to: adminWalletGC,
+      uniqueKey: `transfer-${Date.now()}`
     })
 
     return transferBalance

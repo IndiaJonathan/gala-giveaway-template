@@ -111,7 +111,7 @@
 
 <script setup lang="ts">
 import { useToast } from '@/composables/useToast'
-import { GetGiveawayAllowances, GetGiveawayBalances } from '@/services/BackendApi'
+import { GetGiveawayAllowancesFromGiveaway, GetGiveawayBalances } from '@/services/BackendApi'
 import { GalaChainApi } from '@/services/GalaChainApi'
 import BigNumber from "bignumber.js";
 import { computed, ref, watch, type PropType, type Ref } from 'vue'
@@ -250,7 +250,7 @@ async function loadBalances() {
     personalGalaBalance.value = balance;
 
     if (props.giveawaySettings.giveawayTokenType === 'Allowance') {
-      const response = await GetGiveawayAllowances({ ...props.giveawaySettings.giveawayToken, instance: '0' } as any, profile.galaChainAddress)
+      const response = await GetGiveawayAllowancesFromGiveaway({ ...props.giveawaySettings.giveawayToken, instance: '0' } as any, profile.galaChainAddress)
       giveawayBalanceData.value = response;
       giveawayWallet.value = response?.giveawayWallet;
 

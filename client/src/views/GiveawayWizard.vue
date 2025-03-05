@@ -32,9 +32,7 @@
           <!-- Step 3-->
           <div v-if="currentStep === 2">
             <!--  Grant Allowance (For allowance based giveaways)-->
-            <!-- <AdminBalanceGrant @form-valid="stepChanged" :token-class-key="giveawaySettings.giveawayToken"
-              :giveaway-settings="giveawaySettings">
-            </AdminBalanceGrant> -->
+            <AllowanceStep @is-valid="handleValidityChange($event, 2)"></AllowanceStep>
           </div>
 
           <div v-if="currentStep === 3">
@@ -86,6 +84,7 @@ import StepProgress from '@/components/StepProgress.vue'
 import StyledButton from '@/components/StyledButton.vue'
 import GiveawayDetails from './GiveawayDetails.vue'
 import SettingsStep from '@/components/SettingsStep.vue'
+import AllowanceStep from '@/components/AllowanceStep.vue'
 
 
 const tokenInputRef = ref<InstanceType<typeof TokenInput> | null>(null)

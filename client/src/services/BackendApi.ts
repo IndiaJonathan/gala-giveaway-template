@@ -15,16 +15,27 @@ import type { BurnTokensRequest } from '@gala-chain/connect'
 
 const baseURL = import.meta.env.VITE_TELEGRAM_SERVER
 
-export async function GetGiveawayAllowances(
+
+export async function GetGiveawayAllowancesFromGiveaway(
   tokenClassKey: TokenClassKeyProperties,
-  gc_address: string
+  gc_address: string | undefined
 ) {
-  const response = await fetch(`${baseURL}/api/wallet/allowance-available/${gc_address}`, {
+  if (!gc_address) {
+    throw new Error('GalaChain address is required')
+  }
+
+  const response = await fetch(`${baseURL}/api/giveaway/allowance-available/${gc_address}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
     },
-    body: JSON.stringify(tokenClassKey)
+    body: JSON.stringify({ 
+      collection: tokenClassKey.collection,
+      category: tokenClassKey.category,
+      type: tokenClassKey.type,
+      additionalKey: tokenClassKey.additionalKey,
+      instance: '0' 
+    })
   })
 
   if (!response.ok) {
@@ -49,7 +60,12 @@ export async function GetGiveawayBalances(
     headers: {
       'Content-Type': 'application/json'
     },
-    body: JSON.stringify(tokenClassKey)
+    body: JSON.stringify({
+      collection: tokenClassKey.collection,
+      category: tokenClassKey.category,
+      type: tokenClassKey.type,
+      additionalKey: tokenClassKey.additionalKey
+    })
   })
 
   if (!response.ok) {

@@ -101,7 +101,7 @@ export interface GiveawayDetails {
 }
 
 export interface GiveawayAllowances extends GiveawayDetails {
-  allowances: { totalQuantity: string; unuseableQuantity: string }
+  allowances: string;
   detailsType: 'Allowance'
 }
 

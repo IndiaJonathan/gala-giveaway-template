@@ -1,8 +1,8 @@
 // stores/profile.ts
 
 import { defineStore } from 'pinia'
-import { getProfile } from '@/services/BackendApi'
-import type { Profile } from '@/utils/types'
+import { getProfile, GetGiveawayAllowancesFromGiveaway } from '@/services/BackendApi'
+import type { Profile, GiveawayAllowances } from '@/utils/types'
 import {
   BrowserConnectClient,
   TokenApi,
@@ -16,11 +16,13 @@ import { openNoWeb3WalletDialog } from '@/composables/useDialogue'
 import { getConnectedAddress } from '@/utils/GalaHelper'
 import type { TokenClassKeyProperties } from '@gala-chain/api'
 import { getCreatedTokens, type Transaction } from '@/services/GalaSwapApi'
+import BigNumber from 'bignumber.js'
 
 export const useProfileStore = defineStore('profile', () => {
   // State
   const profile = ref<Profile | null>(null)
   const createdTokens: Ref<Transaction[]> = ref([])
+  const giveawayAllowances = ref<GiveawayAllowances | undefined>(undefined)
 
   const isConnected = ref(false)
   const error = ref<Error | null>(null)
@@ -137,6 +139,38 @@ export const useProfileStore = defineStore('profile', () => {
     }
   }
 
+
+  async function getGiveawayAllowances(
+    tokenClassKey: TokenClassKeyProperties,
+    forceRefresh = false
+  ) {
+    if (!connectedUserGCAddress.value) {
+      return null
+    }
+
+
+    try {
+      // Call the server API to get allowances using the user's galachain address
+      const response = await GetGiveawayAllowancesFromGiveaway(
+        {
+          collection: tokenClassKey.collection,
+          category: tokenClassKey.category,
+          type: tokenClassKey.type,
+          additionalKey: tokenClassKey.additionalKey
+        } as TokenClassKeyProperties,
+        connectedUserGCAddress.value
+      )
+
+      giveawayAllowances.value = response
+
+      return response
+    } catch (err) {
+      console.error('Error fetching allowances:', err)
+      error.value = err as Error
+      return null
+    }
+  }
+
   function getTokenClasses() {
     let classes: TokenClassKeyProperties[] = []
     if (balances.value) {
@@ -152,6 +186,7 @@ export const useProfileStore = defineStore('profile', () => {
 
     return classes
   }
+
   watch(
     () => getTokenClasses(), // Track changes to getTokenClasses
     async (newTokenClasses) => {
@@ -210,10 +245,12 @@ export const useProfileStore = defineStore('profile', () => {
     isFetchingProfile,
     metadata,
     createdTokens,
+    giveawayAllowances,
     // Actions
     fetchProfile,
     connect,
     sign,
-    getBalances
+    getBalances,
+    getGiveawayAllowances
   }
 })
