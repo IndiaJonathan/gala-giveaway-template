@@ -1,50 +1,45 @@
 <template>
-    <Collapsible title="Giveaway token allowance" :collapsible="false" isOpen class="mb-4">
-        <p class="explanatory-text mb-8">
-            Lorem ipsum dolor sit amet, consectetur adipiscing elit. Curabitur iaculis pharetra
-            lectus quis dictum. Etiam vulputate orci vel orci auctor pellentesque.
-        </p>
+    <TokenActionPanel
+        title="Giveaway token allowance"
+        :tokenImage="getTokenImage()"
+        :tokenSymbol="tokenSymbol"
+        tokenLabelText="TOKEN:"
+        actionButtonText="Grant Allowance"
+        :actionDisabled="false"
+        @action-click="grantAdditionalAllowance"
+    >
+        <template #content>
+            <div v-if="grantedAllowanceQuantity" class="text-muted mb-4">
+                <p>You have a net allowance of <strong>{{ formatNumber(Number(grantedAllowanceQuantity)) }}</strong> tokens
+                    allocated to the giveaway wallet.
+                </p>
 
-        <div class="token-info">
-            <div class="token-section">
-                <div class="token-label">TOKEN:</div>
-                <div class="token-value">
-                    <div class="token-icon">
-                        <img v-if="getTokenImage()" class="token-img" :src="getTokenImage()" alt="token icon" />
-                        <div v-else class="token-icon-circle"></div>
-                        <span>{{ tokenSymbol }}</span>
-                    </div>
+                <div v-if="BigNumber(grantedAllowanceQuantity).gte(requiredAmount)" class="success-alert mb-4">
+                    You have sufficient allowance to start the giveaway.
+                </div>
+                <div v-else class="text-muted mb-4">
+                    <p>
+                        You need to grant an additional
+                        <strong> {{ formatNumber(Number(requiredAmount.minus(grantedAllowanceQuantity))) }}
+                        </strong>
+                        tokens to meet the requirement.
+                    </p>
+                    <button class="grant-allowance-btn" @click="grantAdditionalAllowance">
+                        Grant Additional Allowance
+                    </button>
                 </div>
             </div>
-        </div>
-
-        <div v-if="grantedAllowanceQuantity" class="text-muted mb-4">
-            <p>You have a net allowance of <strong>{{ formatNumber(Number(grantedAllowanceQuantity)) }}</strong> tokens
-                allocated to the giveaway wallet.
-            </p>
-
-            <div v-if="BigNumber(grantedAllowanceQuantity).gte(requiredAmount)" class="success-alert mb-4">
-                You have sufficient allowance to start the giveaway.
-            </div>
             <div v-else class="text-muted mb-4">
-                <p>
-                    You need to grant an additional
-                    <strong> {{ formatNumber(Number(requiredAmount.minus(grantedAllowanceQuantity))) }}
-                    </strong>
-                    tokens to meet the requirement.
-                </p>
+                <p>You have not granted any allowance of this token to the giveaway wallet yet.</p>
                 <button class="grant-allowance-btn" @click="grantAdditionalAllowance">
-                    Grant Additional Allowance
+                    Grant Allowance
                 </button>
             </div>
-        </div>
-        <div v-else class="text-muted mb-4">
-            <p>You have not granted any allowance of this token to the giveaway wallet yet.</p>
-            <button class="grant-allowance-btn" @click="grantAdditionalAllowance">
-                Grant Allowance
-            </button>
-        </div>
-    </Collapsible>
+        </template>
+
+        <!-- Override default action button since we have custom buttons in the content -->
+        <template #actionButton></template>
+    </TokenActionPanel>
 </template>
 
 <script setup lang="ts">
@@ -57,9 +52,9 @@ import { BrowserConnectClient } from '@gala-chain/connect'
 import { isErrorWithMessage } from '@/utils/Helpers';
 import { useProfileStore } from '@/stores/profile';
 import { storeToRefs } from 'pinia';
-import Collapsible from './Collapsible.vue';
 import { formatNumber } from '@/utils/Helpers';
 import { tokenToReadable } from '@/utils/GalaHelper';
+import TokenActionPanel from './TokenActionPanel.vue';
 
 const profileStore = useProfileStore();
 const { profile, metadata } = storeToRefs(profileStore)
@@ -175,70 +170,6 @@ async function grantAdditionalAllowance() {
 </script>
 
 <style scoped>
-.explanatory-text {
-    font-size: 16px;
-    font-weight: 400;
-    line-height: 20px;
-    text-align: left;
-    color: rgba(255, 255, 255, 0.6);
-}
-
-.mb-8 {
-    margin-bottom: 32px;
-}
-
-.mb-4 {
-    margin-bottom: 16px;
-}
-
-.token-info {
-    display: flex;
-    align-items: center;
-    margin-bottom: 16px;
-}
-
-.token-section {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.token-label {
-    font-size: 14px;
-    font-weight: 500;
-    color: rgba(255, 255, 255, 0.6);
-    margin-right: 8px;
-}
-
-.token-value {
-    display: flex;
-    align-items: center;
-}
-
-.token-icon {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.token-img {
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
-}
-
-.token-icon-circle {
-    width: 24px;
-    height: 24px;
-    background-color: #333;
-    border-radius: 50%;
-}
-
-.token-icon span {
-    color: #fff;
-    font-weight: 500;
-}
-
 .success-alert {
     background-color: rgba(82, 196, 26, 0.1);
     color: #52c41a;

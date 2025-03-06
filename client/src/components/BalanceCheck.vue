@@ -1,46 +1,31 @@
 <template>
-    <Collapsible title="Giveaway token balance" :collapsible="false" isOpen class="mb-4">
-        <p class="explanatory-text mb-8">
-            Lorem ipsum dolor sit amet, consectetur adipiscing elit. Curabitur iaculis pharetra
-            lectus quis dictum. Etiam vulputate orci vel orci auctor pellentesque.
-        </p>
-
-        <div class="token-info">
-            <div class="token-section">
-                <div class="token-label">TOKEN</div>
-                <div class="token-value">
-                    <div class="token-icon">
-                        <img v-if="getTokenImage()" class="token-img" :src="getTokenImage()" alt="token icon" />
-                        <div v-else class="token-icon-circle"></div>
-                        <span>{{ tokenSymbol }}</span>
-                    </div>
+    <TokenActionPanel
+        title="Giveaway token balance"
+        :tokenImage="getTokenImage()"
+        :tokenSymbol="tokenSymbol"
+        :showStatusIndicator="requiredAmount.minus(adminBalanceQuantity).gt(0)"
+        statusText="MISSING BALANCE"
+        actionButtonText="Transfer Tokens"
+        :actionDisabled="!BigNumber.max(0, requiredAmount.minus(adminBalanceQuantity)).gt(0)"
+        @action-click="transferToken"
+    >
+        <template #content>
+            <div class="balance-info">
+                <div class="balance-item">
+                    <div class="balance-label">REQUIRED BALANCE</div>
+                    <div class="balance-value">{{ formatNumber(Number(requiredAmount)) }}</div>
+                </div>
+                <div class="balance-item">
+                    <div class="balance-label">YOUR BALANCE</div>
+                    <div class="balance-value">{{ formatNumber(Number(adminBalanceQuantity)) }}</div>
+                </div>
+                <div class="balance-item">
+                    <div class="balance-label">MISSING BALANCE</div>
+                    <div class="balance-value">{{ formatNumber(Number(BigNumber.max(0, requiredAmount.minus(adminBalanceQuantity)))) }}</div>
                 </div>
             </div>
-            <div v-if="requiredAmount.minus(adminBalanceQuantity).gt(0)" class="missing-allowance">MISSING BALANCE</div>
-        </div>
-
-        <div class="balance-info">
-            <div class="balance-item">
-                <div class="balance-label">REQUIRED BALANCE</div>
-                <div class="balance-value">{{ formatNumber(Number(requiredAmount)) }}</div>
-            </div>
-            <div class="balance-item">
-                <div class="balance-label">YOUR BALANCE</div>
-                <div class="balance-value">{{ formatNumber(Number(adminBalanceQuantity)) }}</div>
-            </div>
-            <div class="balance-item">
-                <div class="balance-label">MISSING BALANCE</div>
-                <div class="balance-value">{{ formatNumber(Number(BigNumber.max(0, requiredAmount.minus(adminBalanceQuantity)))) }}</div>
-            </div>
-        </div>
-
-        <button class="transfer-token-btn" 
-            :disabled="!BigNumber.max(0, requiredAmount.minus(adminBalanceQuantity)).gt(0)" 
-            :class="{ 'disabled': !BigNumber.max(0, requiredAmount.minus(adminBalanceQuantity)).gt(0) }" 
-            @click="transferToken">
-            Transfer Tokens
-        </button>
-    </Collapsible>
+        </template>
+    </TokenActionPanel>
 </template>
 
 <script setup lang="ts">
@@ -53,9 +38,9 @@ import { BrowserConnectClient } from '@gala-chain/connect'
 import { isErrorWithMessage } from '@/utils/Helpers';
 import { useProfileStore } from '@/stores/profile';
 import { storeToRefs } from 'pinia';
-import Collapsible from './Collapsible.vue';
 import { formatNumber } from '@/utils/Helpers';
 import { tokenToReadable } from '@/utils/GalaHelper';
+import TokenActionPanel from './TokenActionPanel.vue';
 
 const props = defineProps({
     giveawaySettings: {
@@ -167,83 +152,6 @@ async function transferToken() {
 </script>
 
 <style scoped>
-.explanatory-text {
-    font-size: 16px;
-    font-weight: 400;
-    line-height: 20px;
-    text-align: left;
-    color: rgba(255, 255, 255, 0.6);
-}
-
-.mb-8 {
-    margin-bottom: 32px;
-}
-
-.mb-4 {
-    margin-bottom: 16px;
-}
-
-.token-info {
-    display: flex;
-    align-items: center;
-    margin-bottom: 24px;
-    gap: 8px;
-    justify-content: space-between;
-}
-
-.token-section {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.token-label {
-    font-size: 14px;
-    font-weight: 500;
-    color: rgba(255, 255, 255, 0.6);
-}
-
-.token-value {
-    display: flex;
-    align-items: center;
-}
-
-.token-icon {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.token-img {
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
-}
-
-.token-icon-circle {
-    width: 24px;
-    height: 24px;
-    background: #fff;
-    border-radius: 50%;
-}
-
-.token-icon span {
-    color: #fff;
-    font-weight: 500;
-}
-
-.missing-allowance {
-    display: inline-flex;
-    align-items: center;
-    background-color: #FF4D4F;
-    color: white;
-    font-size: 14px;
-    font-weight: 500;
-    padding: 8px 16px;
-    border-radius: 6px;
-    height: fit-content;
-}
-
 .balance-info {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -269,37 +177,5 @@ async function transferToken() {
     font-size: 24px;
     font-weight: 600;
     color: #fff;
-}
-
-.transfer-token-btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    background-color: #27272A;
-    color: white;
-    font-size: 16px;
-    font-weight: 500;
-    padding: 12px 24px;
-    border-radius: 100px;
-    border: none;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    width: fit-content;
-    min-width: 180px;
-}
-
-.transfer-token-btn:hover:not(.disabled) {
-    background-color: #3F3F46;
-}
-
-.transfer-token-btn.disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-}
-
-:deep(.collapsible) {
-    background: #18181B;
-    border-radius: 16px;
-    padding: 24px;
 }
 </style>

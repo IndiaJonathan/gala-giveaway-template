@@ -1,48 +1,37 @@
 <template>
-    <Collapsible title="Gas fee balance" :collapsible="false" isOpen>
-        <p class="explanatory-text mb-8">
-            Lorem ipsum dolor sit amet, consectetur adipiscing elit. Curabitur iaculis pharetra
-            lectus quis dictum. Etiam vulputate orci vel orci auctor pellentesque.
-        </p>
-
-        <div class="token-info">
-            <div class="token-section">
-                <div class="token-label">TOKEN</div>
-                <div class="token-value">
-                    <div class="token-icon">
-                        <img class="token-img" src="../assets/gala-token.png" alt="GALA token icon" />
-                        <span>$GALA</span>
+    <TokenActionPanel
+        title="Gas fee balance"
+        tokenSymbol="$GALA"
+        :tokenImage="galaTokenImage"
+        :showStatusIndicator="hasMissingGasBalance"
+        statusText="MISSING BALANCE"
+        actionButtonText="Transfer Token"
+        :actionDisabled="!hasMissingGasBalance || giveawayTokenBalances === undefined"
+        @action-click="transferToken"
+    >
+        <template #content>
+            <div class="balance-info">
+                <div class="balance-item">
+                    <div class="balance-label">REQUIRED BALANCE</div>
+                    <div class="balance-value">{{ formatNumber(Number(giveawayStore.estimateGalaFees())) }}</div>
+                </div>
+                <div class="balance-item">
+                    <div class="balance-label">YOUR BALANCE</div>
+                    <div v-if="giveawayTokenBalances !== undefined" class="balance-value">
+                        {{ formatNumber(Number(giveawayTokenBalances.galaBalance || 0)) }}
                     </div>
+                    <div v-else class="loading-spinner"></div>
+                </div>
+                <div class="balance-item">
+                    <div class="balance-label">MISSING BALANCE</div>
+                    <div v-if="giveawayTokenBalances !== undefined" class="balance-value">
+                        {{ formatNumber(Number(missingGasBalance)) }}
+                    </div>
+                    <div v-else class="loading-spinner"></div>
                 </div>
             </div>
-            <div v-if="hasMissingGasBalance" class="missing-allowance">MISSING BALANCE</div>
-        </div>
-
-        <div class="balance-info">
-            <div class="balance-item">
-                <div class="balance-label">REQUIRED BALANCE</div>
-                <div class="balance-value">{{ formatNumber(Number(giveawayStore.estimateGalaFees())) }}</div>
-            </div>
-            <div class="balance-item">
-                <div class="balance-label">YOUR BALANCE</div>
-                <div v-if="giveawayTokenBalances !== undefined" class="balance-value">
-                    {{ formatNumber(Number(giveawayTokenBalances.galaBalance || 0)) }}
-                </div>
-                <div v-else class="loading-spinner"></div>
-            </div>
-            <div class="balance-item">
-                <div class="balance-label">MISSING BALANCE</div>
-                <div v-if="giveawayTokenBalances !== undefined" class="balance-value">
-                    {{ formatNumber(Number(missingGasBalance)) }}
-                </div>
-                <div v-else class="loading-spinner"></div>
-            </div>
-        </div>
-
-        <button class="transfer-token-btn" :disabled="!hasMissingGasBalance || giveawayTokenBalances === undefined" :class="{ 'disabled': !hasMissingGasBalance || giveawayTokenBalances === undefined }" @click="transferToken">
-            Transfer Token
-        </button>
-    </Collapsible>
+        </template>
+    </TokenActionPanel>
 </template>
 
 <script setup lang="ts">
@@ -54,11 +43,12 @@ import { isErrorWithMessage } from '@/utils/Helpers';
 import { useProfileStore } from '@/stores/profile';
 import { useCreateGiveawayStore } from '@/stores/createGiveaway';
 import { storeToRefs } from 'pinia';
-import Collapsible from './Collapsible.vue';
 import { formatNumber } from '@/utils/Helpers';
 import { GALA } from '@/utils/constants';
 import BigNumber from 'bignumber.js';
 import type { GiveawaySettingsDto } from '@/utils/types';
+import TokenActionPanel from './TokenActionPanel.vue';
+import galaTokenImage from '@/assets/gala-token.png';
 
 const props = defineProps<{
     giveawaySettings: GiveawaySettingsDto;
@@ -132,76 +122,6 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.explanatory-text {
-    font-size: 16px;
-    font-weight: 400;
-    line-height: 20px;
-    text-align: left;
-    color: rgba(255, 255, 255, 0.6);
-}
-
-.mb-8 {
-    margin-bottom: 32px;
-}
-
-.mb-4 {
-    margin-bottom: 16px;
-}
-
-.token-info {
-    display: flex;
-    align-items: center;
-    margin-bottom: 24px;
-    gap: 8px;
-    justify-content: space-between;
-}
-
-.token-section {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.token-label {
-    font-size: 14px;
-    font-weight: 500;
-    color: rgba(255, 255, 255, 0.6);
-}
-
-.token-value {
-    display: flex;
-    align-items: center;
-}
-
-.token-icon {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.token-img {
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
-}
-
-.token-icon span {
-    color: #fff;
-    font-weight: 500;
-}
-
-.missing-allowance {
-    display: inline-flex;
-    align-items: center;
-    background-color: #FF4D4F;
-    color: white;
-    font-size: 14px;
-    font-weight: 500;
-    padding: 8px 16px;
-    border-radius: 6px;
-    height: fit-content;
-}
-
 .balance-info {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -227,45 +147,6 @@ onMounted(() => {
     font-size: 24px;
     font-weight: 600;
     color: #fff;
-}
-
-.transfer-token-btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    background-color: #27272A;
-    color: white;
-    font-size: 16px;
-    font-weight: 500;
-    padding: 12px 24px;
-    border-radius: 100px;
-    border: none;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    width: fit-content;
-    min-width: 180px;
-}
-
-.transfer-token-btn:hover:not(.disabled) {
-    background-color: #3F3F46;
-}
-
-.transfer-token-btn.disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-}
-
-:deep(.collapsible) {
-    background: #18181B;
-    border-radius: 16px;
-    padding: 24px;
-}
-
-.explanatory-text {
-    font-size: 16px;
-    line-height: 1.5;
-    color: rgba(255, 255, 255, 0.6);
-    margin-bottom: 32px;
 }
 
 .loading-spinner {
