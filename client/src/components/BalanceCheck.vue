@@ -10,6 +10,8 @@
                 <div class="token-label">TOKEN</div>
                 <div class="token-value">
                     <div class="token-icon">
+                        <img v-if="getTokenImage()" class="token-img" :src="getTokenImage()" alt="token icon" />
+                        <div v-else class="token-icon-circle"></div>
                         <span>{{ tokenSymbol }}</span>
                     </div>
                 </div>
@@ -53,6 +55,7 @@ import { useProfileStore } from '@/stores/profile';
 import { storeToRefs } from 'pinia';
 import Collapsible from './Collapsible.vue';
 import { formatNumber } from '@/utils/Helpers';
+import { tokenToReadable } from '@/utils/GalaHelper';
 
 const props = defineProps({
     giveawaySettings: {
@@ -74,8 +77,32 @@ const emit = defineEmits<{
 }>()
 
 const profileStore = useProfileStore();
-const { profile } = storeToRefs(profileStore)
+const { profile, metadata } = storeToRefs(profileStore)
 const { showToast } = useToast()
+
+const metadataMap = computed(() => {
+    const map = new Map();
+
+    if (metadata.value) {
+        metadata.value.forEach(metadata => {
+            const key = tokenToReadable(metadata);
+            map.set(key, metadata);
+        });
+    }
+
+    return map;
+});
+
+const getTokenImage = () => {
+    if (!props.giveawaySettings.giveawayToken) return '';
+    
+    const tokenClass = metadataMap.value.get(tokenToReadable(props.giveawaySettings.giveawayToken));
+    if (tokenClass && tokenClass.image) {
+        return tokenClass.image;
+    } else {
+        return '';
+    }
+};
 
 const balanceRequirementsMet = computed(() => {
     return new BigNumber(props.adminBalanceQuantity).gte(props.requiredAmount);
@@ -187,9 +214,13 @@ async function transferToken() {
     gap: 8px;
 }
 
-.token-icon::before {
-    content: "";
-    display: inline-block;
+.token-img {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+}
+
+.token-icon-circle {
     width: 24px;
     height: 24px;
     background: #fff;

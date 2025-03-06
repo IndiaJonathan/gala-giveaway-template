@@ -43,7 +43,8 @@
           </StyledButton>
           <StyledButton v-else :class="['NextButton', { enabled: allowPrevious(currentStep) }]" v-if="currentStep < 4"
             :disabled="!allowPrevious(currentStep)" @click="prevStep">
-            Back
+            <span v-if="currentStep === 3">Previous</span>
+            <span v-else>Back</span>
           </StyledButton>
 
           <StyledButton :class="['NextButton', { enabled: allowNext(currentStep) }]" v-if="currentStep < 3"
@@ -271,6 +272,8 @@ async function launchGiveaway() {
 .PublishButton.enabled {
   background-color: #E74C3C;
   color: white;
+  border-radius: 24px;
+  padding: 10px 30px;
 }
 
 .stepper-actions {

@@ -6,10 +6,14 @@
         </p>
 
         <div class="token-info">
-            <div class="token-label">TOKEN:</div>
-            <div class="token-value">
-                <div class="token-icon">
-                    <span>{{ tokenSymbol }}</span>
+            <div class="token-section">
+                <div class="token-label">TOKEN:</div>
+                <div class="token-value">
+                    <div class="token-icon">
+                        <img v-if="getTokenImage()" class="token-img" :src="getTokenImage()" alt="token icon" />
+                        <div v-else class="token-icon-circle"></div>
+                        <span>{{ tokenSymbol }}</span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -55,9 +59,10 @@ import { useProfileStore } from '@/stores/profile';
 import { storeToRefs } from 'pinia';
 import Collapsible from './Collapsible.vue';
 import { formatNumber } from '@/utils/Helpers';
+import { tokenToReadable } from '@/utils/GalaHelper';
 
 const profileStore = useProfileStore();
-const { profile } = storeToRefs(profileStore)
+const { profile, metadata } = storeToRefs(profileStore)
 const { showToast } = useToast()
 
 const props = defineProps({
@@ -78,6 +83,30 @@ const props = defineProps({
 const emit = defineEmits<{
     (e: 'allowance-granted'): void
 }>()
+
+const metadataMap = computed(() => {
+    const map = new Map();
+
+    if (metadata.value) {
+        metadata.value.forEach(metadata => {
+            const key = tokenToReadable(metadata);
+            map.set(key, metadata);
+        });
+    }
+
+    return map;
+});
+
+const getTokenImage = () => {
+    if (!props.giveawaySettings.giveawayToken) return '';
+    
+    const tokenClass = metadataMap.value.get(tokenToReadable(props.giveawaySettings.giveawayToken));
+    if (tokenClass && tokenClass.image) {
+        return tokenClass.image;
+    } else {
+        return '';
+    }
+};
 
 // Add computed property to check if allowance requirements are met
 const allowanceRequirementsMet = computed(() => {
@@ -168,6 +197,12 @@ async function grantAdditionalAllowance() {
     margin-bottom: 16px;
 }
 
+.token-section {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
 .token-label {
     font-size: 14px;
     font-weight: 500;
@@ -183,14 +218,25 @@ async function grantAdditionalAllowance() {
 .token-icon {
     display: flex;
     align-items: center;
-    justify-content: center;
+    gap: 8px;
+}
+
+.token-img {
     width: 24px;
     height: 24px;
     border-radius: 50%;
+}
+
+.token-icon-circle {
+    width: 24px;
+    height: 24px;
     background-color: #333;
-    margin-right: 8px;
-    font-size: 12px;
-    color: white;
+    border-radius: 50%;
+}
+
+.token-icon span {
+    color: #fff;
+    font-weight: 500;
 }
 
 .success-alert {

@@ -10,6 +10,7 @@
                 <div class="token-label">TOKEN</div>
                 <div class="token-value">
                     <div class="token-icon">
+                        <img class="token-img" src="../assets/gala-token.png" alt="GALA token icon" />
                         <span>$GALA</span>
                     </div>
                 </div>
@@ -178,12 +179,9 @@ onMounted(() => {
     gap: 8px;
 }
 
-.token-icon::before {
-    content: "";
-    display: inline-block;
+.token-img {
     width: 24px;
     height: 24px;
-    background: #fff;
     border-radius: 50%;
 }
 
@@ -284,4 +282,4 @@ onMounted(() => {
         transform: rotate(360deg);
     }
 }
-</style> 
+</style>

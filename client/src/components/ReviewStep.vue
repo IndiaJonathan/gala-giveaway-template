@@ -51,7 +51,7 @@
             </div>
 
             <div class="summary-item">
-                <div class="label">RUN TOKEN TO CLAIM:</div>
+                <div class="label">RUN DAYS TO CLAIM:</div>
                 <div class="value">50</div>
             </div>
 
@@ -61,8 +61,8 @@
             </div>
 
             <div class="summary-item">
-                <div class="label">REQUIRED TOKEN QUANTITY AMOUNT:</div>
-                <div class="value">First come first serve</div>
+                <div class="label">REQUIRED TOKEN BURN AMOUNT:</div>
+                <div class="value">{{ requiredTokenToClaim }}</div>
             </div>
         </Collapsible>
 
@@ -74,7 +74,7 @@
             </p>
 
             <div class="summary-item">
-                <div class="label">GIVEAWAY SOLUTION WALLET:</div>
+                <div class="label">GIVEAWAY ESCROW WALLET:</div>
                 <div class="value">{{ giveawayWalletAddress }}</div>
             </div>
 
@@ -242,7 +242,7 @@ defineExpose({ isValid });
     font-weight: 500;
     color: rgba(255, 255, 255, 0.6);
     margin-right: 8px;
-    width: 200px;
+    width: 250px;
 }
 
 .value {
@@ -254,9 +254,13 @@ defineExpose({ isValid });
 .warning-text {
     font-size: 14px;
     font-weight: 400;
-    color: rgba(255, 100, 100, 0.8);
+    color: rgba(255, 100, 100, 0.9);
     text-align: center;
-    padding: 8px 0;
+    padding: 12px;
+    background-color: rgba(255, 100, 100, 0.1);
+    border-radius: 8px;
+    margin: 20px 0;
+    border: 1px solid rgba(255, 100, 100, 0.2);
 }
 
 .terms-container {
@@ -276,6 +280,30 @@ defineExpose({ isValid });
     font-weight: 400;
     color: rgba(255, 255, 255, 0.8);
     cursor: pointer;
+}
+
+/* Increase spacing between collapsible sections */
+:deep(.collapsible-container) {
+    margin-bottom: 20px;
+    background-color: #1A1A1A;
+}
+
+/* Styling for section titles */
+:deep(.collapsible-container h5) {
+    font-size: 18px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+/* Specific styling for the "Ready to publish" section */
+:deep(.collapsible-container:last-child) {
+    background-color: rgba(80, 20, 20, 0.2);
+    border: 1px solid rgba(236, 100, 100, 0.2);
+    margin-top: 32px;
+}
+
+:deep(.collapsible-container:last-child h5) {
+    color: rgba(255, 120, 120, 0.9);
 }
 
 /* Styling for the Publish button */
