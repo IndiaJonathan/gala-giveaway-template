@@ -6,41 +6,38 @@
         </p>
 
         <div class="token-info">
-            <div class="token-label">TOKEN:</div>
-            <div class="token-value">
-                <div class="token-icon">
-                    <span>{{ tokenSymbol }}</span>
+            <div class="token-section">
+                <div class="token-label">TOKEN</div>
+                <div class="token-value">
+                    <div class="token-icon">
+                        <span>{{ tokenSymbol }}</span>
+                    </div>
                 </div>
             </div>
+            <div v-if="requiredAmount.minus(adminBalanceQuantity).gt(0)" class="missing-allowance">MISSING BALANCE</div>
         </div>
 
-        <div v-if="adminBalanceQuantity" class="text-muted mb-4">
-            <p>You have a net balance of <strong>{{ formatNumber(Number(adminBalanceQuantity)) }}</strong> tokens
-                in the giveaway wallet.
-            </p>
+        <div class="balance-info">
+            <div class="balance-item">
+                <div class="balance-label">REQUIRED BALANCE</div>
+                <div class="balance-value">{{ formatNumber(Number(requiredAmount)) }}</div>
+            </div>
+            <div class="balance-item">
+                <div class="balance-label">YOUR BALANCE</div>
+                <div class="balance-value">{{ formatNumber(Number(adminBalanceQuantity)) }}</div>
+            </div>
+            <div class="balance-item">
+                <div class="balance-label">MISSING BALANCE</div>
+                <div class="balance-value">{{ formatNumber(Number(BigNumber.max(0, requiredAmount.minus(adminBalanceQuantity)))) }}</div>
+            </div>
+        </div>
 
-            <div v-if="BigNumber(adminBalanceQuantity).gte(requiredAmount)" class="success-alert mb-4">
-                The giveaway wallet has sufficient balance to start the giveaway.
-            </div>
-            <div v-else class="text-muted mb-4">
-                <p>
-                    You need to transfer an additional
-                    <strong> {{ formatNumber(Number(requiredAmount.minus(adminBalanceQuantity))) }}
-                    </strong>
-                    tokens to meet the requirement.
-                </p>
-                <button class="grant-allowance-btn" @click="transferToken">
-                    Transfer {{ formatNumber(Number(requiredAmount.minus(adminBalanceQuantity))) }} Tokens
-                </button>
-            </div>
-        </div>
-        <div v-else class="text-muted mb-4">
-            <p>You have not transferred any tokens to the giveaway wallet yet.</p>
-            <button :disabled="BigNumber(adminBalanceQuantity).gte(requiredAmount)" class="grant-allowance-btn"
-                @click="transferToken">
-                Transfer {{ formatNumber(Number(requiredAmount)) }} Tokens
-            </button>
-        </div>
+        <button class="transfer-token-btn" 
+            :disabled="!BigNumber.max(0, requiredAmount.minus(adminBalanceQuantity)).gt(0)" 
+            :class="{ 'disabled': !BigNumber.max(0, requiredAmount.minus(adminBalanceQuantity)).gt(0) }" 
+            @click="transferToken">
+            Transfer Tokens
+        </button>
     </Collapsible>
 </template>
 
@@ -146,14 +143,21 @@ async function transferToken() {
 .token-info {
     display: flex;
     align-items: center;
-    margin-bottom: 16px;
+    margin-bottom: 24px;
+    gap: 8px;
+    justify-content: space-between;
+}
+
+.token-section {
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
 .token-label {
     font-size: 14px;
     font-weight: 500;
     color: rgba(255, 255, 255, 0.6);
-    margin-right: 8px;
 }
 
 .token-value {
@@ -164,49 +168,91 @@ async function transferToken() {
 .token-icon {
     display: flex;
     align-items: center;
-    justify-content: center;
+    gap: 8px;
+}
+
+.token-icon::before {
+    content: "";
+    display: inline-block;
     width: 24px;
     height: 24px;
+    background: #fff;
     border-radius: 50%;
-    background-color: #333;
-    margin-right: 8px;
-    font-size: 12px;
-    color: white;
 }
 
-.success-alert {
-    background-color: rgba(82, 196, 26, 0.1);
-    color: #52c41a;
-    padding: 8px 12px;
-    border-radius: 4px;
-    border: 1px solid rgba(82, 196, 26, 0.2);
+.token-icon span {
+    color: #fff;
+    font-weight: 500;
 }
 
-.text-muted {
-    color: rgba(255, 255, 255, 0.6);
-}
-
-.grant-allowance-btn {
-    display: inline-block;
-    background-color: #1E1E1E;
+.missing-allowance {
+    display: inline-flex;
+    align-items: center;
+    background-color: #FF4D4F;
     color: white;
     font-size: 14px;
     font-weight: 500;
+    padding: 8px 16px;
+    border-radius: 6px;
+    height: fit-content;
+}
+
+.balance-info {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+    margin-bottom: 24px;
+    width: 100%;
+}
+
+.balance-item {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.balance-label {
+    font-size: 14px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.6);
+    text-transform: uppercase;
+}
+
+.balance-value {
+    font-size: 24px;
+    font-weight: 600;
+    color: #fff;
+}
+
+.transfer-token-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #27272A;
+    color: white;
+    font-size: 16px;
+    font-weight: 500;
     padding: 12px 24px;
-    border-radius: 8px;
+    border-radius: 100px;
     border: none;
     cursor: pointer;
-    transition: background-color 0.3s;
-    width: 100%;
-    text-align: center;
+    transition: all 0.2s ease;
+    width: fit-content;
+    min-width: 180px;
 }
 
-.grant-allowance-btn:hover:not(.disabled) {
-    background-color: #333;
+.transfer-token-btn:hover:not(.disabled) {
+    background-color: #3F3F46;
 }
 
-.disabled {
+.transfer-token-btn.disabled {
     opacity: 0.5;
     cursor: not-allowed;
+}
+
+:deep(.collapsible) {
+    background: #18181B;
+    border-radius: 16px;
+    padding: 24px;
 }
 </style>

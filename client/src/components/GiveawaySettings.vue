@@ -48,7 +48,7 @@
 
           <!-- Random Giveaway Settings -->
           <transition name="fade-slide">
-            <v-row v-if="giveawaySettings.giveawayType === 'DistributedGiveway'">
+            <v-row v-if="giveawaySettings.giveawayType === 'DistributedGiveaway'">
               <v-col cols="12">
                 <v-card outlined class="pa-3">
                   <v-card-title class="subheading">Random Giveaway Settings</v-card-title>
@@ -229,7 +229,7 @@ const tokenService = GalaChainApi.getInstance()
 
 const requiredAmount = computed(() => {
   switch (props.giveawaySettings.giveawayType) {
-    case 'DistributedGiveway':
+    case 'DistributedGiveaway':
       if (!props.giveawaySettings.tokenQuantity) {
         return null;
       }
@@ -341,15 +341,15 @@ const formattedTime = computed({
 // Validation rules
 const distributedWinnerRules = [
   (v: number) =>
-    props.giveawaySettings.giveawayType === 'DistributedGiveway'
+    props.giveawaySettings.giveawayType === 'DistributedGiveaway'
       ? !!v || 'Number of winners is required'
       : true,
   (v: number) =>
-    props.giveawaySettings.giveawayType === 'DistributedGiveway'
+    props.giveawaySettings.giveawayType === 'DistributedGiveaway'
       ? v >= 1 || 'Must be at least 1'
       : true,
   (v: number) =>
-    props.giveawaySettings.giveawayType === 'DistributedGiveway'
+    props.giveawaySettings.giveawayType === 'DistributedGiveaway'
       ? v <= MAX_WINNERS || `May not exceed ${MAX_WINNERS}`
       : true,
 ];
@@ -373,7 +373,7 @@ const tokenQuantityRules = [
   (v: number) => !!v || 'Token quantity is required',
   (v: number) => v >= 1 || 'Must be at least 1',
   (v: number) =>
-    props.giveawaySettings.giveawayType === 'DistributedGiveway'
+    props.giveawaySettings.giveawayType === 'DistributedGiveaway'
       ? Number(v) >= Number(props.giveawaySettings.maxWinners) ||
       'Quantity must be greater than or equal to the number of winners'
       : true,
@@ -397,7 +397,7 @@ async function checkValidation() {
   if (
     props.giveawaySettings.endDateTime &&
     getRequiredAmount(props.giveawaySettings) &&
-    (props.giveawaySettings.giveawayType === 'DistributedGiveway' && props.giveawaySettings.maxWinners) || ((props.giveawaySettings.giveawayType === 'FirstComeFirstServe') && props.giveawaySettings.maxWinners && props.giveawaySettings.claimPerUser)
+    (props.giveawaySettings.giveawayType === 'DistributedGiveaway' && props.giveawaySettings.maxWinners) || ((props.giveawaySettings.giveawayType === 'FirstComeFirstServe') && props.giveawaySettings.maxWinners && props.giveawaySettings.claimPerUser)
   ) {
     let valid = true;
     if (props.giveawaySettings.requireBurnTokenToClaim) {
@@ -405,7 +405,7 @@ async function checkValidation() {
       valid = burnTokenInputRefValid.valid
       valid = !!(selectedBurnToken.value) && valid
 
-      if (props.giveawaySettings.giveawayType === 'DistributedGiveway') {
+      if (props.giveawaySettings.giveawayType === 'DistributedGiveaway') {
         valid = !!props.giveawaySettings.maxWinners
       }
     }
