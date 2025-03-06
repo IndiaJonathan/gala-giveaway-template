@@ -33,9 +33,7 @@
           </div>
 
           <div v-if="currentStep === 3">
-            <!-- <GiveawaySettings @form-valid="updateGiveawaySettingsValidity" :token-class="giveawaySettings.giveawayToken"
-              :giveaway-settings="giveawaySettings" read-only /> -->
-            <v-btn color="success" @click="launchGiveaway">Launch Giveaway</v-btn>
+            <ReviewStep @is-valid="handleValidityChange($event, 3)"></ReviewStep>
           </div>
         </div>
 
@@ -48,11 +46,14 @@
             Back
           </StyledButton>
 
-
-
-          <StyledButton :class="['NextButton', { enabled: allowNext(currentStep) }]" v-if="currentStep < 4"
+          <StyledButton :class="['NextButton', { enabled: allowNext(currentStep) }]" v-if="currentStep < 3"
             :disabled="!allowNext(currentStep)" @click="nextStep">
             Next
+          </StyledButton>
+          
+          <StyledButton v-if="currentStep === 3" :class="['PublishButton', { enabled: allowNext(currentStep) }]"
+            :disabled="!allowNext(currentStep)" @click="launchGiveaway">
+            Publish
           </StyledButton>
         </div>
       </div>
@@ -83,6 +84,7 @@ import StyledButton from '@/components/StyledButton.vue'
 import GiveawayDetails from './GiveawayDetails.vue'
 import SettingsStep from '@/components/SettingsStep.vue'
 import AllowanceStep from '@/components/AllowanceStep.vue'
+import ReviewStep from '@/components/ReviewStep.vue'
 
 
 const tokenInputRef = ref<InstanceType<typeof TokenInput> | null>(null)
@@ -266,7 +268,10 @@ async function launchGiveaway() {
   color: black;
 }
 
-
+.PublishButton.enabled {
+  background-color: #E74C3C;
+  color: white;
+}
 
 .stepper-actions {
   display: flex;
@@ -291,7 +296,6 @@ async function launchGiveaway() {
 .v-stepper-header .v-stepper-item .v-stepper-item__icon {
   display: none;
 }
-
 
 /* Custom styles for stepper item */
 .custom-stepper-item {
