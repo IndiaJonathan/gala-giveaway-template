@@ -162,24 +162,26 @@ export async function startGiveaway(giveaway: StartBasicGivewaySettingsDto) {
   return data
 }
 
-export async function getGiveawayGasFee(giveaway: GasFeeEstimateRequestDto) {
-  const response = await fetch(`${baseURL}/api/giveaway/estimate-fee`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(giveaway)
-  })
 
-  if (!response.ok) {
-    const message = await response.json()
-    throw message?.error || 'Unable to start giveway'
-  }
+//TODO: Remove this later
+// export async function getGiveawayGasFee(giveaway: GasFeeEstimateRequestDto) {
+//   const response = await fetch(`${baseURL}/api/giveaway/estimate-fee`, {
+//     method: 'POST',
+//     headers: {
+//       'Content-Type': 'application/json'
+//     },
+//     body: JSON.stringify(giveaway)
+//   })
 
-  const data = await response.json()
+//   if (!response.ok) {
+//     const message = await response.json()
+//     throw message?.error || 'Unable to start giveway'
+//   }
 
-  return data
-}
+//   const data = await response.json()
+
+//   return data
+// }
 
 export async function signupForGiveaway(signupForGiveawayDto: SignupForGiveawayDto) {
   const response = await fetch(`${baseURL}/api/giveaway/signup`, {

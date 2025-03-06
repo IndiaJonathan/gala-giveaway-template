@@ -45,7 +45,7 @@
 import { useToast } from '@/composables/useToast'
 import { GalaChainApi } from '@/services/GalaChainApi'
 import BigNumber from "bignumber.js";
-import { computed, type PropType } from 'vue'
+import { computed, type PropType, watch, onMounted } from 'vue'
 import { type GiveawaySettingsDto } from '@/utils/types'
 import { BrowserConnectClient } from '@gala-chain/connect'
 import { isErrorWithMessage } from '@/utils/Helpers';
@@ -70,12 +70,28 @@ const props = defineProps({
 })
 
 const emit = defineEmits<{
-    (e: 'tokenTransfered'): void
+    (e: 'token-transferred'): void
 }>()
 
 const profileStore = useProfileStore();
 const { profile } = storeToRefs(profileStore)
 const { showToast } = useToast()
+
+const balanceRequirementsMet = computed(() => {
+    return new BigNumber(props.adminBalanceQuantity).gte(props.requiredAmount);
+});
+
+watch(balanceRequirementsMet, (newValue) => {
+    if (newValue) {
+        emit('token-transferred');
+    }
+});
+
+onMounted(() => {
+    if (balanceRequirementsMet.value) {
+        emit('token-transferred');
+    }
+});
 
 const tokenSymbol = computed(() => {
     const token = props.giveawaySettings.giveawayToken;
@@ -109,7 +125,7 @@ async function transferToken() {
             if (grant.Status === 1) {
                 // Success!
                 showToast('Token transferred!')
-                emit('tokenTransfered')
+                emit('token-transferred')
             }
         } catch (e: unknown) {
             let errorMessage = 'unknown error';

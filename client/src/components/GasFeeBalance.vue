@@ -20,7 +20,7 @@
         <div class="balance-info">
             <div class="balance-item">
                 <div class="balance-label">REQUIRED BALANCE</div>
-                <div class="balance-value">{{ formatNumber(Number(estimateGalaFees())) }}</div>
+                <div class="balance-value">{{ formatNumber(Number(giveawayStore.estimateGalaFees())) }}</div>
             </div>
             <div class="balance-item">
                 <div class="balance-label">YOUR BALANCE</div>
@@ -45,12 +45,13 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, watch, onMounted, watchEffect } from 'vue';
 import { useToast } from '@/composables/useToast';
 import { GalaChainApi } from '@/services/GalaChainApi';
 import { BrowserConnectClient } from '@gala-chain/connect';
 import { isErrorWithMessage } from '@/utils/Helpers';
 import { useProfileStore } from '@/stores/profile';
+import { useCreateGiveawayStore } from '@/stores/createGiveaway';
 import { storeToRefs } from 'pinia';
 import Collapsible from './Collapsible.vue';
 import { formatNumber } from '@/utils/Helpers';
@@ -63,21 +64,12 @@ const props = defineProps<{
 }>();
 
 const profileStore = useProfileStore();
+const giveawayStore = useCreateGiveawayStore();
 const { profile, giveawayTokenBalances } = storeToRefs(profileStore);
 const { showToast } = useToast();
 
-function estimateGalaFees() {
-    if (props.giveawaySettings.giveawayType === 'DistributedGiveaway') {
-        return BigNumber(props.giveawaySettings.maxWinners || 1).dividedBy(1000).integerValue(BigNumber.ROUND_CEIL);
-    } else if (props.giveawaySettings.giveawayType === 'FirstComeFirstServe') {
-        return BigNumber(props.giveawaySettings.maxWinners || 1);
-    } else {
-        throw new Error(`Unknown giveaway type`);
-    }
-}
-
 const missingGasBalance = computed(() => {
-    return BigNumber.max(0, estimateGalaFees().minus(giveawayTokenBalances.value?.galaBalance || 0));
+    return BigNumber.max(0, giveawayStore.estimateGalaFees().minus(giveawayTokenBalances.value?.galaBalance || 0));
 });
 
 const hasMissingGasBalance = computed(() => missingGasBalance.value.gt(0));
@@ -104,7 +96,7 @@ async function transferToken() {
         if (grant.Status === 1) {
             await profileStore.refreshGiveawayTokenBalances(props.giveawaySettings.giveawayToken);
             showToast('Gas tokens transferred successfully!');
-            emit('tokenTransferred');
+            emit('token-transferred');
         }
     } catch (e: unknown) {
         let errorMessage = 'unknown error';
@@ -117,8 +109,25 @@ async function transferToken() {
 }
 
 const emit = defineEmits<{
-    (e: 'tokenTransferred'): void;
+    (e: 'token-transferred'): void;
 }>();
+
+// Add computed property to check if gas requirements are met
+const gasRequirementsMet = computed(() => {
+    return !hasMissingGasBalance.value;
+});
+
+// Add watcher to emit status changes to parent
+watch(gasRequirementsMet, (newValue) => {
+    emit('token-transferred');
+});
+
+// Emit immediately if requirements are already met on mount
+onMounted(() => {
+    if (gasRequirementsMet.value) {
+        emit('token-transferred');
+    }
+});
 </script>
 
 <style scoped>

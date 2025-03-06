@@ -51,7 +51,6 @@ import InputBox from './InputBox.vue';
 import Collapsible from './Collapsible.vue'
 import { formatNumber } from '@/utils/Helpers';
 import BigNumber from 'bignumber.js';
-import { getGiveawayGasFee } from '@/services/BackendApi';
 import { useCreateGiveawayStore } from '@/stores/createGiveaway';
 import { storeToRefs } from 'pinia';
 
@@ -122,7 +121,7 @@ watch(totalWinners, (newVal, oldVal) => {
 
 watch([totalWinners, prizePerWinner, selectedVal], async () => {
     if (giveawaySettings.value.giveawayTokenType && giveawaySettings.value.giveawayToken && giveawaySettings.value.giveawayType && totalWinners.value) {
-        estimatedGasFee.value = await getGiveawayGasFee({ giveawayTokenType: giveawaySettings.value.giveawayTokenType, giveawayType: giveawaySettings.value.giveawayType, maxWinners: totalWinners.value?.toNumber() })
+        estimatedGasFee.value =  giveawayStore.estimateGalaFees()
     }
 })
 

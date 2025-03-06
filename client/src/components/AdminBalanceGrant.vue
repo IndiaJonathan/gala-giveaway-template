@@ -123,6 +123,7 @@ import { isErrorWithMessage } from '@/utils/Helpers';
 import BalanceCheck from './BalanceCheck.vue';
 import { useProfileStore } from '@/stores/profile';
 import { storeToRefs } from 'pinia';
+import { useCreateGiveawayStore } from '@/stores/createGiveaway';
 
 const props = defineProps({
   giveawaySettings: {
@@ -139,18 +140,11 @@ const emit = defineEmits<{
   (e: 'form-valid', payload: { stepNumber: number; isComplete: boolean }): void
 }>()
 
-function estimateGalaFees() {
-  if (props.giveawaySettings.giveawayType === 'DistributedGiveaway') {
-    return BigNumber(props.giveawaySettings.maxWinners || 1).dividedBy(1000).integerValue(BigNumber.ROUND_CEIL);
-  } else if (props.giveawaySettings.giveawayType === 'FirstComeFirstServe') {
-    return BigNumber(props.giveawaySettings.maxWinners || 1)
-  } else {
-    throw new BadRequestError(`Unknown giveaway type`)
-  }
-}
 const { showToast } = useToast()
 const profileStore = useProfileStore()
 const { profile } = storeToRefs(profileStore)
+
+const giveawayStore = useCreateGiveawayStore();
 
 const personalGalaBalance: Ref<BigNumber | undefined> = ref()
 
@@ -220,10 +214,19 @@ function getGalaCost(balanceData: GiveawayDetails) {
   if (props.giveawaySettings.giveawayTokenType === 'Balance') {
     additional = requiredTokenAmount.value;
   }
-  return additional.plus(BigNumber(balanceData.currentGalaFeesNeeded).plus(estimateGalaFees()))
+  const gasFees = estimateGalaFees(props.giveawaySettings);
+  return additional.plus(BigNumber(balanceData.currentGalaFeesNeeded).plus(gasFees));
 }
 
-
+function estimateGalaFees(settings: GiveawaySettingsDto): BigNumber {
+  if (settings.giveawayType === 'DistributedGiveaway') {
+    return BigNumber(settings.maxWinners || 1).dividedBy(1000).integerValue(BigNumber.ROUND_CEIL);
+  } else if (settings.giveawayType === 'FirstComeFirstServe') {
+    return BigNumber(settings.maxWinners || 1);
+  } else {
+    return new BigNumber(0);
+  }
+}
 
 async function loadBalances() {
   try {
@@ -274,7 +277,8 @@ watch(
   [requiredTokenAmount, giveawayBalanceData, props.giveawaySettings, personalGalaBalance],
   ([tokenQuantity, totalAllowance, winners, galaBalance]) => {
     let isComplete = false;
-    if (requiredTokenAmount.value && giveawayBalanceData.value && galaBalance?.gt(estimateGalaFees())) {
+    const gasFees = estimateGalaFees(props.giveawaySettings);
+    if (requiredTokenAmount.value && giveawayBalanceData.value && galaBalance?.gt(gasFees)) {
       if (giveawayBalanceData.value.detailsType === 'Allowance' && props.giveawaySettings.giveawayTokenType === 'Allowance'
         && BigNumber(giveawayBalanceData.value.allowances.totalQuantity).gte(requiredTokenAmount.value)
       ) {
@@ -286,7 +290,6 @@ watch(
       }
     }
     emit('form-valid', { stepNumber: 3, isComplete })
-
   }, { deep: true }
 )
 loadBalances()

@@ -3,6 +3,7 @@ import { defineStore } from 'pinia'
 import { GiveawayTokenType, type GiveawaySettingsDto } from '@/utils/types'
 import { watch } from 'vue'
 import { useProfileStore } from '@/stores/profile'
+import BigNumber from 'bignumber.js'
 
 export const useCreateGiveawayStore = defineStore('createGiveaway', () => {
   const giveawaySettings = ref<Partial<GiveawaySettingsDto>>({
@@ -34,9 +35,24 @@ export const useCreateGiveawayStore = defineStore('createGiveaway', () => {
     giveawaySettings.value.endDateTime = newDate
   }
 
+  /**
+   * Estimates the amount of GALA tokens needed for gas fees based on giveaway type
+   * @returns BigNumber representing the required GALA tokens for gas
+   */
+  function estimateGalaFees(): BigNumber {
+    if (giveawaySettings.value.giveawayType === 'DistributedGiveaway') {
+      return BigNumber(giveawaySettings.value.maxWinners || 1).dividedBy(1000).integerValue(BigNumber.ROUND_CEIL);
+    } else if (giveawaySettings.value.giveawayType === 'FirstComeFirstServe') {
+      return BigNumber(giveawaySettings.value.maxWinners || 1);
+    } else {
+      return new BigNumber(0);
+    }
+  }
+
   return {
     giveawaySettings,
     updateSettings,
-    setEndDateTime
+    setEndDateTime,
+    estimateGalaFees
   }
 })

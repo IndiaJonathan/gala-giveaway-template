@@ -25,13 +25,10 @@
           <!-- Step 2: Giveaway Settings -->
           <div v-if="currentStep === 1">
             <SettingsStep @is-valid="handleValidityChange($event, 1)"></SettingsStep>
-            <!-- <GiveawaySettings @form-valid="updateGiveawaySettingsValidity" :token-class="giveawaySettings.giveawayToken"
-              :giveaway-settings="giveawaySettings" /> -->
           </div>
 
           <!-- Step 3-->
           <div v-if="currentStep === 2">
-            <!--  Grant Allowance (For allowance based giveaways)-->
             <AllowanceStep @is-valid="handleValidityChange($event, 2)"></AllowanceStep>
           </div>
 
@@ -78,6 +75,7 @@ import type BigNumber from 'bignumber.js'
 import type { Transaction } from '@/services/GalaSwapApi'
 import type { TokenClassKeyProperties } from '@gala-chain/api'
 import { useProfileStore } from '@/stores/profile'
+import { useCreateGiveawayStore } from '@/stores/createGiveaway'
 import { storeToRefs } from 'pinia'
 import Web3Button from '@/components/Web3Button.vue'
 import StepProgress from '@/components/StepProgress.vue'
@@ -92,7 +90,9 @@ const showCustomInput = ref(false)
 const router = useRouter()
 
 const profileStore = useProfileStore();
+const giveawayStore = useCreateGiveawayStore();
 const { profile, isConnected, error, balances, connectedEthAddress, connectedUserGCAddress } = storeToRefs(profileStore)
+const { giveawaySettings } = storeToRefs(giveawayStore);
 
 const tokenContractUrl = import.meta.env.VITE_TOKEN_CONTRACT_URL
 
@@ -130,16 +130,6 @@ const burnTokenClass = ref<TokenClassKeyProperties>({
 })
 const { showToast } = useToast()
 
-const giveawaySettings = ref<Partial<GiveawaySettingsDto>>({
-  endDateTime: new Date(new Date().setDate(new Date().getDate() + 1)),
-  telegramAuthRequired: false,
-  requireBurnTokenToClaim: false,
-  burnToken: burnTokenClass.value,
-  burnTokenQuantity: '1',
-  giveawayType: 'DistributedGiveaway',
-  giveawayToken: undefined,
-  giveawayTokenType: undefined
-})
 const tokenService = GalaChainApi.getInstance()
 
 const totalSupply: Ref<BigNumber | null> = ref(null)
@@ -176,20 +166,18 @@ async function selectToken() {
         showToast(e.Message || 'Unable to get token class', true)
       } else {
         showToast(e.message || 'Unable to get token class', true)
-
       }
-
     }
-
   }
   tokenSelectLoading.value = false;
-
 }
 
 
 async function selectProjectToken(transaction: Transaction) {
-  giveawaySettings.value.giveawayToken = transaction.tokenDetails.tokenClass
-  giveawaySettings.value.giveawayTokenType = GiveawayTokenType.ALLOWANCE
+  giveawayStore.updateSettings({
+    giveawayToken: transaction.tokenDetails.tokenClass,
+    giveawayTokenType: GiveawayTokenType.ALLOWANCE
+  });
   await selectToken();
 }
 // Navigation functions

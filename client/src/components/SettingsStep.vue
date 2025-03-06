@@ -39,7 +39,6 @@ import InputBox from './InputBox.vue';
 import Collapsible from './Collapsible.vue'
 import { formatNumber } from '@/utils/Helpers';
 import BigNumber from 'bignumber.js';
-import { getGiveawayGasFee } from '@/services/BackendApi';
 import { useCreateGiveawayStore } from '@/stores/createGiveaway';
 import { storeToRefs } from 'pinia';
 import StyledCheckmark from './inputs/StyledCheckmark.vue'
@@ -92,11 +91,11 @@ const handleTelegramAuthChange = () => {
 const handleValidityChange = () => {
     let isValid = true;
     console.log("hit here")
-    if (giveawaySettings.value.requireBurnTokenToClaim){
+    if (giveawaySettings.value.requireBurnTokenToClaim) {
         const isTokenRefValid = tokenSelectRef.value && tokenSelectRef.value.isValid;
         isValid = isValid && isTokenRefValid;
     }
-    
+
     // Emit validity change when token selection validity changes
     emit('is-valid', true);
     return true;
@@ -107,7 +106,7 @@ const checkAllValid = () => {
     // if (giveawaySettings.value.requireBurnTokenToClaim) {
     //     return tokenSelectRef.value && tokenSelectRef.value.isValid;
     // }
-    
+
     // If neither option requires validation, return true
     return true;
 };
@@ -146,7 +145,7 @@ watch(totalWinners, (newVal, oldVal) => {
 
 watch([totalWinners, prizePerWinner, selectedVal], async () => {
     if (giveawaySettings.value.giveawayTokenType && giveawaySettings.value.giveawayToken && giveawaySettings.value.giveawayType && totalWinners.value) {
-        estimatedGasFee.value = await getGiveawayGasFee({ giveawayTokenType: giveawaySettings.value.giveawayTokenType, giveawayType: giveawaySettings.value.giveawayType, maxWinners: totalWinners.value?.toNumber() })
+        estimatedGasFee.value = giveawayStore.estimateGalaFees()
     }
 })
 
@@ -165,7 +164,7 @@ const isValid = computed(() => {
             prizeValid = false;
         }
     }
-    
+
     // Return overall validity
     return checkAllValid() && (giveawaySettings.value.giveawayType ? prizeValid : true);
 });

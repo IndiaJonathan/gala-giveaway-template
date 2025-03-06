@@ -47,7 +47,7 @@
 import { useToast } from '@/composables/useToast'
 import { GalaChainApi } from '@/services/GalaChainApi'
 import BigNumber from "bignumber.js";
-import { computed, type PropType } from 'vue'
+import { computed, type PropType, watch, onMounted } from 'vue'
 import { type GiveawaySettingsDto } from '@/utils/types'
 import { BrowserConnectClient } from '@gala-chain/connect'
 import { isErrorWithMessage } from '@/utils/Helpers';
@@ -76,8 +76,27 @@ const props = defineProps({
 })
 
 const emit = defineEmits<{
-    (e: 'allowanceGranted'): void
+    (e: 'allowance-granted'): void
 }>()
+
+// Add computed property to check if allowance requirements are met
+const allowanceRequirementsMet = computed(() => {
+    return new BigNumber(props.grantedAllowanceQuantity).gte(props.requiredAmount);
+});
+
+// Add watcher to emit when allowance requirements are met
+watch(allowanceRequirementsMet, (newValue) => {
+    if (newValue) {
+        emit('allowance-granted');
+    }
+});
+
+// Emit immediately if requirements are already met
+onMounted(() => {
+    if (allowanceRequirementsMet.value) {
+        emit('allowance-granted');
+    }
+});
 
 const tokenSymbol = computed(() => {
     const token = props.giveawaySettings.giveawayToken;
@@ -112,7 +131,7 @@ async function grantAdditionalAllowance() {
             if (grant.Status === 1) {
                 // Success!
                 showToast('Allowance Granted!')
-                emit('allowanceGranted')
+                emit('allowance-granted')
             }
         } catch (e: unknown) {
             let errorMessage = 'unknown error';

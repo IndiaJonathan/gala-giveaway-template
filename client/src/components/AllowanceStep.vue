@@ -11,23 +11,22 @@
             </div>
         </Collapsible>
 
-        <AllowanceCheck v-if="giveawaySettings.giveawayTokenType === 'Allowance'" 
-            :giveawaySettings="giveawaySettings as GiveawaySettingsDto" 
-            :requiredAmount="requiredBalance"
-            :grantedAllowanceQuantity="BigNumber(giveawayTokenBalances?.allowances || 0)" />
-            
+        <AllowanceCheck v-if="giveawaySettings.giveawayTokenType === 'Allowance'"
+            :giveawaySettings="giveawaySettings as GiveawaySettingsDto" :requiredAmount="requiredBalance"
+            :grantedAllowanceQuantity="BigNumber(giveawayTokenBalances?.allowances || 0)"
+            @allowance-granted="checkValidity" />
+
         <BalanceCheck v-else-if="giveawaySettings.giveawayTokenType === 'Balance'"
-            :giveawaySettings="giveawaySettings as GiveawaySettingsDto"
-            :requiredAmount="requiredBalance"
+            :giveawaySettings="giveawaySettings as GiveawaySettingsDto" :requiredAmount="requiredBalance"
             :adminBalanceQuantity="BigNumber(giveawayTokenBalances?.tokenBalance || 0)"
             @token-transferred="checkValidity" />
-            
+
         <GasFeeBalance :giveawaySettings="giveawaySettings as GiveawaySettingsDto" @token-transferred="checkValidity" />
     </div>
 </template>
 
 <script lang="ts" setup>
-import { ref, watch, computed, onMounted } from 'vue';
+import { ref, watch, computed, onMounted, watchEffect } from 'vue';
 import Collapsible from './Collapsible.vue';
 import { formatNumber, isErrorWithMessage } from '@/utils/Helpers';
 import { useCreateGiveawayStore } from '@/stores/createGiveaway';
@@ -83,16 +82,48 @@ const requiredBalance = computed(() => {
 
 // Check if all requirements are met
 const isValid = computed(() => {
-    return BigNumber(giveawayTokenBalances.value?.allowances || 0).gte(requiredBalance.value);
+    // Valid if the required amount is zero or if we have enough allowance/balance
+    if (requiredBalance.value.isZero() &&
+        (giveawaySettings.value.giveawayTokenType === 'Allowance' ||
+            giveawaySettings.value.giveawayTokenType === 'Balance')) {
+        return true;
+    }
+
+    // For allowance type, check if we have enough allowance
+    if (giveawaySettings.value.giveawayTokenType === 'Allowance') {
+        return BigNumber(giveawayTokenBalances.value?.allowances || 0).gte(requiredBalance.value);
+    }
+
+    // For balance type, check if we have enough balance
+    if (giveawaySettings.value.giveawayTokenType === 'Balance') {
+        return BigNumber(giveawayTokenBalances.value?.tokenBalance || 0).gte(requiredBalance.value);
+    }
+
+    return false;
+});
+
+// Also check gas fee requirement
+const gasFeesValid = computed(() => {
+    // Estimate required gas fees
+    const requiredGasFees = giveawayStore.estimateGalaFees();
+
+    // Check if gas fee requirement is zero or we have enough balance
+    return requiredGasFees.isZero() ||
+        BigNumber(giveawayTokenBalances.value?.galaBalance || 0).gte(requiredGasFees);
+});
+
+// Combined validation - both token and gas requirements must be met
+const allRequirementsMet = computed(() => {
+    return isValid.value && gasFeesValid.value;
 });
 
 const checkValidity = () => {
-    emit('is-valid', isValid.value);
+    emit('is-valid', allRequirementsMet.value);
 };
 
 // Watch for changes in validity
-watch(isValid, (newValue) => {
-    emit('is-valid', newValue);
+watch([allRequirementsMet], (newValue) => {
+    emit('is-valid', newValue[0]);
 });
 
 // Fetch allowance data when component is mounted
@@ -116,7 +147,7 @@ onMounted(async () => {
     checkValidity();
 });
 
-defineExpose({ isValid });
+defineExpose({ isValid: allRequirementsMet });
 </script>
 
 <style scoped>
