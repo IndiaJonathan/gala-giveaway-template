@@ -1,6 +1,6 @@
 // stores/profile.ts
 
-import { defineStore } from 'pinia'
+import { defineStore, storeToRefs } from 'pinia'
 import { getProfile, getGiveawayTokensAvailable } from '@/services/BackendApi'
 import type { Profile, TokenBalances } from '@/utils/types'
 import {
@@ -17,6 +17,7 @@ import { getConnectedAddress } from '@/utils/GalaHelper'
 import type { TokenClassKeyProperties } from '@gala-chain/api'
 import { getCreatedTokens, type Transaction } from '@/services/GalaSwapApi'
 import BigNumber from 'bignumber.js'
+import { useCreateGiveawayStore } from './createGiveaway'
 
 export const useProfileStore = defineStore('profile', () => {
   // State
@@ -63,6 +64,8 @@ export const useProfileStore = defineStore('profile', () => {
   const isAwaitingSign = ref(false)
 
   const tokenContractUrl = import.meta.env.VITE_TOKEN_CONTRACT_URL
+  const giveawayStore = useCreateGiveawayStore()
+  const { giveawaySettings } = storeToRefs(giveawayStore)
 
   // Actions
   async function fetchProfile() {
@@ -203,7 +206,12 @@ export const useProfileStore = defineStore('profile', () => {
 
   async function walletAddressChanged(newAddress?: string) {
     connectedEthAddress.value = newAddress
-    if (connectedEthAddress.value && connectedEthAddress.value != '') await fetchProfile()
+    if (connectedEthAddress.value && connectedEthAddress.value != '') {
+      await fetchProfile()
+      if (giveawaySettings.value?.giveawayToken) {
+        await refreshGiveawayTokenBalances(giveawaySettings.value.giveawayToken)
+      }
+    }
   }
 
   async function refreshConnectedAddress() {

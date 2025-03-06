@@ -30,12 +30,6 @@ export const useCreateGiveawayStore = defineStore('createGiveaway', () => {
 
   const profileStore = useProfileStore()
 
-  watch(giveawaySettings, async () => {
-    if (giveawaySettings.value?.giveawayToken) {
-      await profileStore.refreshGiveawayTokenBalances(giveawaySettings.value.giveawayToken)
-    }
-  })
-
   function setEndDateTime(newDate: Date) {
     giveawaySettings.value.endDateTime = newDate
   }
