@@ -282,10 +282,8 @@ defineExpose({ isValid });
     cursor: pointer;
 }
 
-/* Increase spacing between collapsible sections */
 :deep(.collapsible-container) {
     margin-bottom: 20px;
-    background-color: #1A1A1A;
 }
 
 /* Styling for section titles */

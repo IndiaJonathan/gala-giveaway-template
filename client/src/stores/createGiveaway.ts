@@ -1,4 +1,4 @@
-import { ref } from 'vue'
+import { ref, type Ref } from 'vue'
 import { defineStore } from 'pinia'
 import { GiveawayTokenType, type GiveawaySettingsDto } from '@/utils/types'
 import { watch } from 'vue'
@@ -55,4 +55,9 @@ export const useCreateGiveawayStore = defineStore('createGiveaway', () => {
     setEndDateTime,
     estimateGalaFees
   }
-})
+}) as unknown as () => {
+  giveawaySettings: Ref<Partial<GiveawaySettingsDto>>
+  updateSettings: (newSettings: Partial<GiveawaySettingsDto>) => void
+  setEndDateTime: (newDate: Date) => void
+  estimateGalaFees: () => BigNumber
+}

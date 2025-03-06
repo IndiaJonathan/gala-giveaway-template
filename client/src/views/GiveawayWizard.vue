@@ -239,6 +239,17 @@ async function launchGiveaway() {
     delete signableSettings.burnToken
     delete signableSettings.burnTokenQuantity
   }
+
+  if (signableSettings.giveawayToken) {
+    signableSettings.giveawayToken = {
+      collection: signableSettings.giveawayToken.collection,
+      category: signableSettings.giveawayToken.category,
+      type: signableSettings.giveawayToken.type,
+      additionalKey: signableSettings.giveawayToken.additionalKey,
+      instance: '0'
+    };
+  }
+
   const unsignedGiveaway = {
     ...signableSettings,
     ...(settings.endDateTime && { endDateTime: settings.endDateTime.toISOString() }),
