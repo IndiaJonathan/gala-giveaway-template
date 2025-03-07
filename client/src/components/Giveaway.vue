@@ -1,26 +1,79 @@
 <template>
-  <v-card class="mx-auto my-4" max-width="256px" rounded="lg" style="background-color: inherit">
-    <v-img :src="giveaway.image || GiveawayPlaceholderJPG">
-      <v-row v-if="isUpcoming" class="image-overlay ma-0">
-        <v-col cols="12" align-self="center" class="text-center">
-          <h5>Available in</h5>
-          <h2 class="px-4 py-3 mx-auto mt-2 border-md rounded-lg d-inline-block">
+  <v-card class="giveaway-card" rounded="xl">
+    <!-- Main image container -->
+    <div class="position-relative">
+      <v-img 
+        :src="giveaway.image || GiveawayPlaceholderJPG" 
+        height="358px"
+        cover
+        class="giveaway-image"
+      >
+        <!-- Available in overlay -->
+        <div v-if="isUpcoming" class="available-overlay d-flex flex-column align-center justify-center">
+          <div class="text-subtitle-1 text-center mb-2">Available in</div>
+          <div class="countdown-timer">
             {{ availableIn }}
-          </h2>
-        </v-col>
-      </v-row>
-    </v-img>
-    <v-row>
-      <v-col :cols="hasAction ? 12 : 8">
-        <v-card-title>{{ tokenToReadable(giveaway.giveawayToken) }}</v-card-title>
-        <v-card-subtitle>Remaining: {{ giveaway.claimsLeft || 0 }}</v-card-subtitle>
-      </v-col>
-      <v-col v-if="!hasAction" cols="4" align-self="center">
-        <v-btn class="card-button" rounded="pill" variant="flat" :disabled="isUpcoming">{{
-          hasClaimed ? 'View' : 'Claim'
-        }}</v-btn>
-      </v-col>
-    </v-row>
+          </div>
+        </div>
+        
+        <!-- All gone overlay (only for FirstComeFirstServe that have run out) -->
+        <div v-else-if="!isDistributedGiveaway && (giveaway.claimsLeft || 0) <= 0 && !hasClaimed" 
+             class="available-overlay d-flex flex-column align-center justify-center">
+          <div class="text-center mb-2">
+            <span style="font-size: 2rem;">🙅‍♂️</span>
+          </div>
+          <div class="text-h6 text-center">It's all gone!</div>
+        </div>
+        
+        <!-- Claimed overlay -->
+        <div v-else-if="hasClaimed" class="available-overlay d-flex align-center justify-center">
+          <div class="claimed-container pa-3">
+            <div class="d-flex align-center">
+              <span>You've claimed it</span>
+              <v-icon color="success" class="ml-2">mdi-check-circle</v-icon>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Signed up overlay for DistributedGiveaway -->
+        <div v-else-if="isDistributedGiveaway && hasSignedUp" class="available-overlay d-flex align-center justify-center">
+          <div class="claimed-container pa-3">
+            <div class="d-flex align-center">
+              <span>You've signed up for this raffle</span>
+              <v-icon color="success" class="ml-2">mdi-check-circle</v-icon>
+            </div>
+          </div>
+        </div>
+      </v-img>
+    </div>
+    
+    <!-- Card footer with information and claim button -->
+    <div class="giveaway-footer">
+      <div class="title-container">
+        <div class="giveaway-title">
+          {{ isToken ? `${getTokenAmount()} ${getTokenSymbol()} prize` : (giveaway.giveawayToken?.collection || 'Mystery Box') }}
+        </div>
+      </div>
+      
+      <!-- Different button for different states -->
+      <div class="button-container">
+        <Web3Button 
+          v-if="!isUpcoming && shouldShowActionButton" 
+          class="web3-button" 
+          :disabled="buttonDisabled"
+          :onClick="handleClaimClick"
+          :primaryText="getButtonText()"
+          :connectWalletText="'Sign up'"
+        />
+        
+        <Web3Button 
+          v-else-if="hasClaimed || (isDistributedGiveaway && hasSignedUp)"
+          class="web3-button" 
+          :onClick="handleViewClick"
+          primaryText="View"
+        />
+      </div>
+    </div>
   </v-card>
 </template>
 
@@ -29,6 +82,9 @@ import { type PropType, computed } from 'vue'
 import type { Giveaway } from '@/types/giveaway'
 import GiveawayPlaceholderJPG from '@/assets/giveaway-placeholder.jpg'
 import { tokenToReadable } from '@/utils/GalaHelper'
+import { useProfileStore } from '@/stores/profile'
+import { storeToRefs } from 'pinia'
+import Web3Button from '@/components/Web3Button.vue'
 
 const { giveaway } = defineProps({
   giveaway: {
@@ -37,10 +93,99 @@ const { giveaway } = defineProps({
   }
 })
 
+const profileStore = useProfileStore()
+const { connectedUserGCAddress } = storeToRefs(profileStore)
+
 const hasClaimed = giveaway.isWinner === true
 
 const startTime = new Date(giveaway.startDateTime)
 const isUpcoming = startTime > new Date()
+
+// Check if the giveaway is of type DistributedGiveaway
+const isDistributedGiveaway = computed(() => {
+  return giveaway.giveawayType === 'DistributedGiveaway'
+})
+
+// Check if the giveaway is a token/currency
+const isToken = computed(() => {
+  return giveaway.giveawayToken?.collection === 'GALA' || 
+         giveaway.giveawayToken?.type === 'FT' ||
+         giveaway.giveawayToken?.category === 'Currency'
+})
+
+// Get token symbol
+const getTokenSymbol = () => {
+  if (giveaway.giveawayToken?.collection === 'GALA') {
+    return '$GALA'
+  }
+  return giveaway.giveawayToken?.collection || ''
+}
+
+// Get token amount
+const getTokenAmount = () => {
+  return giveaway.tokenQuantity || '0'
+}
+
+// Determine if we should show action button
+const shouldShowActionButton = computed(() => {
+  if (isDistributedGiveaway.value) {
+    // For distributed giveaway, always show the button unless user has already signed up
+    return !hasSignedUp.value
+  } else {
+    // For FirstComeFirstServe, only show if there are claims left and user hasn't claimed
+    return (giveaway.claimsLeft || 0) > 0 && !hasClaimed
+  }
+})
+
+// Get button text based on state
+const getButtonText = () => {
+  if (isDistributedGiveaway.value) {
+    return 'Sign up'
+  } else {
+    return 'Claim'
+  }
+}
+
+// Handle claim or signup click action
+const handleClaimClick = async () => {
+  if (isDistributedGiveaway.value) {
+    console.log('Sign up clicked for raffle giveaway:', giveaway._id)
+    // Implement signup logic here
+  } else {
+    console.log('Claim clicked for giveaway:', giveaway._id)
+    // Implement claim logic here
+  }
+  return Promise.resolve()
+}
+
+// Handle view click action
+const handleViewClick = async () => {
+  console.log('View clicked for giveaway:', giveaway._id)
+  // Implement view logic here
+  return Promise.resolve()
+}
+
+// Check if the user has already signed up for a distributed giveaway
+const hasSignedUp = computed(() => {
+  if (!isDistributedGiveaway.value || !giveaway.usersSignedUp || !connectedUserGCAddress.value) {
+    return false
+  }
+  return giveaway.usersSignedUp.includes(connectedUserGCAddress.value)
+})
+
+// Determine if the button should be disabled based on giveaway type and status
+const buttonDisabled = computed(() => {
+  if (isUpcoming) {
+    return true
+  }
+  
+  if (isDistributedGiveaway.value) {
+    return hasSignedUp.value
+  } else {
+    // FirstComeFirstServe type
+    return (giveaway.claimsLeft || 0) <= 0 || hasClaimed
+  }
+})
 
 const availableIn = computed(() => {
   if (!isUpcoming) {
@@ -68,21 +213,136 @@ const availableIn = computed(() => {
     return `${hoursRemaining}h ${minutesRemaining}m`
   }
 })
-
-const hasAction = (giveaway.claimsLeft || 0) <= 0 || hasClaimed
 </script>
 
 <style scoped>
-.card-button {
-  background-color: #fff;
-  color: #0a0a0a;
-  text-transform: none;
+.giveaway-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 0px 0px 16px;
+  gap: 16px;
+  width: 358px;
+  height: 438px;
+  background: #181818;
+  border: 1px solid #FFFFFF;
+  box-shadow: 0px 14px 25px #000000;
+  border-radius: 16px;
+  margin: 16px auto;
+  overflow: visible;
 }
 
-.image-overlay {
-  height: 100%;
+.giveaway-image {
+  width: 358px;
+  height: 358px;
+  border-radius: 16px;
+  align-self: stretch;
+}
+
+.position-relative {
+  position: relative;
+}
+
+.giveaway-footer {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0px 16px;
+  width: 358px;
+  height: 48px;
+  align-self: stretch;
+  overflow: visible;
+}
+
+.title-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 0px;
+  gap: 2px;
+  height: 48px;
+  flex-grow: 1;
+  max-width: 65%;
+}
+
+.button-container {
+  display: flex;
+  min-width: 110px;
+  overflow: visible;
+}
+
+.giveaway-title {
+  font-family: 'Figtree', sans-serif;
+  font-style: normal;
+  font-weight: 600;
+  font-size: 16px;
+  line-height: 145%;
+  color: #FFFFFF;
+  text-shadow: 0px 1px 0px #000000;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.available-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
   width: 100%;
-  background-color: #0a0a0a;
-  opacity: 0.85;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.7);
+  z-index: 2;
+}
+
+.countdown-timer {
+  background: linear-gradient(to right, #ff5757, #ff9966);
+  padding: 12px 24px;
+  border-radius: 50px;
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: white;
+  min-width: 100px;
+  text-align: center;
+}
+
+.claimed-container {
+  background-color: rgba(0, 0, 0, 0.7);
+  border-radius: 8px;
+}
+
+/* Web3Button styling to match v-btn */
+:deep(.web3-button) {
+  display: flex !important;
+  flex-direction: row !important;
+  justify-content: center !important;
+  align-items: center !important;
+  padding: 8px 16px !important;
+  min-width: 110px !important;
+  width: auto !important;
+  height: 34px !important;
+  background: #FFFFFF !important;
+  border-radius: 100px !important;
+  font-family: 'Figtree', sans-serif !important;
+  font-style: normal !important;
+  font-weight: 600 !important;
+  font-size: 14px !important;
+  line-height: 100% !important;
+  text-align: center !important;
+  color: #0A0A0A !important;
+  text-transform: none !important;
+  white-space: nowrap !important;
+  overflow: visible !important;
+}
+
+:deep(.web3-button:disabled) {
+  opacity: 0.6 !important;
+  cursor: not-allowed !important;
+}
+
+:deep(.web3-button span) {
+  color: #0A0A0A !important;
 }
 </style>
