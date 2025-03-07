@@ -36,11 +36,13 @@
           v-if="giveawaysTab === 'active'" 
           :giveaways="activeGiveaways" 
           key="active"
+          @signup-success="handleSignupSuccess"
         ></Giveaways>
         <Giveaways 
           v-else 
           :giveaways="completedGiveaways" 
           key="past"
+          @signup-success="handleSignupSuccess"
         ></Giveaways>
       </v-fade-transition>
     </template>
@@ -68,7 +70,7 @@ const giveawaysTab = ref<'active' | 'past'>('active')
 const fetchGiveaways = async () => {
   try {
     loading.value = true
-    console.log('hit')
+    console.log('Fetching giveaways...')
     giveaways.value = await getGiveaways(connectedUserGCAddress.value)
   } catch (e) {
     showToast((e as any).message || JSON.stringify(e), true)
@@ -109,6 +111,12 @@ const completedGiveaways = computed(() => {
 watch(connectedUserGCAddress, () => {
   fetchGiveaways()
 })
+
+// Handler for signup success events
+const handleSignupSuccess = () => {
+  console.log('Signup successful, reloading giveaways')
+  fetchGiveaways()
+}
 </script>
 
 <style scoped>

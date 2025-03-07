@@ -2,12 +2,7 @@
   <v-card class="giveaway-card" rounded="xl">
     <!-- Main image container -->
     <div class="position-relative">
-      <v-img 
-        :src="giveaway.image || GiveawayPlaceholderJPG" 
-        height="358px"
-        cover
-        class="giveaway-image"
-      >
+      <v-img :src="giveaway.image || GiveawayPlaceholderJPG" height="358px" cover class="giveaway-image">
         <!-- Available in overlay -->
         <div v-if="isUpcoming" class="available-overlay d-flex flex-column align-center justify-center">
           <div class="text-subtitle-1 text-center mb-2">Available in</div>
@@ -15,16 +10,16 @@
             {{ availableIn }}
           </div>
         </div>
-        
+
         <!-- All gone overlay (only for FirstComeFirstServe that have run out) -->
-        <div v-else-if="!isDistributedGiveaway && (giveaway.claimsLeft || 0) <= 0 && !hasClaimed" 
-             class="available-overlay d-flex flex-column align-center justify-center">
+        <div v-else-if="!isDistributedGiveaway && (giveaway.claimsLeft || 0) <= 0 && !hasClaimed"
+          class="available-overlay d-flex flex-column align-center justify-center">
           <div class="text-center mb-2">
             <span style="font-size: 2rem;">🙅‍♂️</span>
           </div>
           <div class="text-h6 text-center">It's all gone!</div>
         </div>
-        
+
         <!-- Claimed overlay -->
         <div v-else-if="hasClaimed" class="available-overlay d-flex align-center justify-center">
           <div class="claimed-container pa-3">
@@ -34,9 +29,10 @@
             </div>
           </div>
         </div>
-        
+
         <!-- Signed up overlay for DistributedGiveaway -->
-        <div v-else-if="isDistributedGiveaway && hasSignedUp" class="available-overlay d-flex align-center justify-center">
+        <div v-else-if="isDistributedGiveaway && hasSignedUp"
+          class="available-overlay d-flex align-center justify-center">
           <div class="claimed-container pa-3">
             <div class="d-flex align-center">
               <span>You've signed up for this raffle</span>
@@ -46,45 +42,40 @@
         </div>
       </v-img>
     </div>
-    
+
     <!-- Card footer with information and claim button -->
     <div class="giveaway-footer">
       <div class="title-container">
         <div class="giveaway-title">
           {{ isToken ? `${getTokenAmount()} ${getTokenSymbol()} prize` : (giveaway.giveawayToken?.collection || 'Mystery Box') }}
         </div>
+        <div class="giveaway-subtitle">
+          {{ footerSubtitle }}
+        </div>
       </div>
-      
+
       <!-- Different button for different states -->
       <div class="button-container">
-        <Web3Button 
-          v-if="!isUpcoming && shouldShowActionButton" 
-          class="web3-button" 
-          :disabled="buttonDisabled"
-          :onClick="handleClaimClick"
-          :primaryText="getButtonText()"
-          :connectWalletText="'Sign up'"
-        />
-        
-        <Web3Button 
-          v-else-if="hasClaimed || (isDistributedGiveaway && hasSignedUp)"
-          class="web3-button" 
-          :onClick="handleViewClick"
-          primaryText="View"
-        />
+        <Web3Button v-if="!isUpcoming && shouldShowActionButton" class="web3-button" :disabled="buttonDisabled"
+          :onClick="handleClaimClick" :primaryText="getButtonText()" :connectWalletText="'Sign up'" />
+
+        <Web3Button v-else-if="hasClaimed || (isDistributedGiveaway && hasSignedUp)" class="web3-button"
+          :onClick="handleViewClick" primaryText="View" />
       </div>
     </div>
   </v-card>
 </template>
 
 <script lang="ts" setup>
-import { type PropType, computed } from 'vue'
+import { type PropType, computed, defineEmits } from 'vue'
 import type { Giveaway } from '@/types/giveaway'
 import GiveawayPlaceholderJPG from '@/assets/giveaway-placeholder.jpg'
 import { tokenToReadable } from '@/utils/GalaHelper'
 import { useProfileStore } from '@/stores/profile'
 import { storeToRefs } from 'pinia'
 import Web3Button from '@/components/Web3Button.vue'
+import { signupForGiveaway } from '@/services/BackendApi'
+import { useToast } from '@/composables/useToast'
 
 const { giveaway } = defineProps({
   giveaway: {
@@ -92,6 +83,8 @@ const { giveaway } = defineProps({
     required: true
   }
 })
+
+const emit = defineEmits(['signup-success'])
 
 const profileStore = useProfileStore()
 const { connectedUserGCAddress } = storeToRefs(profileStore)
@@ -108,9 +101,9 @@ const isDistributedGiveaway = computed(() => {
 
 // Check if the giveaway is a token/currency
 const isToken = computed(() => {
-  return giveaway.giveawayToken?.collection === 'GALA' || 
-         giveaway.giveawayToken?.type === 'FT' ||
-         giveaway.giveawayToken?.category === 'Currency'
+  return giveaway.giveawayToken?.collection === 'GALA' ||
+    giveaway.giveawayToken?.type === 'FT' ||
+    giveaway.giveawayToken?.category === 'Currency'
 })
 
 // Get token symbol
@@ -148,13 +141,37 @@ const getButtonText = () => {
 
 // Handle claim or signup click action
 const handleClaimClick = async () => {
-  if (isDistributedGiveaway.value) {
-    console.log('Sign up clicked for raffle giveaway:', giveaway._id)
-    // Implement signup logic here
-  } else {
-    console.log('Claim clicked for giveaway:', giveaway._id)
-    // Implement claim logic here
+  const { showToast } = useToast();
+
+  try {
+    if (isDistributedGiveaway.value) {
+      console.log('Sign up clicked for raffle giveaway:', giveaway._id)
+      // Use the profile store to sign a payload for the giveaway signup
+      const payload = {
+        giveawayId: giveaway._id,
+        uniqueKey: 'giveaway-signup-' + giveaway._id + Date.now().toString()
+      }
+      const signedPayload = await profileStore.sign("Signup for Giveaway", payload);
+      const success = await signupForGiveaway(signedPayload);
+      if (success) {
+        await profileStore.fetchProfile();
+        // Emit an event so parent components can reload giveaways
+        emit('signup-success');
+        // The UI will update automatically when the profile is refreshed
+        showToast('Successfully signed up for the giveaway!');
+      } else {
+        showToast('Failed to sign up for the giveaway.', true);
+      }
+    } else {
+      console.log('Claim clicked for giveaway:', giveaway._id)
+      // Implement claim logic here
+    }
+  } catch (error) {
+    console.error('Error in handleClaimClick:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    showToast(`Failed to process giveaway action. Error: ${errorMessage}`, true);
   }
+
   return Promise.resolve()
 }
 
@@ -178,7 +195,7 @@ const buttonDisabled = computed(() => {
   if (isUpcoming) {
     return true
   }
-  
+
   if (isDistributedGiveaway.value) {
     return hasSignedUp.value
   } else {
@@ -211,6 +228,35 @@ const availableIn = computed(() => {
     const minutesRemaining = minutesTotalRemaining % 60
 
     return `${hoursRemaining}h ${minutesRemaining}m`
+  }
+})
+
+// Calculate the footer subtitle text based on giveaway type
+const footerSubtitle = computed(() => {
+  // For upcoming giveaways, show available soon
+  if (isUpcoming) {
+    return 'Available soon';
+  }
+  
+  if (isDistributedGiveaway.value) {
+    // For distributed giveaway, show drawing date
+    if (giveaway.endDateTime) {
+      const drawingDate = new Date(giveaway.endDateTime);
+      
+      // Format date as "Mon DD, YYYY"
+      const options: Intl.DateTimeFormatOptions = { 
+        month: 'short', 
+        day: 'numeric', 
+        year: 'numeric' 
+      };
+      
+      return `Drawing: ${drawingDate.toLocaleDateString(undefined, options)}`;
+    } else {
+      return 'Drawing: TBD';
+    }
+  } else {
+    // For regular giveaway, show remaining count
+    return `Remaining: ${giveaway.claimsLeft || 0}`;
   }
 })
 </script>
@@ -287,6 +333,19 @@ const availableIn = computed(() => {
   max-width: 100%;
 }
 
+.giveaway-subtitle {
+  font-family: 'Figtree', sans-serif;
+  font-style: normal;
+  font-weight: 400;
+  font-size: 12px;
+  line-height: 145%;
+  color: #CCCCCC;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
 .available-overlay {
   position: absolute;
   top: 0;
@@ -313,7 +372,6 @@ const availableIn = computed(() => {
   border-radius: 8px;
 }
 
-/* Web3Button styling to match v-btn */
 :deep(.web3-button) {
   display: flex !important;
   flex-direction: row !important;

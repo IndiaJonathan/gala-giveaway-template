@@ -41,6 +41,7 @@ const requestCreateWallet = async () => {
     const success = await createWallet(signedPayload);
     if (success) {
         await fetchProfile();
+        emit('update:show', false);
     }
 };
 
