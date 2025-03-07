@@ -16,8 +16,8 @@
           </div>
         </div>
         
-        <!-- All gone overlay -->
-        <div v-else-if="(giveaway.claimsLeft || 0) <= 0 && !hasClaimed && !isDistributedGiveaway" 
+        <!-- All gone overlay (only for FirstComeFirstServe that have run out) -->
+        <div v-else-if="!isDistributedGiveaway && (giveaway.claimsLeft || 0) <= 0 && !hasClaimed" 
              class="available-overlay d-flex flex-column align-center justify-center">
           <div class="text-center mb-2">
             <span style="font-size: 2rem;">🙅‍♂️</span>
@@ -30,6 +30,16 @@
           <div class="claimed-container pa-3">
             <div class="d-flex align-center">
               <span>You've claimed it</span>
+              <v-icon color="success" class="ml-2">mdi-check-circle</v-icon>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Signed up overlay for DistributedGiveaway -->
+        <div v-else-if="isDistributedGiveaway && hasSignedUp" class="available-overlay d-flex align-center justify-center">
+          <div class="claimed-container pa-3">
+            <div class="d-flex align-center">
+              <span>You've signed up for this raffle</span>
               <v-icon color="success" class="ml-2">mdi-check-circle</v-icon>
             </div>
           </div>
@@ -47,32 +57,21 @@
       
       <!-- Different button for different states -->
       <div class="button-container">
-        <v-btn 
-          v-if="!isUpcoming && (!hasClaimed || isDistributedGiveaway)" 
-          class="claim-button" 
-          rounded="pill" 
-          variant="flat"
+        <Web3Button 
+          v-if="!isUpcoming && shouldShowActionButton" 
+          class="web3-button" 
           :disabled="buttonDisabled"
-        >
-          <template v-if="hasClaimed">
-            View
-          </template>
-          <template v-else-if="isDistributedGiveaway">
-            {{ hasSignedUp ? 'Signed up' : 'Sign up' }}
-          </template>
-          <template v-else>
-            Claim
-          </template>
-        </v-btn>
+          :onClick="handleClaimClick"
+          :primaryText="getButtonText()"
+          :connectWalletText="'Sign up'"
+        />
         
-        <v-btn 
-          v-else-if="hasClaimed"
-          class="view-button" 
-          rounded="pill" 
-          variant="flat"
-        >
-          View
-        </v-btn>
+        <Web3Button 
+          v-else-if="hasClaimed || (isDistributedGiveaway && hasSignedUp)"
+          class="web3-button" 
+          :onClick="handleViewClick"
+          primaryText="View"
+        />
       </div>
     </div>
   </v-card>
@@ -85,6 +84,7 @@ import GiveawayPlaceholderJPG from '@/assets/giveaway-placeholder.jpg'
 import { tokenToReadable } from '@/utils/GalaHelper'
 import { useProfileStore } from '@/stores/profile'
 import { storeToRefs } from 'pinia'
+import Web3Button from '@/components/Web3Button.vue'
 
 const { giveaway } = defineProps({
   giveaway: {
@@ -124,6 +124,45 @@ const getTokenSymbol = () => {
 // Get token amount
 const getTokenAmount = () => {
   return giveaway.tokenQuantity || '0'
+}
+
+// Determine if we should show action button
+const shouldShowActionButton = computed(() => {
+  if (isDistributedGiveaway.value) {
+    // For distributed giveaway, always show the button unless user has already signed up
+    return !hasSignedUp.value
+  } else {
+    // For FirstComeFirstServe, only show if there are claims left and user hasn't claimed
+    return (giveaway.claimsLeft || 0) > 0 && !hasClaimed
+  }
+})
+
+// Get button text based on state
+const getButtonText = () => {
+  if (isDistributedGiveaway.value) {
+    return 'Sign up'
+  } else {
+    return 'Claim'
+  }
+}
+
+// Handle claim or signup click action
+const handleClaimClick = async () => {
+  if (isDistributedGiveaway.value) {
+    console.log('Sign up clicked for raffle giveaway:', giveaway._id)
+    // Implement signup logic here
+  } else {
+    console.log('Claim clicked for giveaway:', giveaway._id)
+    // Implement claim logic here
+  }
+  return Promise.resolve()
+}
+
+// Handle view click action
+const handleViewClick = async () => {
+  console.log('View clicked for giveaway:', giveaway._id)
+  // Implement view logic here
+  return Promise.resolve()
 }
 
 // Check if the user has already signed up for a distributed giveaway
@@ -274,26 +313,36 @@ const availableIn = computed(() => {
   border-radius: 8px;
 }
 
-.claim-button, .view-button {
-  display: flex;
-  flex-direction: row;
-  justify-content: center;
-  align-items: center;
-  padding: 8px 16px;
-  min-width: 110px;
-  width: auto;
-  height: 34px;
-  background: #FFFFFF;
-  border-radius: 100px;
-  font-family: 'Figtree', sans-serif;
-  font-style: normal;
-  font-weight: 600;
-  font-size: 14px;
-  line-height: 100%;
-  text-align: center;
-  color: #0A0A0A;
-  text-transform: none;
-  white-space: nowrap;
-  overflow: visible;
+/* Web3Button styling to match v-btn */
+:deep(.web3-button) {
+  display: flex !important;
+  flex-direction: row !important;
+  justify-content: center !important;
+  align-items: center !important;
+  padding: 8px 16px !important;
+  min-width: 110px !important;
+  width: auto !important;
+  height: 34px !important;
+  background: #FFFFFF !important;
+  border-radius: 100px !important;
+  font-family: 'Figtree', sans-serif !important;
+  font-style: normal !important;
+  font-weight: 600 !important;
+  font-size: 14px !important;
+  line-height: 100% !important;
+  text-align: center !important;
+  color: #0A0A0A !important;
+  text-transform: none !important;
+  white-space: nowrap !important;
+  overflow: visible !important;
+}
+
+:deep(.web3-button:disabled) {
+  opacity: 0.6 !important;
+  cursor: not-allowed !important;
+}
+
+:deep(.web3-button span) {
+  color: #0A0A0A !important;
 }
 </style>
