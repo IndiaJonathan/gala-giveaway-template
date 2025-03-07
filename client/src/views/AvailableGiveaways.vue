@@ -1,25 +1,59 @@
 <template>
-  <v-container>
-    <v-progress-circular indeterminate v-if="loading"></v-progress-circular>
+  <v-container class="available-giveaways-container px-4 py-6" max-width="1280px">
+    <div class="text-center mb-8">
+      <h1 class="text-h4 font-weight-bold mb-1">Available Giveaways</h1>
+      <p class="text-subtitle-1 text-grey">Discover and claim exciting rewards</p>
+    </div>
 
-    <v-item-group
-      v-else
-      mandatory
-      v-model="giveawaysTab"
-      selected-class="tab-selected"
-      style="color: #7a7a7a"
-    >
-      <v-item v-slot="{ toggle, selectedClass }" value="active">
-        <h2 :class="['d-inline mr-6 cursor-pointer', selectedClass]" @click="toggle">Active</h2>
-      </v-item>
-      <v-item v-slot="{ toggle, selectedClass }" value="past">
-        <h2 :class="['d-inline cursor-pointer', selectedClass]" @click="toggle">Past</h2>
-      </v-item>
-    </v-item-group>
+    <v-progress-circular 
+      v-if="loading" 
+      indeterminate 
+      color="primary" 
+      size="64" 
+      class="mx-auto my-12 d-block"
+    ></v-progress-circular>
+
+    <template v-else>
+      <div class="tabs-container mb-6">
+        <v-tabs
+          v-model="giveawaysTab"
+          background-color="transparent"
+          color="white"
+          align-tabs="center"
+          class="giveaway-tabs"
+        >
+          <v-tab value="active" class="giveaway-tab px-6">
+            <v-icon start>mdi-gift</v-icon>
+            Active
+            <v-badge 
+              color="primary" 
+              :content="activeGiveaways.length.toString()" 
+              offset-x="10" 
+              offset-y="-8"
+              v-if="activeGiveaways.length > 0"
+            ></v-badge>
+          </v-tab>
+          <v-tab value="past" class="giveaway-tab px-6">
+            <v-icon start>mdi-history</v-icon>
+            Past
+          </v-tab>
+        </v-tabs>
+      </div>
+
+      <v-fade-transition mode="out-in">
+        <Giveaways 
+          v-if="giveawaysTab === 'active'" 
+          :giveaways="activeGiveaways" 
+          key="active"
+        ></Giveaways>
+        <Giveaways 
+          v-else 
+          :giveaways="completedGiveaways" 
+          key="past"
+        ></Giveaways>
+      </v-fade-transition>
+    </template>
   </v-container>
-
-  <Giveaways v-if="giveawaysTab === 'active'" :giveaways="activeGiveaways"></Giveaways>
-  <Giveaways v-if="giveawaysTab === 'past'" :giveaways="completedGiveaways"></Giveaways>
 </template>
 
 <script lang="ts" setup>
@@ -87,7 +121,30 @@ watch(connectedUserGCAddress, () => {
 </script>
 
 <style scoped>
+.available-giveaways-container {
+  min-height: 80vh;
+}
+
+.tabs-container {
+  max-width: 480px;
+  margin: 0 auto;
+  border-radius: 12px;
+  overflow: hidden;
+  background-color: rgba(30, 30, 30, 0.5);
+}
+
+.giveaway-tabs {
+  border-radius: 12px;
+}
+
+.giveaway-tab {
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  height: 52px;
+}
+
 .tab-selected {
   color: #fff;
+  font-weight: 600;
 }
 </style>
