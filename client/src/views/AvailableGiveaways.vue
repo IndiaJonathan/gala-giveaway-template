@@ -14,31 +14,22 @@
     ></v-progress-circular>
 
     <template v-else>
-      <div class="tabs-container mb-6">
-        <v-tabs
-          v-model="giveawaysTab"
-          background-color="transparent"
-          color="white"
-          align-tabs="center"
-          class="giveaway-tabs"
-        >
-          <v-tab value="active" class="giveaway-tab px-6">
-            <v-icon start>mdi-gift</v-icon>
+      <v-item-group
+        mandatory
+        v-model="giveawaysTab"
+        selected-class="tab-selected"
+        style="color: #7a7a7a"
+        class="tabs-row mb-6"
+      >
+        <v-item v-slot="{ toggle, selectedClass }" value="active">
+          <h2 :class="['d-inline mr-6 cursor-pointer', selectedClass]" @click="toggle">
             Active
-            <v-badge 
-              color="primary" 
-              :content="activeGiveaways.length.toString()" 
-              offset-x="10" 
-              offset-y="-8"
-              v-if="activeGiveaways.length > 0"
-            ></v-badge>
-          </v-tab>
-          <v-tab value="past" class="giveaway-tab px-6">
-            <v-icon start>mdi-history</v-icon>
-            Past
-          </v-tab>
-        </v-tabs>
-      </div>
+          </h2>
+        </v-item>
+        <v-item v-slot="{ toggle, selectedClass }" value="past">
+          <h2 :class="['d-inline cursor-pointer', selectedClass]" @click="toggle">Past</h2>
+        </v-item>
+      </v-item-group>
 
       <v-fade-transition mode="out-in">
         <Giveaways 
@@ -125,22 +116,16 @@ watch(connectedUserGCAddress, () => {
   min-height: 80vh;
 }
 
-.tabs-container {
-  max-width: 480px;
-  margin: 0 auto;
-  border-radius: 12px;
-  overflow: hidden;
-  background-color: rgba(30, 30, 30, 0.5);
+.tabs-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  margin-left: 16px;
 }
 
-.giveaway-tabs {
-  border-radius: 12px;
-}
-
-.giveaway-tab {
-  font-weight: 500;
-  letter-spacing: 0.5px;
-  height: 52px;
+.cursor-pointer {
+  cursor: pointer;
+  font-size: 32px;
 }
 
 .tab-selected {
