@@ -13,11 +13,6 @@ const router = createRouter({
       component: Profile
     },
     {
-      path: '/giveaway',
-      name: 'GiveawayWizard',
-      component: GiveawayWizard
-    },
-    {
       path: '/telegram-callback',
       name: 'TelegramCallback',
       component: TelegramCallback
@@ -26,6 +21,11 @@ const router = createRouter({
       path: '/',
       name: 'Giveaways',
       component: AvailableGiveaways
+    },
+    {
+      path: '/create-giveaway',
+      name: 'CreateGiveaway',
+      component: GiveawayWizard
     }
   ]
 })

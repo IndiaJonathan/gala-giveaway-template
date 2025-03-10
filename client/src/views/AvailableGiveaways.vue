@@ -1,9 +1,5 @@
 <template>
   <v-container class="available-giveaways-container px-4 py-6" max-width="1280px">
-    <div class="text-center mb-8">
-      <h1 class="text-h4 font-weight-bold mb-1">Available Giveaways</h1>
-      <p class="text-subtitle-1 text-grey">Discover and claim exciting rewards</p>
-    </div>
 
     <v-progress-circular 
       v-if="loading" 

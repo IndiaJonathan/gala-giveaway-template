@@ -11,17 +11,32 @@
           </div>
         </div>
 
+        <div v-else-if="isDistributedGiveaway && hasEnded && hasSignedUp && !hasClaimed"
+          class="available-overlay d-flex flex-column align-center justify-center">
+          <div class="text-center mb-2">
+            <span style="font-size: 4rem;">🎲</span>
+          </div>
+          <div class="text-h6 text-center">Better luck next time!</div>
+        </div>
+
         <!-- All gone overlay (only for FirstComeFirstServe that have run out) -->
         <div v-else-if="!isDistributedGiveaway && (giveaway.claimsLeft || 0) <= 0 && !hasClaimed"
           class="available-overlay d-flex flex-column align-center justify-center">
           <div class="text-center mb-2">
-            <span style="font-size: 2rem;">🙅‍♂️</span>
+            <span style="font-size: 4rem;">🙅‍♂️</span>
           </div>
           <div class="text-h6 text-center">It's all gone!</div>
         </div>
 
-        <!-- Claimed overlay -->
-        <div v-else-if="hasClaimed" class="available-overlay d-flex align-center justify-center">
+        <div v-else-if="isDistributedGiveaway && hasClaimed" 
+          class="available-overlay d-flex flex-column align-center justify-center">
+          <div class="text-center mb-2">
+            <span style="font-size: 4rem;">🏆</span>
+          </div>
+          <div class="text-h6 text-center">Congratulations! You won!</div>
+        </div>
+
+        <div v-else-if="!isDistributedGiveaway && hasClaimed" class="available-overlay d-flex align-center justify-center">
           <div class="claimed-container pa-3">
             <div class="d-flex align-center">
               <span>You've claimed it</span>
@@ -59,8 +74,9 @@
         <Web3Button v-if="!isUpcoming && shouldShowActionButton" class="web3-button" :disabled="buttonDisabled"
           :onClick="handleClaimClick" :primaryText="getButtonText()" :connectWalletText="'Sign up'" />
 
-        <Web3Button v-else-if="hasClaimed || (isDistributedGiveaway && hasSignedUp)" class="web3-button"
-          :onClick="handleViewClick" primaryText="View" />
+        <Web3Button v-else-if="!hasEnded && (hasClaimed || (isDistributedGiveaway && hasSignedUp))" class="web3-button"
+          :onClick="handleViewClick" primaryText="View" :connectWalletText="'Sign up'" />
+        
       </div>
     </div>
   </v-card>
@@ -122,8 +138,7 @@ const getTokenAmount = () => {
 // Determine if we should show action button
 const shouldShowActionButton = computed(() => {
   if (isDistributedGiveaway.value) {
-    // For distributed giveaway, always show the button unless user has already signed up
-    return !hasSignedUp.value
+    return !hasSignedUp.value && !hasEnded.value
   } else {
     // For FirstComeFirstServe, only show if there are claims left and user hasn't claimed
     return (giveaway.claimsLeft || 0) > 0 && !hasClaimed
@@ -178,7 +193,18 @@ const handleClaimClick = async () => {
 // Handle view click action
 const handleViewClick = async () => {
   console.log('View clicked for giveaway:', giveaway._id)
-  // Implement view logic here
+  //TODO: Implement view logic and views here
+  // For distributed giveaways, we can enhance this to show details about the winner
+  if (isDistributedGiveaway.value && hasEnded.value) {
+    if (hasClaimed) {
+      console.log('User won this giveaway')
+      // Could navigate to a details page or show a modal with win information
+    } else {
+      console.log('User did not win this giveaway')
+      // Could navigate to a details page or show results information
+    }
+  }
+  
   return Promise.resolve()
 }
 
@@ -239,7 +265,16 @@ const footerSubtitle = computed(() => {
   }
   
   if (isDistributedGiveaway.value) {
-    // For distributed giveaway, show drawing date
+    // For distributed giveaway that has ended
+    if (hasEnded.value) {
+      if (hasClaimed) {
+        return 'You won!';
+      } else if (hasSignedUp.value) {
+        return 'Drawing complete';
+      }
+    }
+    
+    // For active distributed giveaway, show drawing date
     if (giveaway.endDateTime) {
       const drawingDate = new Date(giveaway.endDateTime);
       
@@ -258,6 +293,15 @@ const footerSubtitle = computed(() => {
     // For regular giveaway, show remaining count
     return `Remaining: ${giveaway.claimsLeft || 0}`;
   }
+})
+
+// Check if a distributed giveaway has ended (past the end date)
+const hasEnded = computed(() => {
+  if (!giveaway.endDateTime) {
+    return false;
+  }
+  const endTime = new Date(giveaway.endDateTime);
+  return endTime < new Date();
 })
 </script>
 
