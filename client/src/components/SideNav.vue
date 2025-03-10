@@ -28,14 +28,14 @@
         class="white--text"
         @click="closeOnMobile"
       ></v-list-item>
-      <v-list-item
+      <!-- <v-list-item
         prepend-icon="mdi-help-circle-outline"
         title="About"
         value="about"
         to="/about"
         class="white--text"
         @click="closeOnMobile"
-      ></v-list-item>
+      ></v-list-item> -->
 
       <v-divider class="my-2"></v-divider>
 
