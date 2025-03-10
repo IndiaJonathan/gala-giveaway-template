@@ -15,7 +15,6 @@
         v-model="giveawaysTab"
         selected-class="tab-selected"
         style="color: #7a7a7a"
-        class="tabs-row mb-6"
       >
         <v-item v-slot="{ toggle, selectedClass }" value="active">
           <h2 :class="['d-inline mr-6 cursor-pointer', selectedClass]" @click="toggle">
@@ -120,12 +119,6 @@ const handleSignupSuccess = () => {
   min-height: 80vh;
 }
 
-.tabs-row {
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  margin-left: 16px;
-}
 
 .cursor-pointer {
   cursor: pointer;

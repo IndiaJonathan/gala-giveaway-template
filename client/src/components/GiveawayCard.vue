@@ -319,7 +319,7 @@ const hasEnded = computed(() => {
   box-shadow: 0px 14px 25px #000000;
   border-radius: 16px;
   margin: 16px auto;
-  overflow: visible;
+  overflow: hidden;
 }
 
 .giveaway-image {
@@ -331,6 +331,8 @@ const hasEnded = computed(() => {
 
 .position-relative {
   position: relative;
+  width: 100%;
+  height: 358px;
 }
 
 .giveaway-footer {
@@ -339,7 +341,7 @@ const hasEnded = computed(() => {
   justify-content: space-between;
   align-items: center;
   padding: 0px 16px;
-  width: 358px;
+  width: 100%;
   height: 48px;
   align-self: stretch;
   overflow: visible;
