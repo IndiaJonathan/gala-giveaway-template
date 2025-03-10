@@ -9,7 +9,7 @@
       <v-col 
         v-for="giveaway of giveaways" 
         :key="giveaway._id" 
-        cols="6" sm="6" md="6" lg="4"
+        cols="12" sm="6" md="6" lg="4"
         class="giveaway-item"
       >
         <GiveawayCard :giveaway="giveaway" @signup-success="$emit('signup-success')" />

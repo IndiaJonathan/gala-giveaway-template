@@ -1,10 +1,10 @@
 <template>
   <v-container class="available-giveaways-container pa-0" fluid>
 
-    <div class="hero-container"
+    <div class="hero-container" style="padding: 40px"
       :class="{ 'mobile-hero-container': $vuetify.display.smAndDown, 'desktop-hero-container': !$vuetify.display.smAndDown }">
       <div class="hero-content" :class="{ 'desktop-hero-content': !$vuetify.display.smAndDown }">
-        <h1 class="hero-title" :class="{ 'desktop-hero-title': !$vuetify.display.smAndDown }">The Web3 way to giveaway
+        <h1 style="width: 100%; max-width: 500px;">The Web3 way to giveaway
         </h1>
         <p class="hero-subtitle">Grab free gifts, before they are gone</p>
       </div>
@@ -14,7 +14,8 @@
       class="mx-auto my-12 d-block"></v-progress-circular>
 
     <template v-else>
-      <v-item-group mandatory v-model="giveawaysTab" selected-class="tab-selected" style="color: #7a7a7a;">
+      <v-item-group mandatory v-model="giveawaysTab" selected-class="tab-selected"
+        style="color: #7a7a7a; padding: 40px">
         <v-item v-slot="{ toggle, selectedClass }" value="active">
           <h2 :class="['d-inline mr-6 cursor-pointer', selectedClass]" @click="toggle">
             Active
@@ -112,7 +113,6 @@ const handleSignupSuccess = () => {
 .hero-container {
   width: 100%;
   margin: 0;
-  padding: 2rem;
 }
 
 .cursor-pointer {
@@ -152,13 +152,9 @@ const handleSignupSuccess = () => {
 }
 
 .hero-content {
-  position: absolute;
-  left: 24px;
-  top: 100px;
-  width: 314px;
+  padding-top: 100px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
   z-index: 2;
 }
 
@@ -168,14 +164,14 @@ const handleSignupSuccess = () => {
   width: 500px;
 }
 
-.hero-title {
+/* .hero-title {
   font-family: 'Figtree', sans-serif;
   font-weight: 600;
   font-size: 40px;
   line-height: 115%;
   color: #FFFFFF;
   margin: 0;
-}
+} */
 
 .desktop-hero-title {
   font-size: 64px;
