@@ -9,7 +9,7 @@ import { ref, computed } from 'vue'
 interface Web3ButtonProps {
     primaryText: string
     connectWalletText?: string
-    onClick: () => Promise<any>
+    onClick?: () => Promise<any>
     className?: string
 }
 
@@ -35,22 +35,6 @@ const computedValues = computed(() => {
     if (!connectedEthAddress.value) {
         return {
             buttonText: props.connectWalletText || 'Connect Wallet',
-            handleClick: async () => {
-                try {
-                    await profileStore.connect();
-
-                    isLoading.value = true
-                    await props.onClick()
-                } catch (e: any) {
-                    // Handle "web3 provider not found" error
-                    if (e?.message?.includes(ErrorCode.WEB3_PROVIDER_NOT_FOUND)) {
-                        openNoWeb3WalletDialog()
-                    }
-                    // TODO: handle other errors if necessary
-                } finally {
-                    isLoading.value = false
-                }
-            },
         }
     }
 
@@ -71,8 +55,17 @@ const buttonText = computed(() => computedValues.value.buttonText)
 
 const handleClick = async () => {
     try {
-        isLoading.value = true
-        await props.onClick()
+        await profileStore.connect();
+
+        if (props.onClick) {
+            isLoading.value = true
+            await props.onClick()
+        }
+    } catch (e: any) {
+        // Handle "web3 provider not found" error
+        if (e?.message?.includes(ErrorCode.WEB3_PROVIDER_NOT_FOUND)) {
+            openNoWeb3WalletDialog()
+        }
     } finally {
         isLoading.value = false
     }
@@ -80,10 +73,23 @@ const handleClick = async () => {
 </script>
 
 <template>
-    <v-btn :disabled="isLoading" @click="handleClick">
+    <v-btn :disabled="isLoading" rounded="pill" height="44px" color="#000" class="connect-wallet-btn" flat
+        @click="handleClick">
         <template v-if="isLoading">
             <v-progress-circular indeterminate></v-progress-circular>
         </template>
         <span>{{ buttonText }}</span>
     </v-btn>
 </template>
+
+
+<style scoped>
+.connect-wallet-btn {
+    background-color: white !important;
+    color: black !important;
+    font-weight: 600;
+    height: 44px;
+    border-radius: 50px;
+    text-transform: none;
+}
+</style>

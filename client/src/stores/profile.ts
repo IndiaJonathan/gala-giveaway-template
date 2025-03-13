@@ -1,16 +1,33 @@
 // stores/profile.ts
 
-import { defineStore } from 'pinia'
-import { getProfile } from '@/services/BackendApi'
-import type { Profile } from '@/utils/types'
-import { BrowserConnectClient, TokenApi, TokenBalance } from '@gala-chain/connect'
-import { ref, shallowRef, onMounted, watch, type Ref, type ShallowRef } from 'vue'
+import { defineStore, storeToRefs } from 'pinia'
+import { getProfile, getGiveawayTokensAvailable, getClaimableWins } from '@/services/BackendApi'
+import type { Profile, TokenBalances } from '@/utils/types'
+import {
+  BrowserConnectClient,
+  TokenApi,
+  TokenBalance,
+  TokenBalanceWithMetadata,
+  TokenClass,
+  TokenClassKey
+} from '@gala-chain/connect'
+import { ref, shallowRef, onMounted, watch, type Ref, type ShallowRef, computed } from 'vue'
 import { openNoWeb3WalletDialog } from '@/composables/useDialogue'
 import { getConnectedAddress } from '@/utils/GalaHelper'
+import type { TokenClassKeyProperties } from '@gala-chain/api'
+import { getCreatedTokens, type Transaction } from '@/services/GalaSwapApi'
+import BigNumber from 'bignumber.js'
+import { useCreateGiveawayStore } from './createGiveaway'
 
 export const useProfileStore = defineStore('profile', () => {
   // State
   const profile = ref<Profile | null>(null)
+  const createdTokens: Ref<Transaction[]> = ref([])
+  const giveawayTokenBalances = ref<TokenBalances | undefined>(undefined)
+  const showLoginModal = ref(false)
+  const claimableWins = ref<any[]>([])
+  const isFetchingClaimableWins = ref(false)
+
   const isConnected = ref(false)
   const error = ref<Error | null>(null)
   let browserClient: ShallowRef<BrowserConnectClient, BrowserConnectClient> | null
@@ -42,6 +59,7 @@ export const useProfileStore = defineStore('profile', () => {
   const connectedEthAddress: Ref<string | undefined> = ref()
   const connectedUserGCAddress: Ref<string | undefined> = ref(undefined)
   const balances: Ref<TokenBalance[]> = ref([])
+  const metadata: Ref<TokenClass[]> = ref([])
   const isFetchingProfile = ref(false)
 
   //W3w status
@@ -49,6 +67,8 @@ export const useProfileStore = defineStore('profile', () => {
   const isAwaitingSign = ref(false)
 
   const tokenContractUrl = import.meta.env.VITE_TOKEN_CONTRACT_URL
+  const giveawayStore = useCreateGiveawayStore()
+  const { giveawaySettings } = storeToRefs(giveawayStore)
 
   // Actions
   async function fetchProfile() {
@@ -69,6 +89,9 @@ export const useProfileStore = defineStore('profile', () => {
     } finally {
       isFetchingProfile.value = false
     }
+  }
+  async function setShowLoginModal(show: boolean) {
+    showLoginModal.value = show
   }
 
   async function connect() {
@@ -121,12 +144,101 @@ export const useProfileStore = defineStore('profile', () => {
       balances.value = (
         (await tokenApi.FetchBalances({ owner: connectedUserGCAddress.value })) as any
       ).Data
+      console.log('loaded')
     }
   }
 
+  async function refreshGiveawayTokenBalances(tokenClassKey: TokenClassKeyProperties) {
+    if (!connectedUserGCAddress.value || !giveawaySettings.value.giveawayTokenType) {
+      return null
+    }
+
+    console.log('refreshing giveaway token balances', tokenClassKey)
+
+    try {
+      const response = await getGiveawayTokensAvailable(tokenClassKey, connectedUserGCAddress.value, giveawaySettings.value.giveawayTokenType)
+      giveawayTokenBalances.value = response
+      console.log('giveaway token balances', giveawayTokenBalances.value)
+      return response
+    } catch (err) {
+      console.error('Error fetching wallet allowances:', err)
+      error.value = err as Error
+      return null
+    }
+  }
+
+  function getTokenClasses() {
+    let classes: TokenClassKeyProperties[] = []
+    if (balances.value) {
+      classes = classes.concat(
+        balances.value.map((balance) => ({
+          additionalKey: balance.additionalKey,
+          collection: balance.collection,
+          category: balance.category,
+          type: balance.type
+        }))
+      )
+    }
+
+    return classes
+  }
+
+  watch(
+    () => getTokenClasses(), // Track changes to getTokenClasses
+    async (newTokenClasses) => {
+      if (!browserClient || !newTokenClasses || !newTokenClasses.length) {
+        metadata.value = []
+        return
+      }
+
+      const tokenApi = new TokenApi(tokenContractUrl, browserClient.value)
+      try {
+        const foo = ((await tokenApi.FetchTokenClasses({ tokenClasses: newTokenClasses })) as any)
+          .Data
+        metadata.value = foo
+      } catch (error) {
+        console.error('Error fetching token classes:', error)
+        metadata.value = []
+      }
+    },
+    { deep: true, immediate: true } // Runs initially & watches deeply for changes
+  )
+
+  async function fetchClaimableWins() {
+    if (!browserClient) {
+      openNoWeb3WalletDialog()
+      return
+    }
+    if (!connectedUserGCAddress.value) return
+
+    try {
+      isFetchingClaimableWins.value = true
+      claimableWins.value = await getClaimableWins(connectedUserGCAddress.value)
+      return claimableWins.value
+    } catch (err) {
+      error.value = err as Error
+      console.error('Error fetching claimable wins:', err)
+    } finally {
+      isFetchingClaimableWins.value = false
+    }
+  }
+
+  watch(connectedUserGCAddress, async () => {
+    if (!connectedUserGCAddress.value) return
+    const jobs = await getCreatedTokens(connectedUserGCAddress.value)
+    
+    // Fetch claimable wins when the GC address changes
+    fetchClaimableWins()
+  })
+
   async function walletAddressChanged(newAddress?: string) {
     connectedEthAddress.value = newAddress
-    if (connectedEthAddress.value && connectedEthAddress.value != '') await fetchProfile()
+    if (connectedEthAddress.value && connectedEthAddress.value != '') {
+      await fetchProfile()
+      if (giveawaySettings.value?.giveawayToken) {
+        await refreshGiveawayTokenBalances(giveawaySettings.value.giveawayToken)
+      }
+    }
   }
 
   async function refreshConnectedAddress() {
@@ -153,10 +265,19 @@ export const useProfileStore = defineStore('profile', () => {
     isAwaitingSign,
     balances,
     isFetchingProfile,
+    metadata,
+    createdTokens,
+    giveawayTokenBalances,
+    showLoginModal,
+    claimableWins,
+    isFetchingClaimableWins,
     // Actions
     fetchProfile,
     connect,
     sign,
-    getBalances
+    getBalances,
+    refreshGiveawayTokenBalances,
+    setShowLoginModal,
+    fetchClaimableWins
   }
 })

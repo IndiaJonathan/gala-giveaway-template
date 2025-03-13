@@ -1,3 +1,5 @@
+import BigNumber from 'bignumber.js'
+
 export const getEndDateMessage = (dateString?: string): string => {
   if (dateString) {
     const endDate = new Date(dateString)
@@ -19,5 +21,15 @@ export const getEndDateMessage = (dateString?: string): string => {
 }
 
 export function isErrorWithMessage(error: unknown): error is { Message: string } {
-  return typeof error === 'object' && error !== null && 'Message' in error;
+  return typeof error === 'object' && error !== null && 'Message' in error
+}
+
+export function formatNumber(num: number | BigNumber | undefined): string {
+  if (num === undefined) {
+    return '';
+  }
+  if (BigNumber.isBigNumber(num)) {
+    return new Intl.NumberFormat('en-US').format(Number(num.toString()))
+  }
+  return new Intl.NumberFormat('en-US').format(num)
 }

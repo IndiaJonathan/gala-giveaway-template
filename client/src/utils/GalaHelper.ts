@@ -1,6 +1,9 @@
-import type { TokenAllowance, TokenClassKeyProperties } from '@gala-chain/api'
+import { TokenClassKey, type TokenAllowance, type TokenClassKeyProperties } from '@gala-chain/api'
 import { getAddress } from 'ethers'
 
+export function checkTokenEquivalancy(token1: TokenClassKeyProperties, token2: TokenClassKeyProperties) {
+  return tokenToReadable(token1) === tokenToReadable(token2)
+}
 export function tokenToReadable(token: TokenClassKeyProperties) {
   if (
     token.collection === 'GALA' &&
@@ -41,7 +44,7 @@ export async function getConnectedAddress() {
       // If there is at least one account connected
       if (accounts.length > 0) {
         const connectedAddress = getAddress(accounts[0])
-        return connectedAddress;
+        return connectedAddress
       } else {
         return undefined
       }

@@ -1,67 +1,52 @@
 import { useToast } from '@/composables/useToast'
+import type { Giveaway } from '@/types/giveaway'
 import type { SignedDto } from '@/types/web3'
 import {
   type ClaimFCFSDto,
-  type GiveawayAllowances,
-  type GiveawayBalances,
+  type GasFeeEstimateRequestDto,
   type Profile,
   type SignupForGiveawayDto,
-  type StartBasicGivewaySettingsDto
+  type StartBasicGivewaySettingsDto,
+  type TokenBalances,
+  type UserWonGiveawaysResponseDto
 } from '@/utils/types'
-import type { Giveaway } from '@/views/AvailableGiveaways.vue'
 import type { TokenClassKeyProperties } from '@gala-chain/api'
 import type { BurnTokensRequest } from '@gala-chain/connect'
 
 const baseURL = import.meta.env.VITE_TELEGRAM_SERVER
 
-export async function GetGiveawayAllowances(
+
+
+export async function getGiveawayTokensAvailable(
   tokenClassKey: TokenClassKeyProperties,
-  gc_address: string
-) {
-  const response = await fetch(`${baseURL}/api/wallet/allowance-available/${gc_address}`, {
+  gc_address: string | undefined,
+  giveawayTokenType: string
+): Promise<TokenBalances | undefined> {
+  if (!gc_address) {
+    throw new Error('GalaChain address is required')
+  }
+
+  const response = await fetch(`${baseURL}/api/giveaway/tokens-available/${gc_address}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
     },
-    body: JSON.stringify(tokenClassKey)
+    body: JSON.stringify({
+      collection: tokenClassKey.collection,
+      category: tokenClassKey.category,
+      type: tokenClassKey.type,
+      additionalKey: tokenClassKey.additionalKey,
+      instance: '0',
+      tokenType: giveawayTokenType
+    })
   })
 
   if (!response.ok) {
     throw new Error('Network response was not ok')
   }
 
-  const data: GiveawayAllowances = await response.json()
-
-  if (data) {
-    return data
-  }
-
-  return undefined
-}
-
-export async function GetGiveawayBalances(
-  tokenClassKey: TokenClassKeyProperties,
-  gc_address: string
-) {
-  const response = await fetch(`${baseURL}/api/giveaway/balance-available/${gc_address}`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(tokenClassKey)
-  })
-
-  if (!response.ok) {
-    throw new Error('Network response was not ok')
-  }
-
-  const data: GiveawayBalances = await response.json()
-
-  if (data) {
-    return data
-  }
-
-  return undefined
+  const data = await response.json()
+  return data
 }
 
 export async function createWallet(payload: SignedDto) {
@@ -180,6 +165,27 @@ export async function startGiveaway(giveaway: StartBasicGivewaySettingsDto) {
   return data
 }
 
+
+//TODO: Remove this later
+// export async function getGiveawayGasFee(giveaway: GasFeeEstimateRequestDto) {
+//   const response = await fetch(`${baseURL}/api/giveaway/estimate-fee`, {
+//     method: 'POST',
+//     headers: {
+//       'Content-Type': 'application/json'
+//     },
+//     body: JSON.stringify(giveaway)
+//   })
+
+//   if (!response.ok) {
+//     const message = await response.json()
+//     throw message?.error || 'Unable to start giveway'
+//   }
+
+//   const data = await response.json()
+
+//   return data
+// }
+
 export async function signupForGiveaway(signupForGiveawayDto: SignupForGiveawayDto) {
   const response = await fetch(`${baseURL}/api/giveaway/signup`, {
     method: 'POST',
@@ -192,6 +198,28 @@ export async function signupForGiveaway(signupForGiveawayDto: SignupForGiveawayD
   if (!response.ok) {
     const message = await response.json()
     throw message
+  }
+
+  const data = await response.json()
+
+  return data
+}
+
+export async function getClaimableWins(gcAddress: string | undefined): Promise<UserWonGiveawaysResponseDto> {
+  if (!gcAddress) {
+    throw new Error('GalaChain address is required')
+  }
+
+  const response = await fetch(`${baseURL}/api/giveaway/user-wins/${gcAddress}`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json'
+    }
+  })
+
+  if (!response.ok) {
+    const message = await response.text()
+    throw new Error(message)
   }
 
   const data = await response.json()

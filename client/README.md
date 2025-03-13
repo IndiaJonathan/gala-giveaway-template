@@ -1,6 +1,6 @@
 # Galachain Giveaway
 
-This is a full client example of running gala giveaways
+This is a full client example of running giveaways on galachain
 
 In order to run this, you'll also need the server counterpart
 https://github.com/IndiaJonathan/gala-giveaway-template-server

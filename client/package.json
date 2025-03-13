@@ -13,10 +13,12 @@
     "format": "prettier --write src/"
   },
   "dependencies": {
-    "@gala-chain/api": "^1.5.9",
-    "@gala-chain/connect": "^1.5.9",
+    "@gala-chain/api": "^1.6.3",
+    "@gala-chain/connect": "^2.0.4",
     "@tonconnect/sdk": "^3.0.5",
+    "@vuepic/vue-datepicker": "^11.0.1",
     "bignumber.js": "^9.1.2",
+    "buffer": "^6.0.3",
     "class-transformer": "^0.5.1",
     "dotenv": "^16.4.5",
     "ethers": "^6.13.2",
