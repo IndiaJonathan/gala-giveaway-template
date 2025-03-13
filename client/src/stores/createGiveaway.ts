@@ -1,6 +1,6 @@
 import { ref, type Ref } from 'vue'
 import { defineStore } from 'pinia'
-import { GiveawayTokenType, type GiveawaySettingsDto, getPrizePool } from '@/utils/types'
+import { GiveawayTokenType, type GiveawaySettingsDto } from '@/utils/types'
 import { watch } from 'vue'
 import { useProfileStore } from '@/stores/profile'
 import BigNumber from 'bignumber.js'

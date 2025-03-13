@@ -74,8 +74,6 @@ import { useToast } from '@/composables/useToast'
 import { GalaChainApi } from '@/services/GalaChainApi'
 import BigNumber from "bignumber.js";
 import { computed, type PropType, watch, onMounted } from 'vue'
-import { type GiveawaySettingsDto, getPrizePool, getPrizePoolFCFS } from '@/utils/types'
-import { BrowserConnectClient } from '@gala-chain/connect'
 import { isErrorWithMessage } from '@/utils/Helpers';
 import { useProfileStore } from '@/stores/profile';
 import { useCreateGiveawayStore } from '@/stores/createGiveaway';

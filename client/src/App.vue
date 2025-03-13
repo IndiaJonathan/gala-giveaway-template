@@ -12,7 +12,6 @@
 
         <div :class="['d-flex align-center', $vuetify.display.smAndDown ? 'mobile-logo' : '']">
           <v-icon icon="mdi-gift-outline" size="x-large" color="white" class="me-2"></v-icon>
-          <span class="text-h6 font-weight-bold white--text">GALACHAIN GIVEAWAYS</span>
         </div>
 
         <v-spacer></v-spacer>
