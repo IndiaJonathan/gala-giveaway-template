@@ -11,17 +11,17 @@
             </div>
         </Collapsible>
 
-        <AllowanceCheck v-if="giveawaySettings.giveawayTokenType === 'Allowance'"
-            :giveawaySettings="giveawaySettings as GiveawaySettingsDto" :requiredAmount="requiredBalance"
-            :grantedAllowanceQuantity="BigNumber(giveawayTokenBalances?.allowances || 0)"
-            @allowance-granted="checkValidity" />
+        <div v-if="!giveawayTokenBalances" class="loading-container">
+            <div class="loading-spinner"></div>
+            <div class="loading-text">Loading balance information...</div>
+        </div>
+        <TokenRequirementCheck v-else
+            :includeGasFees="isGalaToken && giveawaySettings.giveawayTokenType === GiveawayTokenType.BALANCE"
+            @requirement-met="checkValidity" />
 
-        <BalanceCheck v-else-if="giveawaySettings.giveawayTokenType === 'Balance'"
-            :giveawaySettings="giveawaySettings as GiveawaySettingsDto" :requiredAmount="requiredBalance"
-            :adminBalanceQuantity="BigNumber(giveawayTokenBalances?.tokenBalance || 0)"
-            @token-transferred="checkValidity" />
-
-        <GasFeeBalance :giveawaySettings="giveawaySettings as GiveawaySettingsDto" @token-transferred="checkValidity" />
+        <!-- Only show separate GasFeeBalance if token is not GALA or if using allowance -->
+        <GasFeeBalance v-if="!isGalaToken || giveawaySettings.giveawayTokenType === 'Allowance'"
+            :giveawaySettings="giveawaySettings as GiveawaySettingsDto" @token-transferred="checkValidity" />
     </div>
 </template>
 
@@ -36,17 +36,17 @@ import BigNumber from 'bignumber.js';
 import { useToast } from '@/composables/useToast';
 import { GalaChainApi } from '@/services/GalaChainApi';
 import { BrowserConnectClient } from '@gala-chain/connect';
-import { getRequiredAmount, type GiveawayDetails, type GiveawaySettingsDto, type Profile } from '@/utils/types';
+import { type GiveawayDetails, type GiveawaySettingsDto, type Profile } from '@/utils/types';
 import type { TokenClassKeyProperties } from '@gala-chain/api';
 import { GALA } from '@/utils/constants';
-import AllowanceCheck from './AllowanceCheck.vue';
-import BalanceCheck from './BalanceCheck.vue';
+import TokenRequirementCheck from './TokenRequirementCheck.vue';
 import GasFeeBalance from './GasFeeBalance.vue';
+import { GiveawayTokenType } from '@/utils/types';
 
 const emit = defineEmits(['is-valid']);
 
 const giveawayStore = useCreateGiveawayStore();
-const { giveawaySettings } = storeToRefs(giveawayStore);
+const { giveawaySettings, requiredTokenAmount } = storeToRefs(giveawayStore);
 const profileStore = useProfileStore();
 const { profile, balances, connectedEthAddress, giveawayTokenBalances } = storeToRefs(profileStore);
 const { showToast } = useToast();
@@ -54,6 +54,17 @@ const { showToast } = useToast();
 // Get wallet address from profile store
 const walletAddress = computed(() => {
     return profile.value?.giveawayWalletAddress || 'Not connected';
+});
+
+// Check if current token is GALA
+const isGalaToken = computed(() => {
+    if (!giveawaySettings.value.giveawayToken) return false;
+
+    const token = giveawaySettings.value.giveawayToken;
+    return token.collection === GALA.collection &&
+        token.category === GALA.category &&
+        token.type === GALA.type &&
+        token.additionalKey === GALA.additionalKey;
 });
 
 // Get token details from giveaway settings
@@ -67,49 +78,55 @@ const tokenSymbol = computed(() => {
 });
 
 // Calculate required balance based on giveaway settings
-const requiredBalance = computed(() => {
-    if (giveawaySettings.value && giveawaySettings.value.giveawayType) {
-        try {
-            // Cast to any to avoid type errors with partial giveaway settings
-            return getRequiredAmount(giveawaySettings.value as any) || new BigNumber(0);
-        } catch (error) {
-            console.error('Error calculating required amount:', error);
-            return new BigNumber(0);
-        }
-    }
-    return new BigNumber(0);
-});
 
 // Check if all requirements are met
 const isValid = computed(() => {
     // Valid if the required amount is zero or if we have enough allowance/balance
-    if (requiredBalance.value.isZero() &&
+    if (requiredTokenAmount.value.isZero() &&
         (giveawaySettings.value.giveawayTokenType === 'Allowance' ||
             giveawaySettings.value.giveawayTokenType === 'Balance')) {
         return true;
     }
 
     // For allowance type, check if we have enough allowance
-    if (giveawaySettings.value.giveawayTokenType === 'Allowance') {
-        return BigNumber(giveawayTokenBalances.value?.allowances || 0).gte(requiredBalance.value);
+    if (giveawaySettings.value.giveawayTokenType === GiveawayTokenType.ALLOWANCE) {
+        return BigNumber(giveawayTokenBalances.value?.allowances || 0).gte(requiredTokenAmount.value);
     }
 
     // For balance type, check if we have enough balance
     if (giveawaySettings.value.giveawayTokenType === 'Balance') {
-        return BigNumber(giveawayTokenBalances.value?.tokenBalance || 0).gte(requiredBalance.value);
+        let requiredTotal = requiredTokenAmount.value;
+
+        // If token is GALA and using Balance, include gas fees in the requirement
+        if (isGalaToken.value) {
+            // Use actual gas fee needed by subtracting fees already accounted for
+            const currentGalaFeesNeeded = BigNumber(giveawayTokenBalances.value?.galaNeededForOtherGiveaways || 0);
+            const totalGasFees = giveawayStore.estimateGalaFees();
+            const actualGasFeeNeeded = BigNumber.max(0, totalGasFees.minus(currentGalaFeesNeeded));
+            requiredTotal = requiredTotal.plus(actualGasFeeNeeded);
+        }
+
+        return BigNumber(giveawayTokenBalances.value?.tokenBalance || 0).gte(requiredTotal);
     }
 
     return false;
 });
 
-// Also check gas fee requirement
+// Check gas fee requirement
 const gasFeesValid = computed(() => {
-    // Estimate required gas fees
-    const requiredGasFees = giveawayStore.estimateGalaFees();
+    // If token is GALA and using Balance, gas fees are already included in isValid check
+    if (isGalaToken.value && giveawaySettings.value.giveawayTokenType === 'Balance') {
+        return true;
+    }
+
+    // Estimate required gas fees, accounting for fees already covered
+    const totalGasFees = giveawayStore.estimateGalaFees();
+    const currentGalaFeesNeeded = BigNumber(giveawayTokenBalances.value?.galaNeededForOtherGiveaways || 0);
+    const actualGasFeeNeeded = BigNumber.max(0, totalGasFees.minus(currentGalaFeesNeeded));
 
     // Check if gas fee requirement is zero or we have enough balance
-    return requiredGasFees.isZero() ||
-        BigNumber(giveawayTokenBalances.value?.galaBalance || 0).gte(requiredGasFees);
+    return actualGasFeeNeeded.isZero() ||
+        BigNumber(giveawayTokenBalances.value?.galaBalance || 0).gte(actualGasFeeNeeded);
 });
 
 // Combined validation - both token and gas requirements must be met
@@ -292,5 +309,37 @@ defineExpose({ isValid: allRequirementsMet });
 .disabled {
     opacity: 0.5;
     cursor: not-allowed;
+}
+
+.loading-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 32px 0;
+    width: 100%;
+}
+
+.loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid rgba(255, 255, 255, 0.1);
+    border-radius: 50%;
+    border-top-color: rgba(255, 255, 255, 0.8);
+    animation: spin 1s ease-in-out infinite;
+    margin-bottom: 16px;
+}
+
+.loading-text {
+    font-size: 14px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.6);
+    text-align: center;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
 }
 </style>

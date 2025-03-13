@@ -7,7 +7,8 @@ import {
   type Profile,
   type SignupForGiveawayDto,
   type StartBasicGivewaySettingsDto,
-  type TokenBalances
+  type TokenBalances,
+  type UserWonGiveawaysResponseDto
 } from '@/utils/types'
 import type { TokenClassKeyProperties } from '@gala-chain/api'
 import type { BurnTokensRequest } from '@gala-chain/connect'
@@ -18,7 +19,8 @@ const baseURL = import.meta.env.VITE_TELEGRAM_SERVER
 
 export async function getGiveawayTokensAvailable(
   tokenClassKey: TokenClassKeyProperties,
-  gc_address: string | undefined
+  gc_address: string | undefined,
+  giveawayTokenType: string
 ): Promise<TokenBalances | undefined> {
   if (!gc_address) {
     throw new Error('GalaChain address is required')
@@ -34,7 +36,8 @@ export async function getGiveawayTokensAvailable(
       category: tokenClassKey.category,
       type: tokenClassKey.type,
       additionalKey: tokenClassKey.additionalKey,
-      instance: '0'
+      instance: '0',
+      tokenType: giveawayTokenType
     })
   })
 
@@ -195,6 +198,28 @@ export async function signupForGiveaway(signupForGiveawayDto: SignupForGiveawayD
   if (!response.ok) {
     const message = await response.json()
     throw message
+  }
+
+  const data = await response.json()
+
+  return data
+}
+
+export async function getClaimableWins(gcAddress: string | undefined): Promise<UserWonGiveawaysResponseDto> {
+  if (!gcAddress) {
+    throw new Error('GalaChain address is required')
+  }
+
+  const response = await fetch(`${baseURL}/api/giveaway/user-wins/${gcAddress}`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json'
+    }
+  })
+
+  if (!response.ok) {
+    const message = await response.text()
+    throw new Error(message)
   }
 
   const data = await response.json()

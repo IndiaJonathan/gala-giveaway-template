@@ -97,6 +97,7 @@ const prizePerWinner = computed({
         return undefined;
     },
     set: (value: BigNumber) => {
+        console.log('setting prize per winner', value)
         if (giveawaySettings.value.giveawayType === 'FirstComeFirstServe') {
             giveawayStore.updateSettings({ claimPerUser: value.toString() });
         } else if (giveawaySettings.value.giveawayType === 'DistributedGiveaway') {

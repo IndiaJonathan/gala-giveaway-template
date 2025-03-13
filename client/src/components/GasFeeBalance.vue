@@ -13,7 +13,7 @@
             <div class="balance-info">
                 <div class="balance-item">
                     <div class="balance-label">REQUIRED BALANCE</div>
-                    <div class="balance-value">{{ formatNumber(Number(giveawayStore.estimateGalaFees())) }}</div>
+                    <div class="balance-value">{{ formatNumber(Number(actualRequiredGasFees)) }}</div>
                 </div>
                 <div class="balance-item">
                     <div class="balance-label">YOUR BALANCE</div>
@@ -28,6 +28,20 @@
                         {{ formatNumber(Number(missingGasBalance)) }}
                     </div>
                     <div v-else class="loading-spinner"></div>
+                </div>
+            </div>
+            <div v-if="BigNumber(giveawayTokenBalances?.galaNeededForOtherGiveaways || 0).gt(0)" class="fees-breakdown">
+                <div class="divider"></div>
+                <h3 class="breakdown-title">Fee Breakdown:</h3>
+                <div class="breakdown-grid">
+                    <div class="breakdown-item">
+                        <div class="breakdown-label">Total Gas Fees:</div>
+                        <div class="breakdown-value">{{ formatNumber(Number(giveawayStore.estimateGalaFees())) }}</div>
+                    </div>
+                    <div class="breakdown-item">
+                        <div class="breakdown-label">Already Accounted Fees:</div>
+                        <div class="breakdown-value">{{ formatNumber(Number(giveawayTokenBalances?.galaNeededForOtherGiveaways || 0)) }}</div>
+                    </div>
                 </div>
             </div>
         </template>
@@ -59,8 +73,15 @@ const giveawayStore = useCreateGiveawayStore();
 const { profile, giveawayTokenBalances } = storeToRefs(profileStore);
 const { showToast } = useToast();
 
+// Calculate actual required gas fees by considering already accounted for fees
+const actualRequiredGasFees = computed(() => {
+    const totalGasFees = giveawayStore.estimateGalaFees();
+    const currentGalaFeesNeeded = BigNumber(giveawayTokenBalances.value?.galaNeededForOtherGiveaways || 0);
+    return BigNumber.max(0, totalGasFees.minus(currentGalaFeesNeeded));
+});
+
 const missingGasBalance = computed(() => {
-    return BigNumber.max(0, giveawayStore.estimateGalaFees().minus(giveawayTokenBalances.value?.galaBalance || 0));
+    return BigNumber.max(0, actualRequiredGasFees.value.minus(giveawayTokenBalances.value?.galaBalance || 0));
 });
 
 const hasMissingGasBalance = computed(() => missingGasBalance.value.gt(0));
@@ -162,5 +183,46 @@ onMounted(() => {
     to {
         transform: rotate(360deg);
     }
+}
+
+.fees-breakdown {
+    margin-top: 24px;
+}
+
+.divider {
+    height: 1px;
+    background-color: rgba(255, 255, 255, 0.1);
+    margin-bottom: 16px;
+}
+
+.breakdown-title {
+    font-size: 16px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.6);
+    margin-bottom: 16px;
+}
+
+.breakdown-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 24px;
+}
+
+.breakdown-item {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.breakdown-label {
+    font-size: 14px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.breakdown-value {
+    font-size: 18px;
+    font-weight: 600;
+    color: #fff;
 }
 </style>

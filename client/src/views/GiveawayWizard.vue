@@ -2,14 +2,9 @@
   <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;">
     <div style="width: 100%; max-width: 670px; height: 100%">
 
-      <div v-if="!connectedEthAddress || !connectedUserGCAddress" style="width: 100%; text-align: center;">
-        <h1>Start A Giveaway</h1>
-        {{ connectedEthAddress }} {{ connectedUserGCAddress }}
-        <Web3Button color="success" @click="profileStore.connect"
-          primary-text="Sign in With your Web3 Wallet To Continue"></Web3Button>
-      </div>
+      <!-- <GiveawayAuthPrompt v-if="!connectedEthAddress || !connectedUserGCAddress" /> -->
 
-      <div v-else style="width: 100%; height: 100%;">
+      <div v-if="connectedEthAddress && connectedUserGCAddress" style="width: 100%; height: 100%;">
 
         <h2 class="mb-4">Create giveaway</h2>
         <p class="paragraph-small-regular mb-10" style="color: rgba(255, 255, 255, 0.6);">Est. 15min</p>
@@ -70,7 +65,6 @@ import TokenInput from '@/components/TokenInput.vue'
 import { GalaChainApi } from '@/services/GalaChainApi'
 import { useToast } from '@/composables/useToast'
 import { startGiveaway } from '@/services/BackendApi'
-import AdminBalanceGrant from '@/components/AdminBalanceGrant.vue'
 import { GiveawayTokenType, type GiveawaySettingsDto, type StartBasicGivewaySettingsDto } from '@/utils/types'
 import { BrowserConnectClient, GalaChainResponseError, TokenBalance } from '@gala-chain/connect'
 import type BigNumber from 'bignumber.js'
@@ -86,6 +80,7 @@ import GiveawayDetails from './GiveawayDetails.vue'
 import SettingsStep from '@/components/SettingsStep.vue'
 import AllowanceStep from '@/components/AllowanceStep.vue'
 import ReviewStep from '@/components/ReviewStep.vue'
+import GiveawayAuthPrompt from '@/components/GiveawayAuthPrompt.vue'
 
 
 const tokenInputRef = ref<InstanceType<typeof TokenInput> | null>(null)

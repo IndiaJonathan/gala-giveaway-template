@@ -1,7 +1,7 @@
 // stores/profile.ts
 
 import { defineStore, storeToRefs } from 'pinia'
-import { getProfile, getGiveawayTokensAvailable } from '@/services/BackendApi'
+import { getProfile, getGiveawayTokensAvailable, getClaimableWins } from '@/services/BackendApi'
 import type { Profile, TokenBalances } from '@/utils/types'
 import {
   BrowserConnectClient,
@@ -24,6 +24,9 @@ export const useProfileStore = defineStore('profile', () => {
   const profile = ref<Profile | null>(null)
   const createdTokens: Ref<Transaction[]> = ref([])
   const giveawayTokenBalances = ref<TokenBalances | undefined>(undefined)
+  const showLoginModal = ref(false)
+  const claimableWins = ref<any[]>([])
+  const isFetchingClaimableWins = ref(false)
 
   const isConnected = ref(false)
   const error = ref<Error | null>(null)
@@ -87,6 +90,9 @@ export const useProfileStore = defineStore('profile', () => {
       isFetchingProfile.value = false
     }
   }
+  async function setShowLoginModal(show: boolean) {
+    showLoginModal.value = show
+  }
 
   async function connect() {
     if (!browserClient) {
@@ -143,14 +149,14 @@ export const useProfileStore = defineStore('profile', () => {
   }
 
   async function refreshGiveawayTokenBalances(tokenClassKey: TokenClassKeyProperties) {
-    if (!connectedUserGCAddress.value) {
+    if (!connectedUserGCAddress.value || !giveawaySettings.value.giveawayTokenType) {
       return null
     }
 
     console.log('refreshing giveaway token balances', tokenClassKey)
 
     try {
-      const response = await getGiveawayTokensAvailable(tokenClassKey, connectedUserGCAddress.value)
+      const response = await getGiveawayTokensAvailable(tokenClassKey, connectedUserGCAddress.value, giveawaySettings.value.giveawayTokenType)
       giveawayTokenBalances.value = response
       console.log('giveaway token balances', giveawayTokenBalances.value)
       return response
@@ -198,10 +204,31 @@ export const useProfileStore = defineStore('profile', () => {
     { deep: true, immediate: true } // Runs initially & watches deeply for changes
   )
 
+  async function fetchClaimableWins() {
+    if (!browserClient) {
+      openNoWeb3WalletDialog()
+      return
+    }
+    if (!connectedUserGCAddress.value) return
+
+    try {
+      isFetchingClaimableWins.value = true
+      claimableWins.value = await getClaimableWins(connectedUserGCAddress.value)
+      return claimableWins.value
+    } catch (err) {
+      error.value = err as Error
+      console.error('Error fetching claimable wins:', err)
+    } finally {
+      isFetchingClaimableWins.value = false
+    }
+  }
+
   watch(connectedUserGCAddress, async () => {
     if (!connectedUserGCAddress.value) return
     const jobs = await getCreatedTokens(connectedUserGCAddress.value)
-    createdTokens.value = jobs.completedJobs
+    
+    // Fetch claimable wins when the GC address changes
+    fetchClaimableWins()
   })
 
   async function walletAddressChanged(newAddress?: string) {
@@ -241,11 +268,16 @@ export const useProfileStore = defineStore('profile', () => {
     metadata,
     createdTokens,
     giveawayTokenBalances,
+    showLoginModal,
+    claimableWins,
+    isFetchingClaimableWins,
     // Actions
     fetchProfile,
     connect,
     sign,
     getBalances,
-    refreshGiveawayTokenBalances
+    refreshGiveawayTokenBalances,
+    setShowLoginModal,
+    fetchClaimableWins
   }
 })

@@ -85,8 +85,11 @@ const handleClick = async () => {
 
 <style scoped>
 .connect-wallet-btn {
-    background-color: #fff;
-    text-transform: none;
+    background-color: white !important;
+    color: black !important;
     font-weight: 600;
+    height: 44px;
+    border-radius: 50px;
+    text-transform: none;
 }
 </style>

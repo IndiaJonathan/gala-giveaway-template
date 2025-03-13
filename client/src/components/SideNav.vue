@@ -14,8 +14,8 @@
   >    
     <!-- Logo section for both mobile and desktop -->
     <div class="d-flex align-center pa-4">
-      <v-icon icon="mdi-cube-outline" size="large" color="white" class="me-2"></v-icon>
-      <span class="text-h6 font-weight-bold white--text">GALA GIVEAWAY</span>
+      <v-icon icon="mdi-gift-outline" size="large" color="white" class="me-2"></v-icon>
+      <span class="text-h6 font-weight-bold white--text">GALACHAIN GIVEAWAYS</span>
     </div>
 
     <v-list nav class="mt-2">
@@ -41,9 +41,9 @@
 
       <v-list-item
         prepend-icon="mdi-gift-outline"
-        title="Claimed"
-        value="claimed"
-        to="/claimed"
+        title="Won"
+        value="won"
+        to="/won"
         class="white--text"
         @click="closeOnMobile"
       ></v-list-item>
