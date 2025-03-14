@@ -252,6 +252,11 @@ export const useProfileStore = defineStore('profile', () => {
     }
   })
 
+  function setTelegramUserLinked(hasTelegramLinked: boolean) {
+    if (!profile.value) return
+    profile.value.hasTelegramLinked = hasTelegramLinked
+  }
+
   refreshConnectedAddress()
 
   return {
@@ -278,6 +283,7 @@ export const useProfileStore = defineStore('profile', () => {
     getBalances,
     refreshGiveawayTokenBalances,
     setShowLoginModal,
-    fetchClaimableWins
+    fetchClaimableWins,
+    setTelegramUserLinked
   }
 })

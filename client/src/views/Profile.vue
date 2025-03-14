@@ -1,5 +1,5 @@
 <template>
-  <v-container fluid fill-height class="d-flex align-center justify-center">
+  <v-container v-if="profile" fluid fill-height class="d-flex align-center justify-center">
     <v-card class="elevation-12 text-center px-5 py-7">
       <v-card-title class="justify-center">
         <h2 class="white--text font-weight-bold">Your Profile</h2>
@@ -17,21 +17,23 @@
       </div>
 
       <v-card-text>
-        <div v-if="!telegramUser && !telegramUserLinked">
+        <div v-if="!profile.hasTelegramLinked">
           <telegram-login :disabled="!connectedUserGCAddress" :bot-name="telegramBotUsername"
             @auth="onTelegramAuth"></telegram-login>
         </div>
-        <div v-else class="mt-5">
-          <h3 v-if="telegramUser && !telegramUserLinked" class="white--text">
-            Logged in With Telegram as: {{ telegramUser.first_name }}
+        <div v-else-if="tempTelegramUser">
+          <h3 class="white--text">
+            Logged in With Telegram as: {{ tempTelegramUser.first_name }}
           </h3>
-          <h3 v-else="telegramUser" class="white--text">
+        </div>
+        <div v-else class="mt-5">
+          <h3 v-if="profile.hasTelegramLinked" class="white--text">
             Telegram is linked <v-icon left>mdi-check</v-icon>
           </h3>
         </div>
 
-        <v-btn v-if="!telegramUserLinked" :disabled="!telegramUser?.id || !connectedUserGCAddress" color="success" dark
-          large block class="mt-5" @click="linkWallets">
+        <v-btn v-if="!profile.hasTelegramLinked" :disabled="!connectedUserGCAddress" color="success" dark large block
+          class="mt-5" @click="linkWallets">
           <v-icon left>mdi-link-variant</v-icon>
           Link Wallets
         </v-btn>
@@ -44,8 +46,6 @@
   </v-container>
 
   <UserBalances v-if="connectedUserGCAddress" :data="balances"> </UserBalances>
-  <ClaimableWins v-if="claimableWins" :balances="balances" v-on:reload="load()" :data="claimableWins">
-  </ClaimableWins>
 </template>
 
 <style scoped>
@@ -103,8 +103,6 @@ interface TelegramUser {
   hash: string
 }
 
-const telegramUser = ref<TelegramUser | null>(null)
-const telegramUserLinked = ref(false)
 const telegramBotUsername = import.meta.env.VITE_TELEGRAM_BOT_USERNAME as string
 const telegramServer = import.meta.env.VITE_TELEGRAM_SERVER
 const { showToast } = useToast()
@@ -112,14 +110,16 @@ let claimableWins: Ref<ClaimableWinDto[]> = ref([])
 
 const profileStore = useProfileStore();
 const { connect } = profileStore
-const { connectedUserGCAddress, connectedEthAddress, profile, balances } = storeToRefs(profileStore)
+const { connectedUserGCAddress, connectedEthAddress, profile, balances, } = storeToRefs(profileStore)
 
 const onTelegramAuth = (user: TelegramUser) => {
-  telegramUser.value = user
+  tempTelegramUser.value = user
 }
 
+const tempTelegramUser = ref<TelegramUser | null>(null)
+
 const linkWallets = async () => {
-  if (!telegramUser.value || !connectedUserGCAddress.value) {
+  if (!profile.value?.hasTelegramLinked || !connectedUserGCAddress.value) {
     showToast('Please connect all wallets and login with Telegram.', true)
     return
   }
@@ -128,7 +128,7 @@ const linkWallets = async () => {
   await connect()
   const signedData = await w3wConnection.sign('Link GalaChain and Telegram', {
     'GalaChain Address': connectedUserGCAddress.value,
-    ...(telegramUser.value as any)
+    ...(profile.value?.hasTelegramLinked as any)
   })
 
   console.log('Linking wallets:', signedData)
@@ -140,7 +140,7 @@ const linkWallets = async () => {
   })
 
   if (linkResult.ok) {
-    telegramUserLinked.value = true
+    profileStore.setTelegramUserLinked(true)
     showToast('Wallets linked successfully!')
   } else {
     const jsonInfo = await linkResult.json()
@@ -153,8 +153,4 @@ const linkWallets = async () => {
   }
 }
 
-async function load() {
-
-}
-load()
 </script>
