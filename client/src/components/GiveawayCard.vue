@@ -19,6 +19,15 @@
           <div class="text-h6 text-center">Better luck next time!</div>
         </div>
 
+        <!-- Missed opportunity overlay (for DistributedGiveaway that ended without user signup) -->
+        <div v-else-if="isDistributedGiveaway && hasEnded && !hasSignedUp"
+          class="available-overlay d-flex flex-column align-center justify-center">
+          <div class="text-center mb-2">
+            <span style="font-size: 4rem;">⌛</span>
+          </div>
+          <div class="text-h6 text-center">Raffle has ended</div>
+        </div>
+
         <!-- All gone overlay (only for FirstComeFirstServe that have run out) -->
         <div v-else-if="!isDistributedGiveaway && (giveaway.claimsLeft || 0) <= 0 && !hasClaimed"
           class="available-overlay d-flex flex-column align-center justify-center">
@@ -26,6 +35,15 @@
             <span style="font-size: 4rem;">🙅‍♂️</span>
           </div>
           <div class="text-h6 text-center">It's all gone!</div>
+        </div>
+
+        <!-- Ended overlay for FirstComeFirstServe that have expired but still have claims -->
+        <div v-else-if="!isDistributedGiveaway && hasEnded && (giveaway.claimsLeft || 0) > 0 && !hasClaimed"
+          class="available-overlay d-flex flex-column align-center justify-center">
+          <div class="text-center mb-2">
+            <span style="font-size: 4rem;">⏱️</span>
+          </div>
+          <div class="text-h6 text-center">This giveaway has ended!</div>
         </div>
 
         <div v-else-if="isDistributedGiveaway && hasClaimed" 
@@ -62,7 +80,7 @@
     <div class="giveaway-footer">
       <div class="title-container">
         <div class="giveaway-title">
-          {{ isToken ? `${getTokenAmount()} ${getTokenSymbol()} prize` : (giveaway.giveawayToken?.collection || 'Mystery Box') }}
+          {{ isToken ? `${getTokenAmount()} ${getTokenSymbol(giveaway.giveawayToken)} prize` : `${getTokenAmount()} $${getTokenSymbol(giveaway.giveawayToken)}  Claim Per User` }}
         </div>
         <div class="giveaway-subtitle">
           {{ footerSubtitle }}
@@ -86,7 +104,7 @@
 import { type PropType, computed, defineEmits } from 'vue'
 import type { Giveaway } from '@/types/giveaway'
 import GiveawayPlaceholderJPG from '@/assets/giveaway-placeholder.jpg'
-import { tokenToReadable } from '@/utils/GalaHelper'
+import { tokenToReadable, getTokenSymbol } from '@/utils/GalaHelper'
 import { useProfileStore } from '@/stores/profile'
 import { storeToRefs } from 'pinia'
 import Web3Button from '@/components/Web3Button.vue'
@@ -122,14 +140,6 @@ const isToken = computed(() => {
     giveaway.giveawayToken?.category === 'Currency'
 })
 
-// Get token symbol
-const getTokenSymbol = () => {
-  if (giveaway.giveawayToken?.collection === 'GALA') {
-    return '$GALA'
-  }
-  return giveaway.giveawayToken?.collection || ''
-}
-
 // Get token amount
 const getTokenAmount = () => {
   return giveaway.tokenQuantity || '0'
@@ -140,8 +150,8 @@ const shouldShowActionButton = computed(() => {
   if (isDistributedGiveaway.value) {
     return !hasSignedUp.value && !hasEnded.value
   } else {
-    // For FirstComeFirstServe, only show if there are claims left and user hasn't claimed
-    return (giveaway.claimsLeft || 0) > 0 && !hasClaimed
+    // For FirstComeFirstServe, only show if there are claims left, user hasn't claimed, and giveaway hasn't ended
+    return (giveaway.claimsLeft || 0) > 0 && !hasClaimed && !hasEnded.value
   }
 })
 
@@ -205,10 +215,16 @@ const handleViewClick = async () => {
     if (hasClaimed) {
       console.log('User won this giveaway')
       // Could navigate to a details page or show a modal with win information
-    } else {
-      console.log('User did not win this giveaway')
+    } else if (hasSignedUp.value) {
+      console.log('User participated but did not win this giveaway')
       // Could navigate to a details page or show results information
+    } else {
+      console.log('User did not participate in this giveaway')
+      // Could show historical information about the raffle
     }
+  } else if (hasClaimed) {
+    console.log('User claimed this first-come-first-serve giveaway')
+    // Could show claim details
   }
   
   return Promise.resolve()
@@ -231,8 +247,8 @@ const buttonDisabled = computed(() => {
   if (isDistributedGiveaway.value) {
     return hasSignedUp.value
   } else {
-    // FirstComeFirstServe type
-    return (giveaway.claimsLeft || 0) <= 0 || hasClaimed
+    // FirstComeFirstServe type - disable if no claims left, already claimed, or has ended
+    return (giveaway.claimsLeft || 0) <= 0 || hasClaimed || hasEnded.value
   }
 })
 
@@ -277,6 +293,8 @@ const footerSubtitle = computed(() => {
         return 'You won!';
       } else if (hasSignedUp.value) {
         return 'Drawing complete';
+      } else {
+        return 'Raffle ended';
       }
     }
     
@@ -296,7 +314,12 @@ const footerSubtitle = computed(() => {
       return 'Drawing: TBD';
     }
   } else {
-    // For regular giveaway, show remaining count
+    // For first-come-first-serve giveaway
+    if (hasEnded.value) {
+      return 'Ended';
+    }
+    
+    // For active first-come-first-serve, show remaining count
     return `Remaining: ${giveaway.claimsLeft || 0}`;
   }
 })

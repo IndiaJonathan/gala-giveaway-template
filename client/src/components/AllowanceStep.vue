@@ -2,8 +2,9 @@
     <div>
         <Collapsible title="Giveaway escrow wallet" :collapsible="false" isOpen class="mb-4">
             <p class="explanatory-text mb-8">
-                Lorem ipsum dolor sit amet, consectetur adipiscing elit. Curabitur iaculis pharetra
-                lectus quis dictum. Etiam vulputate orci vel orci auctor pellentesque.
+                This wallet will securely hold your giveaway tokens until they are claimed by winners. The tokens will
+                be automatically distributed to winners based on your giveaway settings.
+                You cannot withdraw the tokens from this wallet once sent!
             </p>
             <div class="wallet-address">
                 <div class="label">WALLET ADDRESS:</div>

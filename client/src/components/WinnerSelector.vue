@@ -2,11 +2,10 @@
     <Collapsible title="Winner type" :collapsible="true" :isOpen="!!giveawaySettings.giveawayToken">
 
 
-        <p style="margin-bottom: 32px;" class="explanatory-text"> Lorem ipsum dolor sit amet, consectetur adipiscing
-            elit. Curabitur iaculis pharetra lectus quis dictum. Etiam vulputate orci vel orci auctor pellentesque.
+        <p style="margin-bottom: 32px;" class="explanatory-text">
+            <strong>First Come, First Served:</strong> Participants can claim tokens immediately until the supply is depleted.<br><br>
+            <strong>Raffle:</strong> All participants enter a drawing where winners are randomly selected to receive tokens (selection is made with replacement).
         </p>
-
-        {{ giveawaySettings.giveawayType }}
 
         <ToggleSwitch v-model:selected="selectedVal" style="margin-bottom: 32px; width: 100%;" :options="[{ key: 'FirstComeFirstServe', label: '1st come, 1st served' },
         { key: 'DistributedGiveaway', label: 'Raffle' }]">

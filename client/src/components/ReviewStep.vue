@@ -3,8 +3,8 @@
         <!-- Details Section -->
         <Collapsible title="Details" :collapsible="false" isOpen class="mb-4">
             <p class="explanatory-text mb-8">
-                Lorem ipsum dolor sit amet, consectetur adipiscing elit. Curabitur iaculis pharetra
-                lectus quis dictum. Etiam vulputate orci vel orci auctor pellentesque.
+                Review the details of your giveaway before publishing. These settings cannot be changed after
+                publishing.
             </p>
 
             <div class="summary-item">
@@ -41,8 +41,8 @@
         <!-- Settings Section -->
         <Collapsible title="Settings" :collapsible="false" isOpen class="mb-4">
             <p class="explanatory-text mb-8">
-                Lorem ipsum dolor sit amet, consectetur adipiscing elit. Curabitur iaculis pharetra
-                lectus quis dictum. Etiam vulputate orci vel orci auctor pellentesque.
+                These settings control how participants can enter your giveaway, including any token requirements for
+                participation and claim periods.
             </p>
 
             <div class="summary-item">
@@ -69,8 +69,8 @@
         <!-- Allowance Section -->
         <Collapsible title="Allowance" :collapsible="false" isOpen class="mb-4">
             <p class="explanatory-text mb-8">
-                Lorem ipsum dolor sit amet, consectetur adipiscing elit. Curabitur iaculis pharetra
-                lectus quis dictum. Etiam vulputate orci vel orci auctor pellentesque.
+                This section shows the wallet that will hold your giveaway tokens and the total amount of tokens that
+                will be distributed to winners.
             </p>
 
             <div class="summary-item">
@@ -92,8 +92,8 @@
         <!-- Ready to Publish Section -->
         <Collapsible title="Ready to publish" :collapsible="false" isOpen class="mb-4">
             <p class="explanatory-text mb-8">
-                Lorem ipsum dolor sit amet, consectetur adipiscing elit. Curabitur iaculis pharetra
-                lectus quis dictum. Etiam vulputate orci vel orci auctor pellentesque.
+                Once published, your giveaway cannot be canceled or modified. Please review all details carefully before
+                proceeding and agree to the terms below.
             </p>
 
             <div class="warning-text mb-4">

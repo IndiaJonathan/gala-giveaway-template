@@ -62,3 +62,25 @@ export async function getConnectedAddress() {
 export const randomId = () => {
   return `${Math.random()}-${new Date().getTime()}`
 }
+
+export function getTokenSymbol(giveawayToken: TokenClassKeyProperties | null | undefined) {
+  if (giveawayToken?.collection === 'GALA') {
+    return '$GALA'
+  }
+  // Check if token is a Token/Unit type
+  if (giveawayToken?.collection === 'Token' && giveawayToken?.category === 'Unit') {
+    return giveawayToken?.type || ''
+  }
+  
+  // Filter out properties that are "none" and join the remaining ones
+  if (!giveawayToken) return ''
+  
+  const parts = [
+    giveawayToken.collection,
+    giveawayToken.category,
+    giveawayToken.type,
+    giveawayToken.additionalKey
+  ].filter(part => part !== 'none')
+  
+  return parts.join('|')
+}

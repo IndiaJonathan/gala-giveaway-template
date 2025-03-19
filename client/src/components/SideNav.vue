@@ -57,7 +57,8 @@
       ></v-list-item>
     </v-list>
 
-    <template v-slot:append>
+    <!-- TODO: Add refer a friend -->
+    <!-- <template v-slot:append>
       <v-list nav class="mb-2">
         <v-list-item
           prepend-icon="mdi-share-variant"
@@ -67,7 +68,7 @@
           @click="closeOnMobile"
         ></v-list-item>
       </v-list>
-    </template>
+    </template> -->
   </v-navigation-drawer>
 </template>
 

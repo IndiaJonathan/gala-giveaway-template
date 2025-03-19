@@ -2,8 +2,7 @@
     <Collapsible title="Telegram authentication" :collapsible="false" isOpen class="mb-4">
 
 
-        <p style="margin-bottom: 32px;" class="explanatory-text"> Lorem ipsum dolor sit amet, consectetur adipiscing
-            elit. Curabitur iaculis pharetra lectus quis dictum. Etiam vulputate orci vel orci auctor pellentesque.
+        <p style="margin-bottom: 32px;" class="explanatory-text">Enable this option to require participants to authenticate through Telegram before claiming tokens.
         </p>
 
         <StyledCheckmark v-model="giveawaySettings.telegramAuthRequired" @change="handleTelegramAuthChange" />
@@ -12,8 +11,7 @@
     <Collapsible title="Burn token to claim" :collapsible="false" isOpen>
 
 
-        <p style="margin-bottom: 32px;" class="explanatory-text"> Lorem ipsum dolor sit amet, consectetur adipiscing
-            elit. Curabitur iaculis pharetra lectus quis dictum. Etiam vulputate orci vel orci auctor pellentesque.
+        <p style="margin-bottom: 32px;" class="explanatory-text">Enable this option to require participants to burn a specific token in order to claim their giveaway rewards.
         </p>
 
         <StyledCheckmark v-model="giveawaySettings.requireBurnTokenToClaim" @change="handleValidityChange" />
