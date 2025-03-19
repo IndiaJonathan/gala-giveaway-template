@@ -211,7 +211,7 @@ const handleClaimClick = async () => {
         // Emit an event so parent components can reload giveaways
         emit('signup-success');
         // The UI will update automatically when the profile is refreshed
-        showToast('Successfully signed up for the giveaway!');
+        showToast('Successfully claimed the giveaway!');
       }
     }
   } catch (error: any) {

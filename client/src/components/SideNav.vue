@@ -18,13 +18,22 @@
       <span class="text-h6 font-weight-bold white--text">GALACHAIN GIVEAWAYS</span>
     </div>
 
-    <v-list nav class="mt-2">
-      <v-list-item prepend-icon="mdi-home" title="Home" value="home" to="/" class="white--text" @click="closeOnMobile"></v-list-item>
+    <v-list nav class="mt-2" :selected="[currentRoute]">
+      <v-list-item 
+        prepend-icon="mdi-home" 
+        title="Home" 
+        value="/"
+        to="/" 
+        active-class="nav-item-active"
+        class="white--text" 
+        @click="closeOnMobile"
+      ></v-list-item>
       <v-list-item
         prepend-icon="mdi-plus-circle"
         title="Create Giveaway"
-        value="create-giveaway"
+        value="/create-giveaway"
         to="/create-giveaway"
+        active-class="nav-item-active"
         class="white--text"
         @click="closeOnMobile"
       ></v-list-item>
@@ -42,16 +51,18 @@
       <v-list-item
         prepend-icon="mdi-gift-outline"
         title="Won"
-        value="won"
+        value="/won"
         to="/won"
+        active-class="nav-item-active"
         class="white--text"
         @click="closeOnMobile"
       ></v-list-item>
       <v-list-item
         prepend-icon="mdi-upload"
         title="Created"
-        value="created"
+        value="/created"
         to="/created"
+        active-class="nav-item-active"
         class="white--text"
         @click="closeOnMobile"
       ></v-list-item>
@@ -79,7 +90,7 @@ import { useDisplay } from 'vuetify';
 import { useProfileStore } from '@/stores/profile';
 import { storeToRefs } from 'pinia';
 import { useToast } from '@/composables/useToast';
-import { useRouter } from 'vue-router';
+import { useRouter, useRoute } from 'vue-router';
 
 const props = defineProps({
   modelValue: {
@@ -94,6 +105,10 @@ const profileStore = useProfileStore();
 const { connectedEthAddress, connectedUserGCAddress } = storeToRefs(profileStore);
 const { showToast } = useToast();
 const router = useRouter();
+const route = useRoute();
+
+// Get current route path for navigation highlighting
+const currentRoute = computed(() => route.path);
 
 // Computed property to check if user is connected
 const isUserConnected = computed(() => {
@@ -128,5 +143,15 @@ const handleLogout = async () => {
 .dollar-sign {
   z-index: 1;
   font-weight: bold;
+}
+
+.nav-item-active {
+  background-color: rgba(255, 255, 255, 0.12);
+}
+
+/* Override any default active classes to ensure only one item is active */
+:deep(.v-list-item--active:not(.v-list-item--selected)) {
+  background: transparent !important;
+  color: inherit !important;
 }
 </style>
