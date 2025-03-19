@@ -171,13 +171,6 @@ async function selectToken() {
 }
 
 
-async function selectProjectToken(transaction: Transaction) {
-  giveawayStore.updateSettings({
-    giveawayToken: transaction.tokenDetails.tokenClass,
-    giveawayTokenType: GiveawayTokenType.ALLOWANCE
-  });
-  await selectToken();
-}
 // Navigation functions
 function nextStep() {
   if (currentStep.value < 4) {

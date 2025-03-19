@@ -41,6 +41,7 @@ export async function getConnectedAddress() {
       // Get the list of connected accounts (this won't prompt the user)
       const accounts = await window.ethereum.request({ method: 'eth_accounts' })
 
+      console.log('accounts', accounts)
       // If there is at least one account connected
       if (accounts.length > 0) {
         const connectedAddress = getAddress(accounts[0])

@@ -103,7 +103,7 @@ const { giveaway } = defineProps({
 const emit = defineEmits(['signup-success'])
 
 const profileStore = useProfileStore()
-const { connectedUserGCAddress } = storeToRefs(profileStore)
+const { connectedUserGCAddress, profile } = storeToRefs(profileStore)
 
 const hasClaimed = giveaway.isWinner === true
 
@@ -159,6 +159,12 @@ const handleClaimClick = async () => {
   const { showToast } = useToast();
 
   try {
+    // Check if Telegram auth is required but user doesn't have it linked
+    if (giveaway.telegramAuthRequired && profile.value && !profile.value.hasTelegramLinked) {
+      showToast('Must link Telegram account first', true);
+      return Promise.resolve();
+    }
+
     if (isDistributedGiveaway.value) {
       console.log('Sign up clicked for raffle giveaway:', giveaway._id)
       // Use the profile store to sign a payload for the giveaway signup
@@ -181,10 +187,10 @@ const handleClaimClick = async () => {
       console.log('Claim clicked for giveaway:', giveaway._id)
       // Implement claim logic here
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error in handleClaimClick:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-    showToast(`Failed to process giveaway action. Error: ${errorMessage}`, true);
+    const errorMessage = error.message || 'Unknown error occurred';
+    showToast(errorMessage || 'Failed to process giveaway action. Error: Unknown error occurred', true);
   }
 
   return Promise.resolve()

@@ -9,6 +9,7 @@
                 <div class="label">WALLET ADDRESS:</div>
                 <div class="address">{{ walletAddress }}</div>
             </div>
+
         </Collapsible>
 
         <div v-if="!giveawayTokenBalances" class="loading-container">
@@ -121,6 +122,7 @@ const gasFeesValid = computed(() => {
 
     // Estimate required gas fees, accounting for fees already covered
     const totalGasFees = giveawayStore.estimateGalaFees();
+    console.log('totalGasFees', totalGasFees);
     const currentGalaFeesNeeded = BigNumber(giveawayTokenBalances.value?.galaNeededForOtherGiveaways || 0);
     const actualGasFeeNeeded = BigNumber.max(0, totalGasFees.minus(currentGalaFeesNeeded));
 
@@ -341,5 +343,11 @@ defineExpose({ isValid: allRequirementsMet });
     to {
         transform: rotate(360deg);
     }
+}
+
+.escrow-info {
+    display: flex;
+    align-items: center;
+    margin-top: 12px;
 }
 </style>

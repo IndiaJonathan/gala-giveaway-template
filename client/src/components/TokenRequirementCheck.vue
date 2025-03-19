@@ -1,10 +1,11 @@
 <template>
-    {{ totalRequiredAmount }}
-    <TokenActionPanel v-if="checkType" :title="checkType === GiveawayTokenType.ALLOWANCE ? 'Giveaway token allowance' : 'Giveaway token balance'"
+    <TokenActionPanel v-if="checkType"
+        :title="checkType === GiveawayTokenType.ALLOWANCE ? 'Giveaway token allowance' : 'Giveaway token balance'"
         :tokenImage="getTokenImage()" :tokenSymbol="tokenSymbol" :showStatusIndicator="isBalanceDeficient"
         statusText="MISSING BALANCE"
         :actionButtonText="checkType === GiveawayTokenType.ALLOWANCE ? 'Grant Allowance' : 'Transfer Tokens'"
-        :actionDisabled="checkType === GiveawayTokenType.BALANCE ? !hasMissingBalance : false" @action-click="performAction">
+        :actionDisabled="checkType === GiveawayTokenType.BALANCE ? !hasMissingBalance : false"
+        @action-click="performAction">
         <template #content>
             <!-- Allowance UI -->
             <div v-if="checkType === GiveawayTokenType.ALLOWANCE">
@@ -32,6 +33,13 @@
             <!-- Balance UI -->
             <div v-else>
                 <div class="balance-info">
+                    <div v-if="giveawayTokenBalances && giveawayTokenBalances.galaNeededForOtherGiveaways"
+                        class="balance-item">
+                        <div class="balance-label">HELD IN ESCROW:</div>
+                        <div class="balance-value">{{ formatNumber(Number(giveawayTokenBalances.galaNeededForOtherGiveaways)
+                            || 0) }}
+                        </div>
+                    </div>
                     <div class="balance-item">
                         <div class="balance-label">REQUIRED BALANCE</div>
                         <div class="balance-value">{{ formatNumber(Number(totalRequiredAmount)) }}</div>
@@ -121,11 +129,14 @@ const requiredAmount = computed(() => {
 const currentAmount = computed(() => {
     if (!giveawayTokenBalances.value) return new BigNumber(0);
 
+    let balance = new BigNumber(0);
     if (checkType.value === GiveawayTokenType.ALLOWANCE) {
-        return new BigNumber(giveawayTokenBalances.value.allowances || '0');
+        balance = new BigNumber(giveawayTokenBalances.value.allowances || '0');
     } else {
-        return new BigNumber(giveawayTokenBalances.value.tokenBalance || '0');
+        balance = new BigNumber(giveawayTokenBalances.value.tokenBalance || '0');
     }
+    balance = balance.minus(giveawayTokenBalances.value.galaNeededForOtherGiveaways || 0);
+    return balance;
 });
 
 // Get galaNeededForOtherGiveaways from store instead of props
@@ -147,9 +158,6 @@ const isGalaToken = computed(() => {
 
 // Calculate the actual gas fee amount needed (total - already accounted for)
 const actualGasFeeNeeded = computed(() => {
-    if (gasFeeAmount.value) {
-        return BigNumber.max(0, gasFeeAmount.value.minus(galaNeededForOtherGiveaways.value));
-    }
     return gasFeeAmount.value || new BigNumber(0);
 });
 

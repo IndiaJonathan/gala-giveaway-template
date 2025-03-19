@@ -1,9 +1,11 @@
 import { ref, type Ref } from 'vue'
-import { defineStore } from 'pinia'
+import { defineStore, storeToRefs } from 'pinia'
 import { GiveawayTokenType, type GiveawaySettingsDto } from '@/utils/types'
 import { watch } from 'vue'
 import { useProfileStore } from '@/stores/profile'
 import BigNumber from 'bignumber.js'
+import type { TokenClassKeyProperties } from '@gala-chain/api'
+import { getGiveawayTokensAvailable } from '@/services/BackendApi'
 
 export const useCreateGiveawayStore = defineStore('createGiveaway', () => {
   const giveawaySettings = ref<Partial<GiveawaySettingsDto>>({
@@ -23,7 +25,7 @@ export const useCreateGiveawayStore = defineStore('createGiveaway', () => {
   })
 
   // Add reactive galaFeeEstimate property
-  const galaFeeEstimate = ref<BigNumber>(new BigNumber(0))  
+  const galaFeeEstimate = ref<BigNumber>(new BigNumber(0))
   // Add reactive requiredTokenAmount property
   const totalPoolAmount = ref(new BigNumber(0))
 
@@ -32,18 +34,18 @@ export const useCreateGiveawayStore = defineStore('createGiveaway', () => {
       ...giveawaySettings.value,
       ...newSettings
     } as Partial<GiveawaySettingsDto>
-    
+
     // Recalculate estimates when settings change
     calculateGalaFees()
     calculateTotalPoolAmount()
   }
 
   const profileStore = useProfileStore()
-
+  const { connectedUserGCAddress, connectedEthAddress, giveawayTokenBalances } =
+    storeToRefs(profileStore)
   function setEndDateTime(newDate: Date) {
     giveawaySettings.value.endDateTime = newDate
   }
-
 
   function getPrizePool(giveaway: GiveawaySettingsDto): BigNumber | undefined {
     console.log('Calculating required amount for giveaway:', giveaway)
@@ -57,7 +59,7 @@ export const useCreateGiveawayStore = defineStore('createGiveaway', () => {
       return getPrizePoolFCFS(giveaway)
     }
   }
-  
+
   //Helper function to get amount required for an FCFS giveaway (or undefined if something is wrong)
   function getPrizePoolFCFS(giveaway: GiveawaySettingsDto) {
     if (
@@ -77,11 +79,11 @@ export const useCreateGiveawayStore = defineStore('createGiveaway', () => {
   function calculateTotalPoolAmount() {
     try {
       // Cast to any to avoid type errors with partial giveaway settings
-      const amount = getPrizePool(giveawaySettings.value as any);
-      totalPoolAmount.value = amount || new BigNumber(0);
+      const amount = getPrizePool(giveawaySettings.value as any)
+      totalPoolAmount.value = amount || new BigNumber(0)
     } catch (error) {
-      console.error('Error calculating required amount:', error);
-      totalPoolAmount.value = new BigNumber(0);
+      console.error('Error calculating required amount:', error)
+      totalPoolAmount.value = new BigNumber(0)
     }
   }
 
@@ -90,13 +92,15 @@ export const useCreateGiveawayStore = defineStore('createGiveaway', () => {
    */
   function calculateGalaFees() {
     if (giveawaySettings.value.giveawayType === 'DistributedGiveaway') {
-      const maxWinners = giveawaySettings.value.maxWinners || '1';
-      galaFeeEstimate.value = new BigNumber(maxWinners).dividedBy(1000).integerValue(BigNumber.ROUND_CEIL);
+      const maxWinners = giveawaySettings.value.maxWinners || '1'
+      galaFeeEstimate.value = new BigNumber(maxWinners)
+        .dividedBy(1000)
+        .integerValue(BigNumber.ROUND_CEIL)
     } else if (giveawaySettings.value.giveawayType === 'FirstComeFirstServe') {
-      const maxWinners = giveawaySettings.value.maxWinners || '1';
-      galaFeeEstimate.value = new BigNumber(maxWinners);
+      const maxWinners = giveawaySettings.value.maxWinners || '1'
+      galaFeeEstimate.value = new BigNumber(maxWinners)
     } else {
-      galaFeeEstimate.value = new BigNumber(0);
+      galaFeeEstimate.value = new BigNumber(0)
     }
   }
 
@@ -106,8 +110,8 @@ export const useCreateGiveawayStore = defineStore('createGiveaway', () => {
    */
   function getRequiredTokenAmount(): BigNumber {
     // Ensure the amount is up to date
-    calculateTotalPoolAmount();
-    return totalPoolAmount.value as BigNumber;
+    calculateTotalPoolAmount()
+    return totalPoolAmount.value as BigNumber
   }
 
   /**
@@ -116,43 +120,82 @@ export const useCreateGiveawayStore = defineStore('createGiveaway', () => {
    */
   function estimateGalaFees(): BigNumber {
     // Ensure the estimate is up to date
-    calculateGalaFees();
-    return galaFeeEstimate.value as BigNumber;
+    calculateGalaFees()
+    return galaFeeEstimate.value as BigNumber
   }
 
   // Initialize estimates
   calculateGalaFees()
   calculateTotalPoolAmount()
 
-  watch(() => [
-    giveawaySettings.value.giveawayType,
-    giveawaySettings.value.maxWinners
-  ], () => {
-    console.log("hit here, updating")
-    calculateGalaFees()
-    calculateTotalPoolAmount()
-    console.log(`hit here, updated: ${totalPoolAmount.value}`)
-  })
+  watch(
+    () => [giveawaySettings.value.giveawayType, giveawaySettings.value.maxWinners],
+    () => {
+      console.log('hit here, updating')
+      calculateGalaFees()
+      calculateTotalPoolAmount()
+      console.log(`hit here, updated: ${totalPoolAmount.value}`)
+    }
+  )
 
   // Watch for FirstComeFirstServe specific property
-  watch(() => giveawaySettings.value.giveawayType === 'FirstComeFirstServe' && 
-         giveawaySettings.value.claimPerUser, () => {
-    if (giveawaySettings.value.giveawayType === 'FirstComeFirstServe') {
-      calculateTotalPoolAmount()
+  watch(
+    () =>
+      giveawaySettings.value.giveawayType === 'FirstComeFirstServe' &&
+      giveawaySettings.value.claimPerUser,
+    () => {
+      if (giveawaySettings.value.giveawayType === 'FirstComeFirstServe') {
+        calculateTotalPoolAmount()
+      }
     }
-  })
+  )
 
   // Watch for DistributedGiveaway specific property
-  watch(() => giveawaySettings.value.giveawayType === 'DistributedGiveaway' && 
-         giveawaySettings.value.tokenQuantity, () => {
-    if (giveawaySettings.value.giveawayType === 'DistributedGiveaway') {
-      calculateTotalPoolAmount()
+  watch(
+    () =>
+      giveawaySettings.value.giveawayType === 'DistributedGiveaway' &&
+      giveawaySettings.value.tokenQuantity,
+    () => {
+      if (giveawaySettings.value.giveawayType === 'DistributedGiveaway') {
+        calculateTotalPoolAmount()
+      }
     }
-  })
+  )
 
-  watch(() => giveawaySettings.value.giveawayToken, () => {
-    calculateTotalPoolAmount()
-  }, { deep: true })
+  watch(
+    () => [giveawaySettings.value.giveawayToken, connectedUserGCAddress],
+    () => {
+      if (
+        giveawaySettings.value.giveawayToken &&
+        connectedUserGCAddress &&
+        connectedUserGCAddress.value
+      ) {
+        refreshGiveawayTokenBalances(giveawaySettings.value.giveawayToken)
+      }
+    }
+  )
+
+  async function refreshGiveawayTokenBalances(tokenClassKey: TokenClassKeyProperties) {
+    if (!connectedUserGCAddress.value || !giveawaySettings.value.giveawayTokenType) {
+      return null
+    }
+
+    console.log('refreshing giveaway token balances', tokenClassKey)
+
+    try {
+      const response = await getGiveawayTokensAvailable(
+        tokenClassKey,
+        connectedUserGCAddress.value,
+        giveawaySettings.value.giveawayTokenType
+      )
+      giveawayTokenBalances.value = response
+      console.log('giveaway token balances', giveawayTokenBalances.value)
+      return response
+    } catch (err) {
+      console.error('Error fetching wallet allowances:', err)
+      return null
+    }
+  }
 
   return {
     giveawaySettings,
@@ -161,6 +204,6 @@ export const useCreateGiveawayStore = defineStore('createGiveaway', () => {
     estimateGalaFees,
     getRequiredTokenAmount,
     galaFeeEstimate,
-    requiredTokenAmount: totalPoolAmount 
+    requiredTokenAmount: totalPoolAmount
   }
 })
