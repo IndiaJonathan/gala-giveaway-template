@@ -46,7 +46,7 @@
           <div class="text-h6 text-center">This giveaway has ended!</div>
         </div>
 
-        <div v-else-if="isDistributedGiveaway && hasClaimed" 
+        <div v-else-if="isDistributedGiveaway && hasClaimed"
           class="available-overlay d-flex flex-column align-center justify-center">
           <div class="text-center mb-2">
             <span style="font-size: 4rem;">🏆</span>
@@ -54,7 +54,8 @@
           <div class="text-h6 text-center">Congratulations! You won!</div>
         </div>
 
-        <div v-else-if="!isDistributedGiveaway && hasClaimed" class="available-overlay d-flex align-center justify-center">
+        <div v-else-if="!isDistributedGiveaway && hasClaimed"
+          class="available-overlay d-flex align-center justify-center">
           <div class="claimed-container pa-3">
             <div class="d-flex align-center">
               <span>You've claimed it</span>
@@ -80,7 +81,8 @@
     <div class="giveaway-footer">
       <div class="title-container">
         <div class="giveaway-title">
-          {{ isToken ? `${getTokenAmount()} ${getTokenSymbol(giveaway.giveawayToken)} prize` : `${getTokenAmount()} $${getTokenSymbol(giveaway.giveawayToken)}  Claim Per User` }}
+          {{ isToken ? `${getTokenAmount()} ${getTokenSymbol(giveaway.giveawayToken)} prize` : `${getTokenAmount()}
+          $${getTokenSymbol(giveaway.giveawayToken)} Claim Per User` }}
         </div>
         <div class="giveaway-subtitle">
           {{ footerSubtitle }}
@@ -90,11 +92,13 @@
       <!-- Different button for different states -->
       <div class="button-container">
         <Web3Button v-if="!isUpcoming && shouldShowActionButton" class="web3-button" :disabled="buttonDisabled"
-          :onClick="handleClaimClick" :primaryText="getButtonText()" :connectWalletText="'Sign up'" />
+          :onClick="handleClaimClick" :primaryText="getButtonText()" :connectWalletText="isDistributedGiveaway ? 'Sign up' : 'Claim'" />
 
         <Web3Button v-else-if="!hasEnded && (hasClaimed || (isDistributedGiveaway && hasSignedUp))" class="web3-button"
-          :onClick="handleViewClick" primaryText="View" :connectWalletText="'Sign up'" />
-        
+          :onClick="handleViewClick" :primaryText="isDistributedGiveaway ? 'Sign up' : 'Claim'" 
+          :connectWalletText="isDistributedGiveaway ? 'Sign up' : 'Claim'"
+          :disabled="true" />
+
       </div>
     </div>
   </v-card>
@@ -108,7 +112,7 @@ import { tokenToReadable, getTokenSymbol } from '@/utils/GalaHelper'
 import { useProfileStore } from '@/stores/profile'
 import { storeToRefs } from 'pinia'
 import Web3Button from '@/components/Web3Button.vue'
-import { signupForGiveaway } from '@/services/BackendApi'
+import { claimWin, requestClaimFCFS, signupForGiveaway } from '@/services/BackendApi'
 import { useToast } from '@/composables/useToast'
 
 const { giveaway } = defineProps({
@@ -142,7 +146,7 @@ const isToken = computed(() => {
 
 // Get token amount
 const getTokenAmount = () => {
-  return giveaway.tokenQuantity || '0'
+  return giveaway.tokenQuantity || giveaway.claimPerUser || 'UNKNOWN'
 }
 
 // Determine if we should show action button
@@ -196,6 +200,19 @@ const handleClaimClick = async () => {
     } else {
       console.log('Claim clicked for giveaway:', giveaway._id)
       // Implement claim logic here
+      const payload = {
+        giveawayId: giveaway._id,
+        uniqueKey: 'giveaway-claim-' + giveaway._id + Date.now().toString()
+      }
+      const signedPayload = await profileStore.sign("Claim Giveaway", payload);
+      const success = await requestClaimFCFS(signedPayload);
+      if (success) {
+        await profileStore.fetchProfile();
+        // Emit an event so parent components can reload giveaways
+        emit('signup-success');
+        // The UI will update automatically when the profile is refreshed
+        showToast('Successfully signed up for the giveaway!');
+      }
     }
   } catch (error: any) {
     console.error('Error in handleClaimClick:', error);
@@ -226,7 +243,7 @@ const handleViewClick = async () => {
     console.log('User claimed this first-come-first-serve giveaway')
     // Could show claim details
   }
-  
+
   return Promise.resolve()
 }
 
@@ -285,7 +302,7 @@ const footerSubtitle = computed(() => {
   if (isUpcoming) {
     return 'Available soon';
   }
-  
+
   if (isDistributedGiveaway.value) {
     // For distributed giveaway that has ended
     if (hasEnded.value) {
@@ -297,18 +314,18 @@ const footerSubtitle = computed(() => {
         return 'Raffle ended';
       }
     }
-    
+
     // For active distributed giveaway, show drawing date
     if (giveaway.endDateTime) {
       const drawingDate = new Date(giveaway.endDateTime);
-      
+
       // Format date as "Mon DD, YYYY"
-      const options: Intl.DateTimeFormatOptions = { 
-        month: 'short', 
-        day: 'numeric', 
-        year: 'numeric' 
+      const options: Intl.DateTimeFormatOptions = {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric'
       };
-      
+
       return `Drawing: ${drawingDate.toLocaleDateString(undefined, options)}`;
     } else {
       return 'Drawing: TBD';
@@ -318,7 +335,7 @@ const footerSubtitle = computed(() => {
     if (hasEnded.value) {
       return 'Ended';
     }
-    
+
     // For active first-come-first-serve, show remaining count
     return `Remaining: ${giveaway.claimsLeft || 0}`;
   }

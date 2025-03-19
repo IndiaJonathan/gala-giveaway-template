@@ -17,11 +17,24 @@
         <v-spacer></v-spacer>
 
         <template v-if="connectedUserGCAddress">
-          <div class="profile-avatar-container" @click.prevent="navigateToProfile" role="button">
-            <v-avatar size="40" class="profile-avatar">
-              <span class="text-h6 font-weight-bold white--text">{{ connectedUserGCAddress.slice(-2) }}</span>
-            </v-avatar>
-          </div>
+          <v-menu offset-y>
+            <template v-slot:activator="{ props }">
+              <div class="profile-avatar-container" v-bind="props" role="button">
+                <v-avatar size="40" class="profile-avatar">
+                  <span class="text-h6 font-weight-bold white--text">{{ connectedUserGCAddress.slice(-2) }}</span>
+                </v-avatar>
+              </div>
+            </template>
+            <v-list>
+              <v-list-item @click="navigateToProfile">
+                <v-list-item-title>My Profile</v-list-item-title>
+              </v-list-item>
+              <v-divider></v-divider>
+              <v-list-item @click="handleLogout">
+                <v-list-item-title class="text-error">Disconnect Wallet</v-list-item-title>
+              </v-list-item>
+            </v-list>
+          </v-menu>
         </template>
         <template v-else>
           <Web3Button :primary-text="$vuetify.display.smAndDown ? 'Login' : 'Connect Wallet'"
@@ -66,7 +79,7 @@ const profileStore = useProfileStore()
 // Destructure to get reactive variables
 const { showLoginModal, profile, isConnected, error, connectedEthAddress, connectedUserGCAddress, isFetchingProfile } = storeToRefs(profileStore)
 
-const { toast } = useToast()
+const { toast, showToast } = useToast()
 const display = useDisplay();
 const router = useRouter();
 
@@ -74,6 +87,21 @@ const drawer = ref(!display.smAndDown.value); // Closed on mobile by default, op
 
 const navigateToProfile = () => {
   router.push('/profile');
+};
+
+const handleLogout = async () => {
+  try {
+    await profileStore.logout();
+    showToast('Successfully disconnected wallet', false);
+    // If user is on a protected route, redirect to home
+    const protectedRoutes = ['/create-giveaway', '/created', '/profile', '/won'];
+    if (protectedRoutes.includes(router.currentRoute.value.path)) {
+      router.push('/');
+    }
+  } catch (error) {
+    showToast('Error disconnecting wallet', true);
+    console.error('Logout error:', error);
+  }
 };
 
 onMounted(() => {
@@ -85,12 +113,33 @@ onMounted(() => {
 
 watch(() => router.currentRoute.value.path, (newPath) => {
   console.log('newPath:', newPath)
-  if (newPath === '/create-giveaway' && !connectedEthAddress.value && !connectedUserGCAddress.value) {
+  // Define an array of protected routes that require authentication
+  const protectedRoutes = ['/create-giveaway', '/created', '/profile', '/won'];
+
+  // Check if current path is in protected routes and user is not connected
+  if (protectedRoutes.includes(newPath) && !connectedEthAddress.value && !connectedUserGCAddress.value) {
     profileStore.setShowLoginModal(true)
   } else {
     profileStore.setShowLoginModal(false)
   }
 })
+
+// Watch for disconnection events
+watch([connectedEthAddress, connectedUserGCAddress], ([newEthAddress, newGCAddress], [oldEthAddress, oldGCAddress]) => {
+  const wasConnected = oldEthAddress || oldGCAddress;
+  const isConnected = newEthAddress || newGCAddress;
+
+  // If user was connected but is no longer connected
+  if (wasConnected && !isConnected) {
+    console.log('User disconnected');
+
+    // Check if current route is protected
+    const protectedRoutes = ['/create-giveaway', '/created', '/profile', '/my-entries', '/won'];
+    if (protectedRoutes.includes(router.currentRoute.value.path)) {
+      profileStore.setShowLoginModal(true);
+    }
+  }
+}, { immediate: false })
 </script>
 
 <style scoped>

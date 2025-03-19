@@ -226,3 +226,25 @@ export async function getClaimableWins(gcAddress: string | undefined): Promise<U
 
   return data
 }
+
+export async function getCreatedGiveaways(gcAddress: string | undefined) {
+  if (!gcAddress) {
+    throw new Error('GalaChain address is required')
+  }
+
+  const response = await fetch(`${baseURL}/api/profile/created-giveaways/${gcAddress}`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json'
+    }
+  })
+
+  if (!response.ok) {
+    const message = await response.text()
+    throw new Error(message)
+  }
+
+  const data = await response.json()
+
+  return data
+}

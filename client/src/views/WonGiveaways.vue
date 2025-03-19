@@ -11,58 +11,35 @@
           <v-tab value="burn_required">Burn required</v-tab>
         </v-tabs>
 
-        <v-progress-circular v-if="loading" indeterminate color="primary" size="64"
-          class="mx-auto my-12 d-block"></v-progress-circular>
-
-        <template v-else>
-          <v-table v-if="filteredWins.length > 0">
-            <thead>
-              <tr>
-                <th class="text-left">#</th>
-                <th class="text-left">NAME</th>
-                <th class="text-left">STATUS</th>
-                <th class="text-left">QUANTITY</th>
-                <th class="text-left">CLAIMED DATE</th>
-                <th class="text-left">CLAIM FEE</th>
-                <th class="text-right"></th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="(win, index) in filteredWins" :key="win._id">
-                <td>{{ index + 1 }}</td>
-                <td>
-                  <div class="d-flex align-center">
-                    <v-avatar class="mr-2" size="40">
-                      <!-- Placeholder for item image -->
-                      <v-img src="https://placehold.co/40x40" alt="Item" />
-                    </v-avatar>
-                    <span>{{ getGiveawayDisplayName(win) }}</span>
-                  </div>
-                </td>
-                <td>
-                  <v-chip v-if="win.claimed" color="success" size="small" class="text-uppercase">Claimed</v-chip>
-                  <v-chip v-else-if="win.giveaway.burnTokenQuantity" color="warning" size="small" class="text-uppercase">Token
-                    burn required</v-chip>
-                  <v-chip v-else color="info" size="small" class="text-uppercase">Claimable</v-chip>
-                </td>
-                <td>{{ win.amountWon }}</td>
-                <td>{{ win.claimedDate ? formatDate(win.claimedDate) : '-' }}</td>
-                <td>
-                  <span v-if="win.giveaway.burnTokenQuantity">{{ win.giveaway.burnTokenQuantity }} $TOKEN</span>
-                  <span v-else-if="win.claimed">N/A</span>
-                  <span v-else>Free</span>
-                </td>
-                <td class="text-right">
-                  <v-btn v-if="win.giveaway.burnTokenQuantity && !win.claimed" color="primary" variant="flat" size="small"
-                    @click="handleBurn(win)">
-                    Burn
-                  </v-btn>
-                </td>
-              </tr>
-            </tbody>
-          </v-table>
-          <v-alert v-else type="info" class="ma-4">No items found for this filter.</v-alert>
-        </template>
+        <giveaway-table
+          :headers="tableHeaders"
+          :items="filteredWins"
+          :loading="loading"
+          empty-message="No items found for this filter."
+        >
+          <template #name="{ item }">
+            <div class="d-flex align-center">
+              <v-avatar class="mr-2" size="40">
+                <v-img src="https://placehold.co/40x40" alt="Item" />
+              </v-avatar>
+              <span>{{ getGiveawayDisplayName(item) }}</span>
+            </div>
+          </template>
+          <template #status="{ item }">
+            <v-chip v-if="item.claimed" color="success" size="small" class="text-uppercase">Claimed</v-chip>
+            <v-chip v-else-if="item.giveaway.burnTokenQuantity" color="warning" size="small" class="text-uppercase">Token
+              burn required</v-chip>
+            <v-chip v-else color="info" size="small" class="text-uppercase">Claimable</v-chip>
+          </template>
+          <template #actions="{ item }">
+            <div class="text-right">
+              <v-btn v-if="item.giveaway.burnTokenQuantity && !item.claimed" color="primary" variant="flat" size="small"
+                @click="handleBurn(item)">
+                Burn
+              </v-btn>
+            </div>
+          </template>
+        </giveaway-table>
       </v-card-text>
     </v-card>
   </v-container>
@@ -76,6 +53,7 @@ import { useProfileStore } from '@/stores/profile';
 import { getClaimableWins, claimWin } from '@/services/BackendApi';
 import { BrowserConnectClient, type BurnTokensRequest } from '@gala-chain/connect';
 import type { ClaimableWin } from '@/types/claimable-win';
+import GiveawayTable from '@/components/GiveawayTable.vue';
 import BigNumber from 'bignumber.js';
 
 const { showToast } = useToast();
@@ -85,6 +63,20 @@ const { connectedUserGCAddress } = storeToRefs(profileStore);
 const tab = ref('all');
 const wins = ref<ClaimableWin[]>([]);
 const loading = ref(true);
+
+// Table headers
+const tableHeaders = [
+  { key: 'name', title: 'NAME' },
+  { key: 'status', title: 'STATUS' },
+  { key: 'amountWon', title: 'QUANTITY' },
+  { key: 'claimedDate', title: 'CLAIMED DATE', formatter: (item: ClaimableWin) => item.claimedDate ? formatDate(item.claimedDate) : '-' },
+  { key: 'claimFee', title: 'CLAIM FEE', formatter: (item: ClaimableWin) => {
+    if (item.giveaway.burnTokenQuantity) return `${item.giveaway.burnTokenQuantity} $TOKEN`;
+    if (item.claimed) return 'N/A';
+    return 'Free';
+  }},
+  { key: 'actions', title: '', align: 'text-right' }
+];
 
 // Format date function
 const formatDate = (dateString: string) => {

@@ -94,6 +94,36 @@ export const useProfileStore = defineStore('profile', () => {
     showLoginModal.value = show
   }
 
+  // Add logout function
+  async function logout() {
+    // Clear user data
+    profile.value = null
+    connectedEthAddress.value = undefined
+    connectedUserGCAddress.value = undefined
+    balances.value = []
+    metadata.value = []
+    giveawayTokenBalances.value = undefined
+    claimableWins.value = []
+    isConnected.value = false
+    
+    // If using Web3Modal or similar library, you might need to disconnect from provider
+    if (browserClient?.value) {
+      try {
+        // Most wallet providers don't have explicit disconnect methods
+        // But if you're using Web3Modal or similar, you might have:
+        // await browserClient.value.disconnect()
+        console.log('User disconnected from wallet')
+      } catch (err) {
+        console.error('Error disconnecting wallet:', err)
+      }
+    }
+    
+    // Redirect to home page if needed
+    // router.push('/') - would need to import router
+    
+    return true
+  }
+
   async function connect() {
     if (!browserClient) {
       openNoWeb3WalletDialog()
@@ -284,6 +314,7 @@ export const useProfileStore = defineStore('profile', () => {
     refreshGiveawayTokenBalances,
     setShowLoginModal,
     fetchClaimableWins,
-    setTelegramUserLinked
+    setTelegramUserLinked,
+    logout // Export the new logout function
   }
 })

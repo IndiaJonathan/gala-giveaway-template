@@ -4,6 +4,7 @@ import AvailableGiveaways from '@/views/AvailableGiveaways.vue'
 import Profile from '../views/Profile.vue'
 import GiveawayWizard from '@/views/GiveawayWizard.vue'
 import WonGiveaways from '@/views/WonGiveaways.vue'
+import CreatedGiveaways from '@/views/CreatedGiveaways.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -32,6 +33,11 @@ const router = createRouter({
       path: '/won',
       name: 'WonGiveaways',
       component: WonGiveaways
+    },
+    {
+      path: '/created',
+      name: 'CreatedGiveaways',
+      component: CreatedGiveaways
     }
   ]
 })

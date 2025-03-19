@@ -200,7 +200,8 @@ import { onMounted } from 'vue';
 import { GalaChainApi } from '@/services/GalaChainApi';
 import { GalaChainResponseError } from '@gala-chain/connect';
 import { useToast } from '@/composables/useToast';
-import { getPrizePool, getPrizePoolFCFS, type FirstComeFirstServeGiveawaySettingsDto, type RandomGiveawaySettingsDto } from '@/utils/types';
+import { useCreateGiveawayStore } from '@/stores/createGiveaway';
+import { type FirstComeFirstServeGiveawaySettingsDto, type RandomGiveawaySettingsDto } from '@/utils/types';
 import BigNumber from 'bignumber.js';
 
 
@@ -226,6 +227,7 @@ const timeMenu = ref<boolean>(false)
 const burnTokenInputRef = ref();
 let selectedBurnToken: Ref<TokenClassKey | null> = ref(null)
 const tokenService = GalaChainApi.getInstance()
+const giveawayStore = useCreateGiveawayStore()
 
 const requiredAmount = computed(() => {
   switch (props.giveawaySettings.giveawayType) {
@@ -235,7 +237,7 @@ const requiredAmount = computed(() => {
       }
       return BigNumber(props.giveawaySettings.tokenQuantity);
     case 'FirstComeFirstServe':
-      return getPrizePoolFCFS(props.giveawaySettings);
+      return giveawayStore.getPrizePoolFCFS(props.giveawaySettings);
   }
 })
 
@@ -396,7 +398,7 @@ const timeRules = [
 async function checkValidation() {
   if (
     props.giveawaySettings.endDateTime &&
-    getPrizePool(props.giveawaySettings) &&
+    giveawayStore.getPrizePool(props.giveawaySettings) &&
     (props.giveawaySettings.giveawayType === 'DistributedGiveaway' && props.giveawaySettings.maxWinners) || ((props.giveawaySettings.giveawayType === 'FirstComeFirstServe') && props.giveawaySettings.maxWinners && props.giveawaySettings.claimPerUser)
   ) {
     let valid = true;

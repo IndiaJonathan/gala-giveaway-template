@@ -57,24 +57,29 @@
       ></v-list-item>
     </v-list>
 
-    <!-- TODO: Add refer a friend -->
-    <!-- <template v-slot:append>
+    <!-- Logout option at the bottom of the drawer -->
+    <template v-slot:append>
       <v-list nav class="mb-2">
         <v-list-item
-          prepend-icon="mdi-share-variant"
-          title="Refer a friend"
-          value="refer"
+          v-if="isUserConnected"
+          prepend-icon="mdi-logout"
+          title="Disconnect Wallet"
+          value="logout"
           class="mb-2 white--text"
-          @click="closeOnMobile"
+          @click="handleLogout"
         ></v-list-item>
       </v-list>
-    </template> -->
+    </template>
   </v-navigation-drawer>
 </template>
 
 <script lang="ts" setup>
-import { defineProps, defineEmits } from 'vue';
+import { defineProps, defineEmits, computed } from 'vue';
 import { useDisplay } from 'vuetify';
+import { useProfileStore } from '@/stores/profile';
+import { storeToRefs } from 'pinia';
+import { useToast } from '@/composables/useToast';
+import { useRouter } from 'vue-router';
 
 const props = defineProps({
   modelValue: {
@@ -85,10 +90,36 @@ const props = defineProps({
 
 const emit = defineEmits(['update:modelValue']);
 const display = useDisplay();
+const profileStore = useProfileStore();
+const { connectedEthAddress, connectedUserGCAddress } = storeToRefs(profileStore);
+const { showToast } = useToast();
+const router = useRouter();
+
+// Computed property to check if user is connected
+const isUserConnected = computed(() => {
+  return !!connectedEthAddress.value || !!connectedUserGCAddress.value;
+});
 
 const closeOnMobile = () => {
   if (display.smAndDown.value) {
     emit('update:modelValue', false);
+  }
+};
+
+const handleLogout = async () => {
+  try {
+    await profileStore.logout();
+    showToast('Successfully disconnected wallet', false);
+    closeOnMobile();
+    
+    // If user is on a protected route, redirect to home
+    const protectedRoutes = ['/create-giveaway', '/created', '/profile', '/my-entries'];
+    if (protectedRoutes.includes(router.currentRoute.value.path)) {
+      router.push('/');
+    }
+  } catch (error) {
+    showToast('Error disconnecting wallet', true);
+    console.error('Logout error:', error);
   }
 };
 </script>

@@ -203,6 +203,8 @@ export const useCreateGiveawayStore = defineStore('createGiveaway', () => {
     setEndDateTime,
     estimateGalaFees,
     getRequiredTokenAmount,
+    getPrizePool,
+    getPrizePoolFCFS,
     galaFeeEstimate,
     requiredTokenAmount: totalPoolAmount
   }
