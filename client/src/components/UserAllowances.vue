@@ -1,4 +1,4 @@
-<template>
+<!-- <template>
   <v-container v-if="!loading">
     <div v-if="createdTokens && createdTokens.length">
       <h1 class="text-center">Your Created Tokens</h1>
@@ -108,4 +108,6 @@ load();
   border: 2px solid #09f211;
   /* Green border */
 }
-</style>
+</style> -->
+
+//TODO: REMOVE THIS COMPONENT

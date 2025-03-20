@@ -105,7 +105,7 @@ export const useProfileStore = defineStore('profile', () => {
     giveawayTokenBalances.value = undefined
     claimableWins.value = []
     isConnected.value = false
-    
+
     // If using Web3Modal or similar library, you might need to disconnect from provider
     if (browserClient?.value) {
       try {
@@ -117,10 +117,10 @@ export const useProfileStore = defineStore('profile', () => {
         console.error('Error disconnecting wallet:', err)
       }
     }
-    
+
     // Redirect to home page if needed
     // router.push('/') - would need to import router
-    
+
     return true
   }
 
@@ -186,7 +186,11 @@ export const useProfileStore = defineStore('profile', () => {
     console.log('refreshing giveaway token balances', tokenClassKey)
 
     try {
-      const response = await getGiveawayTokensAvailable(tokenClassKey, connectedUserGCAddress.value, giveawaySettings.value.giveawayTokenType)
+      const response = await getGiveawayTokensAvailable(
+        tokenClassKey,
+        connectedUserGCAddress.value,
+        giveawaySettings.value.giveawayTokenType
+      )
       giveawayTokenBalances.value = response
       console.log('giveaway token balances', giveawayTokenBalances.value)
       return response
@@ -256,7 +260,8 @@ export const useProfileStore = defineStore('profile', () => {
   watch(connectedUserGCAddress, async () => {
     if (!connectedUserGCAddress.value) return
     const jobs = await getCreatedTokens(connectedUserGCAddress.value)
-    
+    createdTokens.value = jobs.completedJobs
+    console.log('created tokens', createdTokens.value)
     // Fetch claimable wins when the GC address changes
     fetchClaimableWins()
   })
