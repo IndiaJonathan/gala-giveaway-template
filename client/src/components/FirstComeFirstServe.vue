@@ -1,6 +1,6 @@
 <template>
     <v-list-item-title>
-        Claim {{ giveaway.claimPerUser }} "{{ tokenToReadable(giveaway.giveawayToken) }}" Tokens
+        Claim {{ giveaway.winPerUser }} "{{ tokenToReadable(giveaway.giveawayToken) }}" Tokens
     </v-list-item-title>
     <v-list-item-subtitle>
         {{ giveaway.giveawayType }} </v-list-item-subtitle>

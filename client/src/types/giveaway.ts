@@ -3,7 +3,6 @@ import type { TokenClassKeyProperties } from '@gala-chain/api'
 export interface Giveaway {
   _id: string
   giveawayToken: TokenClassKeyProperties
-  tokenQuantity: string
   maxWinners: string
   signature: string
   image: string
@@ -15,7 +14,7 @@ export interface Giveaway {
   burnTokenQuantity?: string
   burnToken: TokenClassKeyProperties
   isWinner?: boolean
-  claimPerUser?: string
+  winPerUser?: string
   claimsLeft?: number
   giveawayType: 'FirstComeFirstServe' | 'DistributedGiveaway'
 }

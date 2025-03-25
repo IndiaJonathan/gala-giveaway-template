@@ -28,7 +28,7 @@
                   <v-card-title class="subheading">First Come, First Serve Settings</v-card-title>
                   <v-row>
                     <v-col cols="12" sm="6">
-                      <v-text-field v-model="giveawaySettings.claimPerUser" label="Claim Per User" type="number" min="1"
+                      <v-text-field v-model="giveawaySettings.winPerUser" label="Claim Per User" type="number" min="1"
                         outlined dense :readonly="props.readOnly" :disabled="props.readOnly"></v-text-field>
                     </v-col>
                     <v-col cols="12" sm="6">
@@ -399,7 +399,7 @@ async function checkValidation() {
   if (
     props.giveawaySettings.endDateTime &&
     giveawayStore.getPrizePool(props.giveawaySettings) &&
-    (props.giveawaySettings.giveawayType === 'DistributedGiveaway' && props.giveawaySettings.maxWinners) || ((props.giveawaySettings.giveawayType === 'FirstComeFirstServe') && props.giveawaySettings.maxWinners && props.giveawaySettings.claimPerUser)
+    (props.giveawaySettings.giveawayType === 'DistributedGiveaway' && props.giveawaySettings.maxWinners) || ((props.giveawaySettings.giveawayType === 'FirstComeFirstServe') && props.giveawaySettings.maxWinners && props.giveawaySettings.winPerUser)
   ) {
     let valid = true;
     if (props.giveawaySettings.requireBurnTokenToClaim) {

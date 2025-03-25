@@ -146,7 +146,7 @@ const isToken = computed(() => {
 
 // Get token amount
 const getTokenAmount = () => {
-  return giveaway.tokenQuantity || giveaway.claimPerUser || 'UNKNOWN'
+  return giveaway.winPerUser || 'UNKNOWN'
 }
 
 // Determine if we should show action button

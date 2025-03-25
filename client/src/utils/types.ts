@@ -15,6 +15,7 @@ interface BasicGivewaySettingsBase {
   burnToken: TokenClassKeyProperties
   maxWinners?: string
   giveawayTokenType?: GiveawayTokenType
+  winPerUser?: string
 }
 export interface BasicGivewaySettingsDto extends BasicGivewaySettingsBase {
   startDateTime: Date
@@ -27,11 +28,11 @@ export interface StartBasicGivewaySettingsDto extends BasicGivewaySettingsBase {
 }
 
 export interface FirstComeFirstServeGiveawaySettingsDto extends BasicGivewaySettingsDto {
-  claimPerUser?: string
+  // claimPerUser?: string
   giveawayType: 'FirstComeFirstServe'
 }
 export interface RandomGiveawaySettingsDto extends BasicGivewaySettingsDto {
-  tokenQuantity?: string
+  // tokenQuantity?: string
   giveawayType: 'DistributedGiveaway'
 }
 

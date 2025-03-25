@@ -88,20 +88,11 @@ const estimatedGasFee: Ref<BigNumber | undefined> = ref()
 
 const prizePerWinner = computed({
     get: (): BigNumber | undefined => {
-        if (giveawaySettings.value.giveawayType === 'FirstComeFirstServe') {
-            return giveawaySettings.value.claimPerUser ? new BigNumber(giveawaySettings.value.claimPerUser) : undefined;
-        } else if (giveawaySettings.value.giveawayType === 'DistributedGiveaway') {
-            return giveawaySettings.value.tokenQuantity ? new BigNumber(giveawaySettings.value.tokenQuantity) : undefined;
-        }
-        return undefined;
+        return giveawaySettings.value.winPerUser ? new BigNumber(giveawaySettings.value.winPerUser) : undefined;
     },
     set: (value: BigNumber) => {
         console.log('setting prize per winner', value)
-        if (giveawaySettings.value.giveawayType === 'FirstComeFirstServe') {
-            giveawayStore.updateSettings({ claimPerUser: value.toString() });
-        } else if (giveawaySettings.value.giveawayType === 'DistributedGiveaway') {
-            giveawayStore.updateSettings({ tokenQuantity: value.toString() });
-        }
+        giveawayStore.updateSettings({ winPerUser: value.toString() });
     }
 });
 

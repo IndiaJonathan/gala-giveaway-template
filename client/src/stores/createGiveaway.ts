@@ -70,9 +70,9 @@ export const useCreateGiveawayStore = defineStore('createGiveaway', () => {
     if (
       giveaway.giveawayType === 'FirstComeFirstServe' &&
       giveaway.maxWinners &&
-      giveaway.claimPerUser
+      giveaway.winPerUser
     ) {
-      return new BigNumber(giveaway.maxWinners).times(new BigNumber(giveaway.claimPerUser))
+      return new BigNumber(giveaway.maxWinners).times(new BigNumber(giveaway.winPerUser))
     } else {
       throw new Error(`Unknown amount required for FCFS`)
     }
@@ -159,11 +159,11 @@ export const useCreateGiveawayStore = defineStore('createGiveaway', () => {
 
   // Watch for FirstComeFirstServe specific property
   watch(
-    () => giveawaySettings.value.giveawayType === 'FirstComeFirstServe' ? 
-           giveawaySettings.value.claimPerUser : undefined,
+    () => giveawaySettings.value.giveawayType === 'FirstComeFirstServe' ?
+      giveawaySettings.value.winPerUser : undefined,
     (newValue, oldValue) => {
-      if (newValue !== oldValue && 
-          giveawaySettings.value.giveawayType === 'FirstComeFirstServe') {
+      if (newValue !== oldValue &&
+        giveawaySettings.value.giveawayType === 'FirstComeFirstServe') {
         console.log('FCFS claim per user changed, updating pool amount')
         calculateTotalPoolAmount()
       }
@@ -173,7 +173,7 @@ export const useCreateGiveawayStore = defineStore('createGiveaway', () => {
   // Watch for DistributedGiveaway specific property
   watch(
     () => giveawaySettings.value.giveawayType === 'DistributedGiveaway' ?
-           giveawaySettings.value.tokenQuantity : undefined,
+           giveawaySettings.value.winPerUser : undefined,
     (newValue, oldValue) => {
       if (newValue !== oldValue && 
           giveawaySettings.value.giveawayType === 'DistributedGiveaway') {

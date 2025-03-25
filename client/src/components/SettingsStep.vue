@@ -2,7 +2,8 @@
     <Collapsible title="Telegram authentication" :collapsible="false" isOpen class="mb-4">
 
 
-        <p style="margin-bottom: 32px;" class="explanatory-text">Enable this option to require participants to authenticate through Telegram before claiming tokens.
+        <p style="margin-bottom: 32px;" class="explanatory-text">Enable this option to require participants to
+            authenticate through Telegram before claiming tokens.
         </p>
 
         <StyledCheckmark v-model="giveawaySettings.telegramAuthRequired" @change="handleTelegramAuthChange" />
@@ -11,7 +12,8 @@
     <Collapsible title="Burn token to claim" :collapsible="false" isOpen>
 
 
-        <p style="margin-bottom: 32px;" class="explanatory-text">Enable this option to require participants to burn a specific token in order to claim their giveaway rewards.
+        <p style="margin-bottom: 32px;" class="explanatory-text">Enable this option to require participants to burn a
+            specific token in order to claim their giveaway rewards.
         </p>
 
         <StyledCheckmark v-model="giveawaySettings.requireBurnTokenToClaim" @change="handleValidityChange" />
@@ -111,19 +113,11 @@ const checkAllValid = () => {
 
 const prizePerWinner = computed({
     get: (): BigNumber | undefined => {
-        if (giveawaySettings.value.giveawayType === 'FirstComeFirstServe') {
-            return giveawaySettings.value.claimPerUser ? new BigNumber(giveawaySettings.value.claimPerUser) : undefined;
-        } else if (giveawaySettings.value.giveawayType === 'DistributedGiveaway') {
-            return giveawaySettings.value.tokenQuantity ? new BigNumber(giveawaySettings.value.tokenQuantity) : undefined;
-        }
-        return undefined;
+        return giveawaySettings.value.winPerUser ? new BigNumber(giveawaySettings.value.winPerUser) : undefined;
+
     },
     set: (value: BigNumber) => {
-        if (giveawaySettings.value.giveawayType === 'FirstComeFirstServe') {
-            giveawayStore.updateSettings({ claimPerUser: value.toString() });
-        } else if (giveawaySettings.value.giveawayType === 'DistributedGiveaway') {
-            giveawayStore.updateSettings({ tokenQuantity: value.toString() });
-        }
+        giveawayStore.updateSettings({ winPerUser: value.toString() });
     }
 });
 

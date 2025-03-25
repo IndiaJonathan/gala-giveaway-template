@@ -140,7 +140,7 @@ const giveawayWalletAddress = computed(() => {
 const giveawayTokenAmount = computed(() => {
     // Use a more generic approach since different giveaway types have different property names
     const settings = giveawaySettings.value;
-    return (settings as any).tokenQuantity || (settings as any).claimPerUser || '0';
+    return (settings as any).tokenQuantity || (settings as any).winPerUser || '0';
 });
 
 const numberOfNfts = computed(() => {
