@@ -148,7 +148,8 @@ watch([allRequirementsMet], (newValue) => {
 
 // Fetch allowance data when component is mounted
 onMounted(async () => {
-    if (giveawaySettings.value.giveawayToken && profile.value?.galaChainAddress) {
+/**
+if (giveawaySettings.value.giveawayToken && profile.value?.galaChainAddress) {
         try {
             // Use the profile store to fetch allowances
             await profileStore.refreshGiveawayTokenBalances(
@@ -163,6 +164,8 @@ onMounted(async () => {
             console.error('Error fetching allowances:', error);
         }
     }
+
+*/
 
     checkValidity();
 });

@@ -15,7 +15,7 @@
           <div class="token-icon">
             <img v-if="tokenImage" class="token-img" :src="tokenImage" alt="token icon" />
             <div v-else class="token-icon-circle"></div>
-            <span>{{ tokenSymbol }}</span>
+           <span>{{ tokenSymbol }}</span>
           </div>
         </div>
       </div>

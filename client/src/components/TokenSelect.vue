@@ -16,18 +16,17 @@
                 <p>No current balances</p>
             </div>
             <div v-else v-for="(token, index) in balances" :key="index" class="token-item clickable"
-                :class="{ selected: !!giveawaySettings.giveawayToken && checkTokenEquivalancy(giveawaySettings.giveawayToken, token) }"
+                :class="{ selected: isTokenBalanceSelected(token) }"
                 @click="() => handleTokenClick(token)">
                 <img v-if="getImage(token)" class="token-icon" :src="getImage(token)" alt="token icon" />
                 <div v-else class="token-icon-circle"></div>
 
                 <div class="token-details">
-                    <div class="token-name paragraph-medium-regular">{{ token.collection }}</div>
+                    <div class="token-name paragraph-medium-regular">{{ getTokenSymbol(token) }}</div>
                     <div class="token-balance paragraph-small-bold">Balance: {{ token.quantity }}</div>
                 </div>
 
-                <div
-                    v-if="!!giveawaySettings.giveawayToken && checkTokenEquivalancy(giveawaySettings.giveawayToken, token)">
+                <div v-if="isTokenBalanceSelected(token)">
                     <img src="@/assets/radio-checked.png" alt="Chevron Icon" class="icon" />
                 </div>
                 <div v-else>
@@ -36,6 +35,7 @@
             </div>
         </div>
 
+        <!-- Created Tokens -->
         <div v-if="selectedVal === options[1].key" style="width: 100%;">
             <div v-if="!createdTokens">
                 <v-progress-circular indeterminate></v-progress-circular>
@@ -47,19 +47,18 @@
                         Connect</a>
                 </v-alert>
             </div>
-            <div v-else v-for="(token, index) in balances" :key="index" class="token-item clickable"
-                :class="{ selected: !!giveawaySettings.giveawayToken && checkTokenEquivalancy(giveawaySettings.giveawayToken, token) }"
-                @click="() => handleTokenClick(token)">
-                <img v-if="getImage(token)" class="token-icon" :src="getImage(token)" alt="token icon" />
+            <div v-else v-for="(transaction, index) in createdTokens" :key="index" class="token-item clickable"
+                :class="{ selected: isTransactionSelected(transaction) }"
+                @click="() => handleCreatedTokenClick(transaction)">
+                <img v-if="transaction.tokenDetails.image" class="token-icon" :src="transaction.tokenDetails.image" alt="token icon" />
                 <div v-else class="token-icon-circle"></div>
 
                 <div class="token-details">
-                    <div class="token-name paragraph-medium-regular">{{ token.collection }}</div>
-                    <div class="token-balance paragraph-small-bold">Balance: {{ token.quantity }}</div>
+                    <div class="token-name paragraph-medium-regular">{{ transaction.tokenDetails.name || transaction.tokenDetails.tokenClass.collection }}</div>
+                    <div class="token-balance paragraph-small-bold">Symbol: {{ transaction.tokenDetails.symbol }}</div>
                 </div>
 
-                <div
-                    v-if="!!giveawaySettings.giveawayToken && checkTokenEquivalancy(giveawaySettings.giveawayToken, token)">
+                <div v-if="isTransactionSelected(transaction)">
                     <img src="@/assets/radio-checked.png" alt="Chevron Icon" class="icon" />
                 </div>
                 <div v-else>
@@ -73,7 +72,7 @@
 <script lang="ts" setup>
 import { computed, nextTick, type PropType, type Ref, ref, watch } from 'vue';
 import ToggleSwitch from './ToggleSwitch.vue';
-import { tokenToReadable, checkTokenEquivalancy } from '@/utils/GalaHelper';
+import { tokenToReadable, checkTokenEquivalancy, getTokenSymbol } from '@/utils/GalaHelper';
 import type { TokenAllowance, TokenBalance, TokenClass } from '@gala-chain/connect';
 import type { TokenClassKeyProperties } from '@gala-chain/api';
 import type { Transaction } from '@/services/GalaSwapApi';
@@ -81,6 +80,7 @@ import { storeToRefs } from 'pinia';
 import { useCreateGiveawayStore } from '@/stores/createGiveaway';
 import { useProfileStore } from '@/stores/profile';
 import { GiveawayTokenType } from '@/utils/types';
+import BigNumber from 'bignumber.js';
 const galaConnectURL = import.meta.env.VITE_GALA_CONNECT_URL
 
 const giveawayStore = useCreateGiveawayStore();
@@ -104,14 +104,12 @@ const options: [
 ] = [{ key: GiveawayTokenType.BALANCE, label: "From Balances" }, { key: GiveawayTokenType.ALLOWANCE, label: "From allowances" }]
 
 
-
 const selectedVal = computed({
     get: () => giveawayStore.giveawaySettings.giveawayTokenType,
     set: (value: string) => {
         giveawayStore.updateSettings({ giveawayTokenType: value as GiveawayTokenType });
     }
 });
-
 
 
 const metadataMap = computed(() => {
@@ -123,11 +121,8 @@ const metadataMap = computed(() => {
             map.set(key, metadata);
         });
     }
-
-
     return map;
 });
-
 
 
 const isValid = computed(() => {
@@ -147,16 +142,57 @@ const getImage = (token: TokenClassKeyProperties) => {
     }
 }
 
+// Helper function to determine if a balance token is selected
+const isTokenBalanceSelected = (token: TokenBalance): boolean => {
+    if (!giveawaySettings.value.giveawayToken) return false;
+    
+    // Check if the giveaway token is a TokenBalance type
+    if ('collection' in giveawaySettings.value.giveawayToken && 
+        'category' in giveawaySettings.value.giveawayToken &&
+        'type' in giveawaySettings.value.giveawayToken) {
+        
+        return checkTokenEquivalancy(token, giveawaySettings.value.giveawayToken);
+    }
+    
+    return false;
+};
+
+const isTransactionSelected = (transaction: Transaction): boolean => {
+    if (!giveawaySettings.value.giveawayToken) return false;
+    
+    const tokenBalanceObject = transactionToTokenBalance(transaction);
+    return isTokenBalanceSelected(tokenBalanceObject);
+}
+    
+
+// Convert a Transaction to a TokenBalance compatible object
+const transactionToTokenBalance = (transaction: Transaction): TokenBalance => {
+    // Create a TokenBalance compatible object from the transaction
+    // Using 'any' type to bypass strict type checking since we know what fields are needed
+    return {
+        owner: connectedUserGCAddress.value as any,
+        collection: transaction.tokenDetails.tokenClass.collection,
+        category: transaction.tokenDetails.tokenClass.category,
+        type: transaction.tokenDetails.tokenClass.type,
+        additionalKey: transaction.tokenDetails.tokenClass.additionalKey,
+        quantity: BigNumber(transaction.tokenDetails.maxSupply),
+    };
+};
 
 const emit = defineEmits(['update:selectedToken', 'update:selected', 'token-clicked', 'is-valid']);
 
 const handleTokenClick = (token: TokenBalance) => {
-    if (giveawaySettings.value.giveawayToken && checkTokenEquivalancy(token, giveawaySettings.value.giveawayToken)) {
-        giveawayStore.updateSettings({ giveawayToken: undefined });
-    } else {
-        giveawayStore.updateSettings({ giveawayToken: token });
-    }
+    giveawayStore.updateSettings({ giveawayToken: token });
+    console.log('token', token)
     emit('token-clicked', token);
+};
+
+const handleCreatedTokenClick = (transaction: Transaction) => {
+    // Convert Transaction to TokenBalance compatible object
+    const tokenBalanceObject = transactionToTokenBalance(transaction);
+    console.log('tokenBalanceObject', tokenBalanceObject)
+    giveawayStore.updateSettings({ giveawayToken: tokenBalanceObject });
+    emit('token-clicked', tokenBalanceObject);
 };
 
 defineExpose({ isValid });

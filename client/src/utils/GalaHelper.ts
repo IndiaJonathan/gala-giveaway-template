@@ -65,7 +65,7 @@ export const randomId = () => {
 
 export function getTokenSymbol(giveawayToken: TokenClassKeyProperties | null | undefined) {
   if (giveawayToken?.collection === 'GALA') {
-    return '$GALA'
+    return 'GALA'
   }
   // Check if token is a Token/Unit type
   if (giveawayToken?.collection === 'Token' && giveawayToken?.category === 'Unit') {

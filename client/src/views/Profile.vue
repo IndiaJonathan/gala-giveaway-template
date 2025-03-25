@@ -17,14 +17,15 @@
       </div>
 
       <v-card-text>
-        <div v-if="!profile.hasTelegramLinked">
+        <div v-if="!profile.hasTelegramLinked && !tempTelegramUser">
           <telegram-login :disabled="!connectedUserGCAddress" :bot-name="telegramBotUsername"
             @auth="onTelegramAuth"></telegram-login>
         </div>
-        <div v-else-if="tempTelegramUser">
+        <div v-else-if="tempTelegramUser && !profile.hasTelegramLinked">
           <h3 class="white--text">
             Logged in With Telegram as: {{ tempTelegramUser.first_name }}
           </h3>
+          <p class="white--text mt-2">Click the button below to link your Telegram account with your wallet.</p>
         </div>
         <div v-else class="mt-5">
           <h3 v-if="profile.hasTelegramLinked" class="white--text">
@@ -32,10 +33,10 @@
           </h3>
         </div>
 
-        <v-btn v-if="!profile.hasTelegramLinked" :disabled="!connectedUserGCAddress" color="success" dark large block
-          class="mt-5" @click="linkWallets">
+        <v-btn v-if="!profile.hasTelegramLinked && tempTelegramUser" :disabled="!connectedUserGCAddress" color="success"
+          dark large block class="mt-5" @click="linkWallets">
           <v-icon left>mdi-link-variant</v-icon>
-          Link Wallets
+          Link Telegram and Wallet
         </v-btn>
       </v-card-text>
 
@@ -91,7 +92,6 @@ import type { ClaimableWinDto } from '@/utils/types'
 import { useProfileStore } from '@/stores/profile'
 import { storeToRefs } from 'pinia'
 
-const w3wConnection = new BrowserConnectClient()
 
 interface TelegramUser {
   id: number
@@ -119,16 +119,15 @@ const onTelegramAuth = (user: TelegramUser) => {
 const tempTelegramUser = ref<TelegramUser | null>(null)
 
 const linkWallets = async () => {
-  if (!profile.value?.hasTelegramLinked || !connectedUserGCAddress.value) {
-    showToast('Please connect all wallets and login with Telegram.', true)
+  if (!tempTelegramUser.value || !connectedUserGCAddress.value) {
+    showToast('Please connect your wallet and login with Telegram first.', true)
     return
   }
 
-
   await connect()
-  const signedData = await w3wConnection.sign('Link GalaChain and Telegram', {
+  const signedData = await profileStore.sign('Link GalaChain and Telegram', {
     'GalaChain Address': connectedUserGCAddress.value,
-    ...(profile.value?.hasTelegramLinked as any)
+    'Telegram User': tempTelegramUser.value,
   })
 
   console.log('Linking wallets:', signedData)
@@ -144,12 +143,17 @@ const linkWallets = async () => {
     showToast('Wallets linked successfully!')
   } else {
     const jsonInfo = await linkResult.json()
-    showToast(
-      jsonInfo.message
+    let errorMessage = 'Unable to link wallet!';
+
+    if (jsonInfo && typeof jsonInfo.message === 'string') {
+      errorMessage = jsonInfo.message
         .replace('already exists', 'already linked')
-        .replace('TelegramId', 'Telegram') || 'Unable to link wallet!',
-      true
-    )
+        .replace('TelegramId', 'Telegram');
+    } else if (jsonInfo && jsonInfo.error) {
+      errorMessage = typeof jsonInfo.error === 'string' ? jsonInfo.error : 'Error linking wallet';
+    }
+
+    showToast(errorMessage, true);
   }
 }
 

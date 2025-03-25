@@ -14,11 +14,13 @@ import {
 } from '@gala-chain/api'
 import BigNumber from 'bignumber.js'
 import { ethers } from 'ethers'
+import { tokenToReadable } from '../utils/GalaHelper'
 
 export class GalaChainApi {
   private static instance: GalaChainApi
   private tokenClient: TokenApi | null = null
   private tokenContractUrl = import.meta.env.VITE_TOKEN_CONTRACT_URL
+  private tokenClassMap: Map<string, any> = new Map()
 
   private constructor() {}
 
@@ -60,6 +62,15 @@ export class GalaChainApi {
       throw new Error("TokenService is not initialized. Call 'init()' first.")
     }
 
+    // Generate a key for the tokenClass using tokenToReadable
+    const tokenKey = tokenToReadable(tokenClass)
+    
+    // Check if this token class is already in the map
+    if (this.tokenClassMap.has(tokenKey)) {
+      console.log(`Using cached token class for ${tokenKey}`)
+      return this.tokenClassMap.get(tokenKey)
+    }
+
     const tokenClassDto = await createValidDTO<TokenClassKey>(TokenClassKey, {
       collection: tokenClass.collection,
       category: tokenClass.category,
@@ -72,8 +83,12 @@ export class GalaChainApi {
     })
 
     const tokenClassResponse = await this.tokenClient.FetchTokenClasses(fetchDto)
+    
+    // Store the response in the map for future use
+    const result = { tokenClassResponse, tokenClassDto }
+    this.tokenClassMap.set(tokenKey, result)
 
-    return { tokenClassResponse, tokenClassDto }
+    return result
   }
 
   public async getBalances(gcAddress: string, tokenClassKey: TokenClassKeyProperties) {

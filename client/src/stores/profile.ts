@@ -81,6 +81,7 @@ export const useProfileStore = defineStore('profile', () => {
 
     try {
       profile.value = await getProfile(connectedEthAddress.value)
+      console.log('profile', profile.value)
       connectedUserGCAddress.value = profile.value.galaChainAddress
       return profile.value
     } catch (err) {
@@ -183,16 +184,19 @@ export const useProfileStore = defineStore('profile', () => {
       return null
     }
 
-    console.log('refreshing giveaway token balances', tokenClassKey)
-
     try {
       const response = await getGiveawayTokensAvailable(
         tokenClassKey,
         connectedUserGCAddress.value,
         giveawaySettings.value.giveawayTokenType
       )
-      giveawayTokenBalances.value = response
-      console.log('giveaway token balances', giveawayTokenBalances.value)
+      
+      // Only update if the values are actually different
+      if (!giveawayTokenBalances.value || 
+          JSON.stringify(response) !== JSON.stringify(giveawayTokenBalances.value)) {
+        giveawayTokenBalances.value = response
+      }
+      
       return response
     } catch (err) {
       console.error('Error fetching wallet allowances:', err)
@@ -256,6 +260,11 @@ export const useProfileStore = defineStore('profile', () => {
       isFetchingClaimableWins.value = false
     }
   }
+
+  watch(giveawaySettings, async () => {
+    if (!giveawaySettings.value.giveawayToken) return
+    await refreshGiveawayTokenBalances(giveawaySettings.value.giveawayToken)
+  })
 
   watch(connectedUserGCAddress, async () => {
     if (!connectedUserGCAddress.value) return

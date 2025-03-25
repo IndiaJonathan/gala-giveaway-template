@@ -26,17 +26,14 @@ export async function getGiveawayTokensAvailable(
     throw new Error('GalaChain address is required')
   }
 
+  console.log("Getting tokens available for", gc_address, tokenClassKey, giveawayTokenType)
   const response = await fetch(`${baseURL}/api/giveaway/tokens-available/${gc_address}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
     },
     body: JSON.stringify({
-      collection: tokenClassKey.collection,
-      category: tokenClassKey.category,
-      type: tokenClassKey.type,
-      additionalKey: tokenClassKey.additionalKey,
-      instance: '0',
+      tokenInstanceKey: { ...tokenClassKey, instance: '0' },
       tokenType: giveawayTokenType
     })
   })
@@ -246,5 +243,31 @@ export async function getCreatedGiveaways(gcAddress: string | undefined) {
 
   const data = await response.json()
 
+  return data
+}
+
+// Get required gas fee estimates for a giveaway
+export async function getRequiredGasForGiveaway(
+  gcAddress: string | undefined,
+  giveawayDto: Partial<StartBasicGivewaySettingsDto>
+) {
+  if (!gcAddress) {
+    throw new Error('GalaChain address is required')
+  }
+
+  const response = await fetch(`${baseURL}/api/giveaway/required-gas/${gcAddress}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(giveawayDto)
+  })
+
+  if (!response.ok) {
+    const message = await response.text()
+    throw new Error(message)
+  }
+
+  const data = await response.json()
   return data
 }

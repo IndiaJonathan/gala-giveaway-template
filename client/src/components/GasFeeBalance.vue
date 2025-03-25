@@ -36,7 +36,7 @@
                 <div class="breakdown-grid">
                     <div class="breakdown-item">
                         <div class="breakdown-label">Total Gas Fees:</div>
-                        <div class="breakdown-value">{{ formatNumber(Number(giveawayStore.estimateGalaFees())) }}</div>
+                        <div class="breakdown-value">{{ formatNumber(Number(estimatedGalaFees)) }}</div>
                     </div>
                     <div class="breakdown-item">
                         <div class="breakdown-label">Already Accounted Fees:</div>
@@ -64,18 +64,15 @@ import type { GiveawaySettingsDto } from '@/utils/types';
 import TokenActionPanel from './TokenActionPanel.vue';
 import galaTokenImage from '@/assets/gala-token.png';
 
-const props = defineProps<{
-    giveawaySettings: GiveawaySettingsDto;
-}>();
-
 const profileStore = useProfileStore();
 const giveawayStore = useCreateGiveawayStore();
+const { giveawaySettings } = storeToRefs(giveawayStore);
 const { profile, giveawayTokenBalances } = storeToRefs(profileStore);
 const { showToast } = useToast();
 
 // Calculate actual required gas fees by considering already accounted for fees
 const actualRequiredGasFees = computed(() => {
-    const totalGasFees = giveawayStore.estimateGalaFees();
+    const totalGasFees = estimatedGalaFees.value;
     const currentGalaFeesNeeded = BigNumber(giveawayTokenBalances.value?.galaNeededForOtherGiveaways || 0);
     return BigNumber.max(0, totalGasFees.minus(currentGalaFeesNeeded));
 });
@@ -85,6 +82,10 @@ const missingGasBalance = computed(() => {
 });
 
 const hasMissingGasBalance = computed(() => missingGasBalance.value.gt(0));
+
+const estimatedGalaFees = computed(() => {
+    return giveawayStore.estimateGalaFees();
+});
 
 async function transferToken() {
     const browserClient = new BrowserConnectClient();
@@ -97,18 +98,25 @@ async function transferToken() {
         return;
     }
 
+    // Cache the missing balance value to avoid reactive dependency
+    const missingBalanceAmount = missingGasBalance.value.toString();
+    
     await tokenService.init();
     try {
         const grant = await tokenService.transferToken(
             GALA,
-            missingGasBalance.value.toString(),
+            missingBalanceAmount,
             profile.value.giveawayWalletAddress
         );
 
         if (grant.Status === 1) {
-            await profileStore.refreshGiveawayTokenBalances(props.giveawaySettings.giveawayToken);
             showToast('Gas tokens transferred successfully!');
-            emit('token-transferred');
+            
+            // Use a slight delay to avoid synchronous reactive update loops
+            setTimeout(async () => {
+                await profileStore.refreshGiveawayTokenBalances(giveawaySettings.value.giveawayToken);
+                emit('token-transferred');
+            }, 0);
         }
     } catch (e: unknown) {
         let errorMessage = 'unknown error';
@@ -125,21 +133,7 @@ const emit = defineEmits<{
 }>();
 
 // Add computed property to check if gas requirements are met
-const gasRequirementsMet = computed(() => {
-    return !hasMissingGasBalance.value;
-});
 
-// Add watcher to emit status changes to parent
-watch(gasRequirementsMet, (newValue) => {
-    emit('token-transferred');
-});
-
-// Emit immediately if requirements are already met on mount
-onMounted(() => {
-    if (gasRequirementsMet.value) {
-        emit('token-transferred');
-    }
-});
 </script>
 
 <style scoped>

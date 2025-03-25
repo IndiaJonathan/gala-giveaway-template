@@ -65,7 +65,7 @@
                         </div>
                         <div class="breakdown-item">
                             <div class="breakdown-label">Gas Fee Requirement:</div>
-                            <div class="breakdown-value">{{ formatNumber(Number(actualGasFeeNeeded)) }}</div>
+                            <div class="breakdown-value">{{ formatNumber(Number(requiredGas)) }}</div>
                         </div>
                     </div>
                 </div>
@@ -109,16 +109,13 @@ const emit = defineEmits<{
 const profileStore = useProfileStore();
 const giveawayStore = useCreateGiveawayStore();
 const { profile, metadata, giveawayTokenBalances } = storeToRefs(profileStore)
-const { giveawaySettings, galaFeeEstimate, requiredTokenAmount } = storeToRefs(giveawayStore);
+const { giveawaySettings, requiredTokenAmount, requiredGas, escrowGas, gasForGiveaway } = storeToRefs(giveawayStore);
 const { showToast } = useToast()
 
 const checkType = computed(() => {
     return giveawaySettings.value.giveawayTokenType
 })
 
-const gasFeeAmount = computed(() => {
-    return galaFeeEstimate.value;
-});
 
 // Use the store's requiredTokenAmount
 const requiredAmount = computed(() => {
@@ -135,15 +132,12 @@ const currentAmount = computed(() => {
     } else {
         balance = new BigNumber(giveawayTokenBalances.value.tokenBalance || '0');
     }
-    balance = balance.minus(giveawayTokenBalances.value.galaNeededForOtherGiveaways || 0);
+    if (giveawaySettings.value.giveawayToken && giveawaySettings.value.giveawayToken.collection === GALA.collection) {
+        balance = balance.minus(giveawayTokenBalances.value.galaNeededForOtherGiveaways || 0);
+    }
     return balance;
 });
 
-// Get galaNeededForOtherGiveaways from store instead of props
-const galaNeededForOtherGiveaways = computed(() => {
-    if (!giveawayTokenBalances.value) return new BigNumber(0);
-    return new BigNumber(giveawayTokenBalances.value.galaNeededForOtherGiveaways || '0');
-});
 
 // Check if the token is GALA
 const isGalaToken = computed(() => {
@@ -156,15 +150,11 @@ const isGalaToken = computed(() => {
         token.additionalKey === GALA.additionalKey;
 });
 
-// Calculate the actual gas fee amount needed (total - already accounted for)
-const actualGasFeeNeeded = computed(() => {
-    return gasFeeAmount.value || new BigNumber(0);
-});
 
 // Total required amount including gas fees if token is GALA
 const totalRequiredAmount = computed(() => {
     if (isGalaToken.value && props.includeGasFees && checkType.value === GiveawayTokenType.BALANCE) {
-        return requiredAmount.value?.plus(actualGasFeeNeeded.value) || new BigNumber(0);
+        return requiredAmount.value?.plus(requiredGas.value) || new BigNumber(0);
     }
     return requiredAmount.value || new BigNumber(0);
 });
@@ -183,6 +173,7 @@ const metadataMap = computed(() => {
 });
 
 const getTokenImage = () => {
+    console.log("hit hereeeeeeeeeeeeeeeeeeeeeeee")
     if (isGalaToken.value) return galaTokenImage;
 
     if (!giveawaySettings.value.giveawayToken) return '';
@@ -211,25 +202,28 @@ const getMissingAmount = () => {
     return BigNumber.max(0, totalRequiredAmount.value.minus(currentAmount.value));
 };
 
-watch(isRequirementMet, (newValue) => {
-    if (newValue) {
-        emit('requirement-met');
-    }
-});
+// watch(isRequirementMet, (newValue) => {
+//     if (newValue) {
+//         emit('requirement-met');
+//     }
+// });
 
-onMounted(() => {
-    if (isRequirementMet.value) {
-        emit('requirement-met');
-    }
-});
+// onMounted(() => {
+//     if (isRequirementMet.value) {
+//         emit('requirement-met');
+//     }
+// });
 
 const tokenSymbol = computed(() => {
     if (isGalaToken.value) return 'GALA';
 
     const token = giveawaySettings.value.giveawayToken;
     if (token) {
+        if (token.collection === "Token") {
+            return token.type;
+        }
         // Use collection name if symbol is not available
-        return token.collection?.substring(0, 4) || 'Token';
+        return token.collection || 'Token';
     }
     return 'Select token';
 });
@@ -276,7 +270,7 @@ async function performAction() {
                 showToast('Token transferred!');
                 emit('requirement-met');
 
-                // Add this line to force a refresh of the component data
+                // Already correctly using profile store
                 await profileStore.refreshGiveawayTokenBalances(giveawaySettings.value.giveawayToken);
 
                 // Optional: emit an event to inform parent component to update the currentAmount prop
