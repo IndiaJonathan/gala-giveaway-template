@@ -55,8 +55,8 @@ export const useCreateGiveawayStore = defineStore('createGiveaway', () => {
   function getPrizePool(giveaway: GiveawaySettingsDto): BigNumber | undefined {
     console.log('Calculating required amount for giveaway:', giveaway)
     if (giveaway.giveawayType === 'DistributedGiveaway') {
-      if (giveaway.tokenQuantity !== undefined) {
-        return new BigNumber(giveaway.tokenQuantity).multipliedBy(giveaway.maxWinners || 1)
+      if (giveaway.winPerUser !== undefined) {
+        return new BigNumber(giveaway.winPerUser).multipliedBy(giveaway.maxWinners || 1)
       } else {
         return undefined
       }
@@ -67,6 +67,7 @@ export const useCreateGiveawayStore = defineStore('createGiveaway', () => {
 
   //Helper function to get amount required for an FCFS giveaway (or undefined if something is wrong)
   function getPrizePoolFCFS(giveaway: GiveawaySettingsDto) {
+    console.log('Calculating required amount for FCFS giveaway:', giveaway)
     if (
       giveaway.giveawayType === 'FirstComeFirstServe' &&
       giveaway.maxWinners &&
@@ -108,6 +109,7 @@ export const useCreateGiveawayStore = defineStore('createGiveaway', () => {
         giveawaySettings.value as any
       )
 
+      console.log('gasEstimates', gasEstimates)
       // Update gas fee values from API response
       requiredGas.value = new BigNumber(gasEstimates.requiredGas || 0)
       escrowGas.value = new BigNumber(gasEstimates.escrowGas || 0)
@@ -136,6 +138,7 @@ export const useCreateGiveawayStore = defineStore('createGiveaway', () => {
    * @returns BigNumber representing the required GALA tokens for gas
    */
   function estimateGalaFees() {
+    console.log('estimateGalaFees', requiredGas.value)
     return requiredGas.value
   }
 

@@ -3,8 +3,10 @@
 
 
         <p style="margin-bottom: 32px;" class="explanatory-text">
-            <strong>First Come, First Served:</strong> Participants can claim tokens immediately until the supply is depleted.<br><br>
-            <strong>Raffle:</strong> All participants enter a drawing where winners are randomly selected to receive tokens (selection is made with replacement).
+            <strong>First Come, First Served:</strong> Participants can claim tokens immediately until the supply is
+            depleted.<br><br>
+            <strong>Raffle:</strong> All participants enter a drawing where winners are randomly selected to receive
+            tokens (selection is made with replacement).
         </p>
 
         <ToggleSwitch v-model:selected="selectedVal" style="margin-bottom: 32px; width: 100%;" :options="[{ key: 'FirstComeFirstServe', label: '1st come, 1st served' },
@@ -17,7 +19,7 @@
                     <span class="subtitle">$TOKEN BALANCE</span>
                     <span class="paragraph-small-regular">{{ formatNumber(new
                         BigNumber(giveawaySettings.giveawayToken.quantity))
-                        }}</span>
+                    }}</span>
                 </div>
                 <div class="info-item">
                     <span class="subtlitle">$TOKEN PRIZE POOL</span>
@@ -25,7 +27,7 @@
                 </div>
                 <div class="info-item">
                     <span class="subtitle">EST. $GALA GAS FEE</span>
-                    <span class="paragraph-small-regular">{{ estimatedGasFee }}</span>
+                    <span class="paragraph-small-regular">{{ gasForGiveaway }}</span>
                 </div>
             </div>
         </div>
@@ -58,7 +60,7 @@ const emit = defineEmits(['is-valid']);
 
 
 const giveawayStore = useCreateGiveawayStore();
-const { giveawaySettings } = storeToRefs(giveawayStore)
+const { giveawaySettings, gasForGiveaway } = storeToRefs(giveawayStore)
 
 
 const selectedVal = computed({
@@ -112,7 +114,6 @@ watch(totalWinners, (newVal, oldVal) => {
 
 watch([totalWinners, prizePerWinner, selectedVal], async () => {
     if (giveawaySettings.value.giveawayTokenType && giveawaySettings.value.giveawayToken && giveawaySettings.value.giveawayType && totalWinners.value) {
-        estimatedGasFee.value =  giveawayStore.estimateGalaFees()
     }
 })
 

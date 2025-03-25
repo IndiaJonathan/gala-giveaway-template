@@ -74,7 +74,7 @@ const { showToast } = useToast();
 const actualRequiredGasFees = computed(() => {
     const totalGasFees = estimatedGalaFees.value;
     const currentGalaFeesNeeded = BigNumber(giveawayTokenBalances.value?.galaNeededForOtherGiveaways || 0);
-    return BigNumber.max(0, totalGasFees.minus(currentGalaFeesNeeded));
+    return BigNumber.max(0, totalGasFees.plus(currentGalaFeesNeeded).minus(giveawayTokenBalances.value?.galaBalance || 0));
 });
 
 const missingGasBalance = computed(() => {

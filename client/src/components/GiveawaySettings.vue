@@ -232,10 +232,10 @@ const giveawayStore = useCreateGiveawayStore()
 const requiredAmount = computed(() => {
   switch (props.giveawaySettings.giveawayType) {
     case 'DistributedGiveaway':
-      if (!props.giveawaySettings.tokenQuantity) {
+      if (!props.giveawaySettings.winPerUser) {
         return null;
       }
-      return BigNumber(props.giveawaySettings.tokenQuantity);
+      return BigNumber(props.giveawaySettings.winPerUser);
     case 'FirstComeFirstServe':
       return giveawayStore.getPrizePoolFCFS(props.giveawaySettings);
   }

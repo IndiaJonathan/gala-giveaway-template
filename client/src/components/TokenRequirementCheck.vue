@@ -4,7 +4,7 @@
         :tokenImage="getTokenImage()" :tokenSymbol="tokenSymbol" :showStatusIndicator="isBalanceDeficient"
         statusText="MISSING BALANCE"
         :actionButtonText="checkType === GiveawayTokenType.ALLOWANCE ? 'Grant Allowance' : 'Transfer Tokens'"
-        :actionDisabled="checkType === GiveawayTokenType.BALANCE ? !hasMissingBalance : false"
+        :actionDisabled="checkType === GiveawayTokenType.BALANCE ? !hasMissingBalance : isAllowanceRequirementMet"
         @action-click="performAction">
         <template #content>
             <!-- Allowance UI -->
@@ -14,7 +14,7 @@
                         allocated to the giveaway wallet.
                     </p>
 
-                    <div v-if="isRequirementMet" class="success-alert mb-4">
+                    <div v-if="isAllowanceRequirementMet" class="success-alert mb-4">
                         You have sufficient allowance to start the giveaway.
                     </div>
                     <div v-else class="text-muted mb-4">
@@ -156,6 +156,9 @@ const totalRequiredAmount = computed(() => {
     if (isGalaToken.value && props.includeGasFees && checkType.value === GiveawayTokenType.BALANCE) {
         return requiredAmount.value?.plus(requiredGas.value) || new BigNumber(0);
     }
+    if (checkType.value === GiveawayTokenType.ALLOWANCE) {
+        return requiredAmount.value || new BigNumber(0);
+    }
     return requiredAmount.value || new BigNumber(0);
 });
 
@@ -173,7 +176,6 @@ const metadataMap = computed(() => {
 });
 
 const getTokenImage = () => {
-    console.log("hit hereeeeeeeeeeeeeeeeeeeeeeee")
     if (isGalaToken.value) return galaTokenImage;
 
     if (!giveawaySettings.value.giveawayToken) return '';
@@ -186,12 +188,12 @@ const getTokenImage = () => {
     }
 };
 
-const isRequirementMet = computed(() => {
+const isAllowanceRequirementMet = computed(() => {
     return currentAmount.value.gte(totalRequiredAmount.value);
 });
 
 const isBalanceDeficient = computed(() => {
-    return !isRequirementMet.value;
+    return !isAllowanceRequirementMet.value;
 });
 
 const hasMissingBalance = computed(() => {
