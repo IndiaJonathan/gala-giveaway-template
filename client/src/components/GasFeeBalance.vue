@@ -13,7 +13,7 @@
             <div class="balance-info">
                 <div class="balance-item">
                     <div class="balance-label">REQUIRED BALANCE</div>
-                    <div class="balance-value">{{ formatNumber(Number(actualRequiredGasFees)) }}</div>
+                    <div class="balance-value">{{ formatNumber(Number(totalRequiredGas)) }}</div>
                 </div>
                 <div class="balance-item">
                     <div class="balance-label">YOUR BALANCE</div>
@@ -71,14 +71,13 @@ const { profile, giveawayTokenBalances } = storeToRefs(profileStore);
 const { showToast } = useToast();
 
 // Calculate actual required gas fees by considering already accounted for fees
-const actualRequiredGasFees = computed(() => {
+const totalRequiredGas = computed(() => {
     const totalGasFees = estimatedGalaFees.value;
-    const currentGalaFeesNeeded = BigNumber(giveawayTokenBalances.value?.galaNeededForOtherGiveaways || 0);
-    return BigNumber.max(0, totalGasFees.plus(currentGalaFeesNeeded).minus(giveawayTokenBalances.value?.galaBalance || 0));
+    return totalGasFees.plus(giveawayTokenBalances.value?.galaNeededForOtherGiveaways || 0);
 });
 
 const missingGasBalance = computed(() => {
-    return BigNumber.max(0, actualRequiredGasFees.value.minus(giveawayTokenBalances.value?.galaBalance || 0));
+    return BigNumber.max(0, totalRequiredGas.value.minus(giveawayTokenBalances.value?.galaBalance || 0));
 });
 
 const hasMissingGasBalance = computed(() => missingGasBalance.value.gt(0));

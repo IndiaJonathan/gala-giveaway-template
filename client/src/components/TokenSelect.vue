@@ -15,7 +15,7 @@
             <div v-else-if="balances.length === 0">
                 <p>No current balances</p>
             </div>
-            <div v-else v-for="(token, index) in balances" :key="index" class="token-item clickable"
+            <div v-else v-for="(token, index) in balances.filter(token => token.quantity.gt(0))" :key="index" class="token-item clickable"
                 :class="{ selected: isTokenBalanceSelected(token) }"
                 @click="() => handleTokenClick(token)">
                 <img v-if="getImage(token)" class="token-icon" :src="getImage(token)" alt="token icon" />

@@ -125,11 +125,32 @@ const linkWallets = async () => {
   }
 
   await connect()
-  const signedData = await profileStore.sign('Link GalaChain and Telegram', {
+
+  //Metamask signing seems to have issues with complex objects, so we're just sending data individually
+
+  // Build the data object with required fields
+  const dataToSign: Record<string, any> = {
     'GalaChain Address': connectedUserGCAddress.value,
-    //Metamask signing seems to have issues with complex objects, so we're just sending the data as a string
-    'Telegram User': JSON.stringify(tempTelegramUser.value),
-  }) 
+    'Telegram User ID': tempTelegramUser.value.id,
+    'Telegram First Name': tempTelegramUser.value.first_name,
+    'Telegram Auth Date': tempTelegramUser.value.auth_date,
+    'Telegram Hash': tempTelegramUser.value.hash
+  }
+
+  // Only add optional fields if they exist
+  if (tempTelegramUser.value.last_name) {
+    dataToSign['Telegram Last Name'] = tempTelegramUser.value.last_name
+  }
+
+  if (tempTelegramUser.value.username) {
+    dataToSign['Telegram Username'] = tempTelegramUser.value.username
+  }
+
+  if (tempTelegramUser.value.photo_url) {
+    dataToSign['Telegram Photo URL'] = tempTelegramUser.value.photo_url
+  }
+
+  const signedData = await profileStore.sign('Link GalaChain and Telegram', dataToSign)
 
   console.log('Linking wallets:', signedData)
 
