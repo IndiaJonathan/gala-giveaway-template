@@ -1,27 +1,47 @@
 <template>
   <v-container>
-    <h1 class="text-center">Your Balances</h1>
-    <v-row class="justify-center">
-      <v-col cols="12" md="8">
-        <v-card class="pa-4">
-          <v-divider></v-divider>
-          <v-list v-if="data && data.length">
-            <v-list-item v-for="(item, index) in data" :key="index" class="my-4"
-              v-bind="clickable ? { onClick: () => handleClick(item, index) } : {}" @item-clicked=""
-              :class="{ 'selected-token': checkEquivalance(item, tokenClass) }">
+    <v-row>
+      <v-col cols="12">
+        <v-card class="mb-4">
+          <v-card-title class="text-h5 font-weight-bold">
+            Your Balances
+          </v-card-title>
+          <v-card-text>
+            <v-list v-if="balances && balances.userBalances && balances.userBalances.Data.filter(token => Number(token.quantity) > 0).length" class="token-list">
+              <TokenListItem
+                v-for="(token, index) in balances.userBalances.Data.filter(token => Number(token.quantity) > 0)"
+                :key="index"
+                :token-name="getTokenSymbol(token)"
+                :sub-text="`Balance: ${token.quantity}`"
+                :token-image="getImage(token)"
+                :is-selected="false"
+              />
+            </v-list>
+            <v-alert v-else type="info" color="primary" variant="tonal">
+              No tokens in your wallet
+            </v-alert>
+          </v-card-text>
+        </v-card>
 
-              <v-list-item-title class="text-h6">
-                Token: <strong>{{ tokenToReadable(item) }}</strong>
-              </v-list-item-title>
-              <v-list-item-subtitle>
-                <v-row>
-                  <v-col cols="6"> <strong>Owned:</strong> {{ (item as any).quantity }} </v-col>
-                </v-row>
-              </v-list-item-subtitle>
-              <v-divider style="margin-top: 10px;"></v-divider>
-            </v-list-item>
-          </v-list>
-          <v-alert v-else type="info" color="primary" dark> No tokens yet! </v-alert>
+        <v-card>
+          <v-card-title class="text-h5 font-weight-bold">
+            Giveaway Wallet Balances
+          </v-card-title>
+          <v-card-text>
+            <v-list v-if="balances && balances.giveawayWalletBalances && balances.giveawayWalletBalances.Data.filter(token => Number(token.quantity) > 0).length" class="token-list">
+              <TokenListItem
+                v-for="(token, index) in balances.giveawayWalletBalances.Data.filter(token => Number(token.quantity) > 0)"
+                :key="index"
+                :token-name="getTokenSymbol(token)"
+                :sub-text="`Balance: ${token.quantity}`"
+                :token-image="getImage(token)"
+                :is-selected="false"
+              />
+            </v-list>
+            <v-alert v-else type="info" color="primary" variant="tonal">
+              No tokens in giveaway wallet
+            </v-alert>
+          </v-card-text>
         </v-card>
       </v-col>
     </v-row>
@@ -29,46 +49,31 @@
 </template>
 
 <script lang="ts" setup>
-import { TokenBalance } from '@gala-chain/connect';
-import { tokenToReadable } from '@/utils/GalaHelper';
-import type { PropType } from 'vue';
+import { storeToRefs } from 'pinia';
+import { useProfileStore } from '@/stores/profile';
+import TokenListItem from '@/components/TokenListItem.vue';
+import { tokenToReadable, getTokenSymbol } from '@/utils/GalaHelper';
 import type { TokenClassKeyProperties } from '@gala-chain/api';
 
-const props = defineProps({
-  data: { type: Object as PropType<TokenBalance[]> },
-  clickable: {
-    type: Boolean, default: false, required: false
-  },
-  tokenClass: {
-    type: Object as PropType<TokenClassKeyProperties>,
-    required: false
-  },
-});
+const profileStore = useProfileStore();
+const { balances, metadata } = storeToRefs(profileStore);
 
-const emit = defineEmits<{
-  (e: 'item-clicked', item: TokenBalance): void
-}>()
-
-const handleClick = (item: TokenBalance, index: number) => {
-  emit('item-clicked', item);
+const getImage = (token: TokenClassKeyProperties) => {
+  if (!metadata.value) return '';
+  
+  const tokenClass = metadata.value.find(meta => 
+    meta.collection === token.collection && 
+    meta.category === token.category && 
+    meta.type === token.type);
+  
+  return tokenClass ? tokenClass.image || '' : '';
 };
-
-function checkEquivalance(item1: TokenBalance, item2?: TokenClassKeyProperties) {
-  return item2 && item1.additionalKey === item2.additionalKey && item1.category === item2.category && item1.collection === item2.collection && item1.type === item2.type
-}
 </script>
 
 <style scoped>
-.v-card-title {
-  font-size: 1.5em;
-  font-weight: bold;
-}
 
-.v-list-item-title {
-  font-weight: bold;
-}
 
-.selected-token {
-  border: 2px solid #09f211;
+.token-list {
+  padding: 0;
 }
 </style>

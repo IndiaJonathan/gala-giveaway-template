@@ -15,24 +15,16 @@
             <div v-else-if="balances.length === 0">
                 <p>No current balances</p>
             </div>
-            <div v-else v-for="(token, index) in balances.filter(token => token.quantity.gt(0))" :key="index" class="token-item clickable"
-                :class="{ selected: isTokenBalanceSelected(token) }"
-                @click="() => handleTokenClick(token)">
-                <img v-if="getImage(token)" class="token-icon" :src="getImage(token)" alt="token icon" />
-                <div v-else class="token-icon-circle"></div>
-
-                <div class="token-details">
-                    <div class="token-name paragraph-medium-regular">{{ getTokenSymbol(token) }}</div>
-                    <div class="token-balance paragraph-small-bold">Balance: {{ token.quantity }}</div>
-                </div>
-
-                <div v-if="isTokenBalanceSelected(token)">
-                    <img src="@/assets/radio-checked.png" alt="Chevron Icon" class="icon" />
-                </div>
-                <div v-else>
-                    <img src="@/assets/radio-unchecked.png" alt="Chevron Icon" class="icon" />
-                </div>
-            </div>
+            <TokenListItem
+                v-else
+                v-for="(token, index) in balances.availableBalances.filter(token => new BigNumber(token.quantity).gt(0))"
+                :key="index"
+                :token-image="getImage(token)"
+                :token-name="getTokenSymbol(token)"
+                :sub-text="`Balance: ${token.quantity}`"
+                :is-selected="isTokenBalanceSelected(token)"
+                @click="() => handleTokenClick(token)"
+            />
         </div>
 
         <!-- Created Tokens -->
@@ -47,24 +39,16 @@
                         Connect</a>
                 </v-alert>
             </div>
-            <div v-else v-for="(transaction, index) in createdTokens" :key="index" class="token-item clickable"
-                :class="{ selected: isTransactionSelected(transaction) }"
-                @click="() => handleCreatedTokenClick(transaction)">
-                <img v-if="transaction.tokenDetails.image" class="token-icon" :src="transaction.tokenDetails.image" alt="token icon" />
-                <div v-else class="token-icon-circle"></div>
-
-                <div class="token-details">
-                    <div class="token-name paragraph-medium-regular">{{ transaction.tokenDetails.name || transaction.tokenDetails.tokenClass.collection }}</div>
-                    <div class="token-balance paragraph-small-bold">Symbol: {{ transaction.tokenDetails.symbol }}</div>
-                </div>
-
-                <div v-if="isTransactionSelected(transaction)">
-                    <img src="@/assets/radio-checked.png" alt="Chevron Icon" class="icon" />
-                </div>
-                <div v-else>
-                    <img src="@/assets/radio-unchecked.png" alt="Chevron Icon" class="icon" />
-                </div>
-            </div>
+            <TokenListItem
+                v-else
+                v-for="(transaction, index) in createdTokens"
+                :key="index"
+                :token-image="transaction.tokenDetails.image"
+                :token-name="transaction.tokenDetails.name || transaction.tokenDetails.tokenClass.collection"
+                :sub-text="`Symbol: ${transaction.tokenDetails.symbol}`"
+                :is-selected="isTransactionSelected(transaction)"
+                @click="() => handleCreatedTokenClick(transaction)"
+            />
         </div>
     </div>
 </template>
@@ -72,6 +56,7 @@
 <script lang="ts" setup>
 import { computed, nextTick, type PropType, type Ref, ref, watch } from 'vue';
 import ToggleSwitch from './ToggleSwitch.vue';
+import TokenListItem from './TokenListItem.vue';
 import { tokenToReadable, checkTokenEquivalancy, getTokenSymbol } from '@/utils/GalaHelper';
 import type { TokenAllowance, TokenBalance, TokenClass } from '@gala-chain/connect';
 import type { TokenClassKeyProperties } from '@gala-chain/api';
@@ -218,61 +203,5 @@ defineExpose({ isValid });
 
 .required {
     color: red;
-}
-
-.token-item {
-    display: flex;
-    align-items: center;
-    background-color: #181818;
-    padding: 16px;
-    border-radius: 12px;
-    width: 100%;
-    transition: background-color 0.3s ease;
-}
-
-.token-item.clickable {
-    cursor: pointer;
-}
-
-.token-item:hover {
-    background-color: #1f1f1f;
-}
-
-.token-item.selected {
-    border: none;
-
-    box-shadow: inset 0 0 0 1px #ffffff;
-}
-
-.token-icon {
-    width: 40px;
-    /* Adjust the size of the icon */
-    height: 40px;
-    margin-right: 16px;
-}
-
-.token-icon-circle {
-    width: 40px;
-    /* Circle size */
-    height: 40px;
-    border-radius: 50%;
-    background-color: #333333;
-    /* Color of the circle */
-    margin-right: 16px;
-}
-
-.token-details {
-    display: flex;
-    flex-direction: column;
-    flex-grow: 1;
-}
-
-.token-name {
-    color: white;
-}
-
-.token-balance {
-    color: #9E9E9E;
-    margin-top: 4px;
 }
 </style>

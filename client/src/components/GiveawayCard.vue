@@ -3,6 +3,18 @@
     <!-- Main image container -->
     <div class="position-relative">
       <v-img :src="giveaway.image || GiveawayPlaceholderJPG" height="358px" cover class="giveaway-image">
+        <!-- Burn requirement badge -->
+        <div v-if="giveaway.requireBurnTokenToClaim" class="burn-badge-container">
+          <v-chip
+            color="warning"
+            class="burn-badge"
+            label
+          >
+            <v-icon start size="small">mdi-fire</v-icon>
+            {{ giveaway.burnTokenQuantity }} {{ getTokenSymbol(giveaway.burnToken) }} burn required
+          </v-chip>
+        </div>
+
         <!-- Available in overlay -->
         <div v-if="isUpcoming" class="available-overlay d-flex flex-column align-center justify-center">
           <div class="text-subtitle-1 text-center mb-2">Available in</div>
@@ -80,9 +92,11 @@
     <!-- Card footer with information and claim button -->
     <div class="giveaway-footer">
       <div class="title-container">
-        <div class="giveaway-title">
-          {{ isToken ? `${getTokenAmount()} ${getTokenSymbol(giveaway.giveawayToken)} prize` : `${getTokenAmount()}
-          $${getTokenSymbol(giveaway.giveawayToken)} Claim Per User` }}
+        <div class="giveaway-title-row">
+          <div class="giveaway-title">
+            {{ isToken ? `${getTokenAmount()} ${getTokenSymbol(giveaway.giveawayToken)} prize` : `${getTokenAmount()}
+            $${getTokenSymbol(giveaway.giveawayToken)} Claim Per User` }}
+          </div>
         </div>
         <div class="giveaway-subtitle">
           {{ footerSubtitle }}
@@ -182,10 +196,12 @@ const handleClaimClick = async () => {
     if (isDistributedGiveaway.value) {
       console.log('Sign up clicked for raffle giveaway:', giveaway._id)
       // Use the profile store to sign a payload for the giveaway signup
-      const payload = {
+      let payload:any = {
         giveawayId: giveaway._id,
         uniqueKey: 'giveaway-signup-' + giveaway._id + Date.now().toString()
       }
+
+
       const signedPayload = await profileStore.sign("Signup for Giveaway", payload);
       const success = await signupForGiveaway(signedPayload);
       if (success) {
@@ -198,11 +214,22 @@ const handleClaimClick = async () => {
         showToast('Failed to sign up for the giveaway.', true);
       }
     } else {
-      console.log('Claim clicked for giveaway:', giveaway._id)
-      // Implement claim logic here
-      const payload = {
+    //FCFS
+      const payload:any  = {
         giveawayId: giveaway._id,
         uniqueKey: 'giveaway-claim-' + giveaway._id + Date.now().toString()
+      }
+            if (giveaway.requireBurnTokenToClaim && giveaway.burnToken && giveaway.burnTokenQuantity) {
+        payload.tokenInstances = [{
+          quantity: giveaway.burnTokenQuantity,
+          tokenInstanceKey: {
+            collection: giveaway.burnToken.collection,
+            category: giveaway.burnToken.category,
+            type: giveaway.burnToken.type,
+            additionalKey: giveaway.burnToken.additionalKey,
+            instance: '0'
+          }
+        }]
       }
       const signedPayload = await profileStore.sign("Claim Giveaway", payload);
       const success = await requestClaimFCFS(signedPayload);
@@ -210,13 +237,12 @@ const handleClaimClick = async () => {
         await profileStore.fetchProfile();
         // Emit an event so parent components can reload giveaways
         emit('signup-success');
-        // The UI will update automatically when the profile is refreshed
         showToast('Successfully claimed the giveaway!');
       }
     }
   } catch (error: any) {
     console.error('Error in handleClaimClick:', error);
-    const errorMessage = error.message || 'Unknown error occurred';
+    const errorMessage = error.message||  error|| 'Unknown error occurred';
     showToast(errorMessage || 'Failed to process giveaway action. Error: Unknown error occurred', true);
   }
 
@@ -411,6 +437,12 @@ const hasEnded = computed(() => {
   overflow: visible;
 }
 
+.giveaway-title-row {
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
 .giveaway-title {
   font-family: 'Figtree', sans-serif;
   font-style: normal;
@@ -494,5 +526,28 @@ const hasEnded = computed(() => {
 
 :deep(.web3-button span) {
   color: #0A0A0A !important;
+}
+
+.burn-badge-container {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 3;
+}
+
+.burn-badge {
+  background: rgba(255, 152, 0, 0.9) !important;
+  color: white !important;
+  font-weight: 600;
+  padding: 0 12px;
+  height: 32px !important;
+  font-size: 12px;
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.burn-badge :deep(.v-icon) {
+  color: white !important;
+  margin-right: 4px;
 }
 </style>

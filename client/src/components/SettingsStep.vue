@@ -23,11 +23,14 @@
             :isOpen="!!giveawaySettings.requireBurnTokenToClaim">
             <div class="divider"></div>
 
-            <TokenSelect :justSelector="true" ref="tokenSelectRef" @is-valid="handleValidityChange" :balances="balances"
-                v-model:selected-token="giveawaySettings.giveawayToken" :created-tokens="createdTokens"
-                :metadata="metadata" :clickable="true"
-                style="width: 100%; margin-bottom: 40px; border: none; border-radius: 0px; padding: 0px">
-            </TokenSelect>
+            <BurnTokenSelector 
+                ref="tokenSelectRef"
+                :available-tokens="availableTokens"
+                v-model:selected-token="selectedBurnToken"
+                :metadata="metadataMap"
+                @token-selected="handleValidityChange"
+                style="width: 100%; margin-bottom: 40px; border: none; border-radius: 0px; padding: 0px"
+            />
         </Collapsible>
     </Collapsible>
 </template>
@@ -44,6 +47,9 @@ import { storeToRefs } from 'pinia';
 import StyledCheckmark from './inputs/StyledCheckmark.vue'
 import { useProfileStore } from '@/stores/profile';
 import TokenSelect from './TokenSelect.vue';
+import BurnTokenSelector from './BurnTokenSelector.vue';
+import { tokenToReadable } from '@/utils/GalaHelper';
+import type { TokenBalance, TokenClass, TokenAllowance } from '@gala-chain/connect';
 
 
 const emit = defineEmits(['is-valid']);
@@ -170,6 +176,83 @@ onMounted(() => {
     emit('is-valid', checkAllValid());
 });
 
+const metadataMap = computed(() => {
+    const map = new Map<string, TokenClass>();
+
+    if (metadata.value) {
+        metadata.value.forEach(metadata => {
+            const key = tokenToReadable(metadata);
+            map.set(key, metadata);
+        });
+    }
+    return map;
+});
+
+const availableTokens = computed(() => {
+    const tokens: TokenBalance[] = [];
+    
+    // Add balances
+    if (balances.value?.availableBalances) {
+        tokens.push(...balances.value.availableBalances);
+    }
+    
+    // Add allowances if they exist
+    const allowances = (balances.value as any)?.allowances as TokenAllowance[] | undefined;
+    if (allowances) {
+        // Convert allowances to token balances
+        const allowanceTokens = allowances.map(allowance => ({
+            owner: allowance.grantedTo,
+            collection: allowance.collection,
+            category: allowance.category,
+            type: allowance.type,
+            additionalKey: allowance.additionalKey,
+            quantity: allowance.quantity,
+            instanceIds: [] as BigNumber[],
+            lockedHolds: [],
+            inUseHolds: []
+        } as TokenBalance));
+        tokens.push(...allowanceTokens);
+    }
+    
+    // Remove duplicates by comparing collection, category, and type
+    return tokens.filter((token, index, self) => 
+        index === self.findIndex(t => 
+            t.collection === token.collection &&
+            t.category === token.category &&
+            t.type === token.type
+        )
+    );
+});
+
+const selectedBurnToken = computed({
+    get: () => {
+        if (!giveawaySettings.value.burnToken) return undefined;
+        
+        // Find the matching token from available tokens
+        return availableTokens.value.find(token => 
+            token.collection === giveawaySettings.value.burnToken?.collection &&
+            token.category === giveawaySettings.value.burnToken?.category &&
+            token.type === giveawaySettings.value.burnToken?.type &&
+            token.additionalKey === giveawaySettings.value.burnToken?.additionalKey
+        );
+    },
+    set: (token: TokenBalance | undefined) => {
+        if (!token) {
+            giveawayStore.updateSettings({ burnToken: undefined });
+            return;
+        }
+        
+        // Store only the necessary token identification fields
+        giveawayStore.updateSettings({
+            burnToken: {
+                collection: token.collection,
+                category: token.category,
+                type: token.type,
+                additionalKey: token.additionalKey
+            }
+        });
+    }
+});
 
 defineExpose({ isValid });
 </script>
