@@ -12,7 +12,7 @@
             <div v-if="!balances">
                 <v-progress-circular indeterminate></v-progress-circular>
             </div>
-            <div v-else-if="balances.length === 0">
+            <div v-else-if="balances.availableBalances.length === 0">
                 <p>No current balances</p>
             </div>
             <TokenListItem

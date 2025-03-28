@@ -13,11 +13,11 @@
 
         </Collapsible>
 
-        <div v-if="!giveawayTokenBalances" class="loading-container">
+        <div v-if="!balances" class="loading-container">
             <div class="loading-spinner"></div>
             <div class="loading-text">Loading balance information...</div>
         </div>
-        <TokenRequirementCheck v-else
+        <TokenRequirementCheck v-else ref="tokenRequirementCheck"
             :includeGasFees="isGalaToken && giveawaySettings.giveawayTokenType === GiveawayTokenType.BALANCE"
             @requirement-met="checkValidity" />
 
@@ -30,7 +30,7 @@
 <script lang="ts" setup>
 import { ref, watch, computed, onMounted, watchEffect } from 'vue';
 import Collapsible from './Collapsible.vue';
-import { formatNumber, isErrorWithMessage } from '@/utils/Helpers';
+import { findTokenInArray, formatNumber, isErrorWithMessage } from '@/utils/Helpers';
 import { useCreateGiveawayStore } from '@/stores/createGiveaway';
 import { storeToRefs } from 'pinia';
 import { useProfileStore } from '@/stores/profile';
@@ -47,10 +47,12 @@ import { GiveawayTokenType } from '@/utils/types';
 
 const emit = defineEmits(['is-valid']);
 
+const tokenRequirementCheck = ref<InstanceType<typeof TokenRequirementCheck> | null>(null);
+
 const giveawayStore = useCreateGiveawayStore();
-const { giveawaySettings, requiredTokenAmount } = storeToRefs(giveawayStore);
+const { giveawaySettings, requiredTokenAmount,requiredGas } = storeToRefs(giveawayStore);
 const profileStore = useProfileStore();
-const { profile, balances, connectedEthAddress, giveawayTokenBalances } = storeToRefs(profileStore);
+const { profile, balances, connectedEthAddress } = storeToRefs(profileStore);
 const { showToast } = useToast();
 
 // Get wallet address from profile store
@@ -79,39 +81,20 @@ const tokenSymbol = computed(() => {
     return 'Select token';
 });
 
-// Calculate required balance based on giveaway settings
-
-// Check if all requirements are met
+// Use TokenRequirementCheck's isValid property instead of our own implementation
 const isValid = computed(() => {
-    // Valid if the required amount is zero or if we have enough allowance/balance
-    if (requiredTokenAmount.value.isZero() &&
-        (giveawaySettings.value.giveawayTokenType === 'Allowance' ||
-            giveawaySettings.value.giveawayTokenType === 'Balance')) {
-        return true;
-    }
-
-    // For allowance type, check if we have enough allowance
-    if (giveawaySettings.value.giveawayTokenType === GiveawayTokenType.ALLOWANCE) {
-        return BigNumber(giveawayTokenBalances.value?.allowances || 0).gte(requiredTokenAmount.value);
-    }
-
-    // For balance type, check if we have enough balance
-    if (giveawaySettings.value.giveawayTokenType === 'Balance') {
-        let requiredTotal = requiredTokenAmount.value;
-
-        // If token is GALA and using Balance, include gas fees in the requirement
-        if (isGalaToken.value) {
-            // Use actual gas fee needed by subtracting fees already accounted for
-            const currentGalaFeesNeeded = BigNumber(giveawayTokenBalances.value?.galaNeededForOtherGiveaways || 0);
-            const totalGasFees = giveawayStore.estimateGalaFees();
-            const actualGasFeeNeeded = BigNumber.max(0, totalGasFees.minus(currentGalaFeesNeeded));
-            requiredTotal = requiredTotal.plus(actualGasFeeNeeded);
+    // If tokenRequirementCheck is not available or if required amount is zero, handle it ourselves
+    if (!tokenRequirementCheck.value || requiredTokenAmount.value.isZero()) {
+        if (requiredTokenAmount.value.isZero() &&
+            (giveawaySettings.value.giveawayTokenType === 'Allowance' ||
+                giveawaySettings.value.giveawayTokenType === 'Balance')) {
+            return true;
         }
-
-        return BigNumber(giveawayTokenBalances.value?.tokenBalance || 0).gte(requiredTotal);
+        return false;
     }
-
-    return false;
+    
+    // Otherwise use TokenRequirementCheck's isValid
+    return tokenRequirementCheck.value.isValid;
 });
 
 // Check gas fee requirement
@@ -122,14 +105,12 @@ const gasFeesValid = computed(() => {
     }
 
     // Estimate required gas fees, accounting for fees already covered
-    const totalGasFees = giveawayStore.estimateGalaFees();
-    console.log('totalGasFees', totalGasFees);
-    const currentGalaFeesNeeded = BigNumber(giveawayTokenBalances.value?.galaNeededForOtherGiveaways || 0);
-    const actualGasFeeNeeded = BigNumber.max(0, totalGasFees.minus(currentGalaFeesNeeded));
+    const currentGalaFeesNeeded = BigNumber(findTokenInArray(balances.value?.giveawayWalletBalances?.Data, giveawaySettings.value.giveawayToken as any)?.quantity || 0);
+    const actualGasFeeNeeded = BigNumber.max(0, requiredGas.value.minus(currentGalaFeesNeeded));
 
     // Check if gas fee requirement is zero or we have enough balance
     return actualGasFeeNeeded.isZero() ||
-        BigNumber(giveawayTokenBalances.value?.galaBalance || 0).gte(actualGasFeeNeeded);
+        BigNumber(findTokenInArray(balances.value?.availableBalances, giveawaySettings.value.giveawayToken as any)?.quantity || 0).gte(actualGasFeeNeeded);
 });
 
 // Combined validation - both token and gas requirements must be met
@@ -148,24 +129,24 @@ watch([allRequirementsMet], (newValue) => {
 
 // Fetch allowance data when component is mounted
 onMounted(async () => {
-/**
-if (giveawaySettings.value.giveawayToken && profile.value?.galaChainAddress) {
-        try {
-            // Use the profile store to fetch allowances
-            await profileStore.refreshGiveawayTokenBalances(
-                {
-                    collection: giveawaySettings.value.giveawayToken?.collection,
-                    category: giveawaySettings.value.giveawayToken?.category,
-                    type: giveawaySettings.value.giveawayToken?.type,
-                    additionalKey: giveawaySettings.value.giveawayToken?.additionalKey
-                } as TokenClassKeyProperties
-            );
-        } catch (error) {
-            console.error('Error fetching allowances:', error);
+    /**
+    if (giveawaySettings.value.giveawayToken && profile.value?.galaChainAddress) {
+            try {
+                // Use the profile store to fetch allowances
+                await profileStore.refreshGiveawayTokenBalances(
+                    {
+                        collection: giveawaySettings.value.giveawayToken?.collection,
+                        category: giveawaySettings.value.giveawayToken?.category,
+                        type: giveawaySettings.value.giveawayToken?.type,
+                        additionalKey: giveawaySettings.value.giveawayToken?.additionalKey
+                    } as TokenClassKeyProperties
+                );
+            } catch (error) {
+                console.error('Error fetching allowances:', error);
+            }
         }
-    }
-
-*/
+    
+    */
 
     checkValidity();
 });

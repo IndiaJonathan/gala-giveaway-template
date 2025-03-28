@@ -1,7 +1,7 @@
 // stores/profile.ts
 
 import { defineStore, storeToRefs } from 'pinia'
-import { getProfile, getGiveawayTokensAvailable, getClaimableWins } from '@/services/BackendApi'
+import { getProfile, getClaimableWins, fetchBalances } from '@/services/BackendApi'
 import type { Profile, TokenBalances } from '@/utils/types'
 import {
   BrowserConnectClient,
@@ -18,12 +18,12 @@ import type { TokenClassKeyProperties } from '@gala-chain/api'
 import { getCreatedTokens, type Transaction } from '@/services/GalaSwapApi'
 import BigNumber from 'bignumber.js'
 import { useCreateGiveawayStore } from './createGiveaway'
+import type { BalanceResponseDto } from '@/dto/BalanceResponseDto'
 
 export const useProfileStore = defineStore('profile', () => {
   // State
   const profile = ref<Profile | null>(null)
   const createdTokens: Ref<Transaction[]> = ref([])
-  const giveawayTokenBalances = ref<TokenBalances | undefined>(undefined)
   const showLoginModal = ref(false)
   const claimableWins = ref<any[]>([])
   const isFetchingClaimableWins = ref(false)
@@ -58,7 +58,7 @@ export const useProfileStore = defineStore('profile', () => {
   }
   const connectedEthAddress: Ref<string | undefined> = ref()
   const connectedUserGCAddress: Ref<string | undefined> = ref(undefined)
-  const balances: Ref<TokenBalance[]> = ref([])
+  const balances: Ref<BalanceResponseDto | undefined> = ref(undefined)
   const metadata: Ref<TokenClass[]> = ref([])
   const isFetchingProfile = ref(false)
 
@@ -101,9 +101,8 @@ export const useProfileStore = defineStore('profile', () => {
     profile.value = null
     connectedEthAddress.value = undefined
     connectedUserGCAddress.value = undefined
-    balances.value = []
+    balances.value = undefined
     metadata.value = []
-    giveawayTokenBalances.value = undefined
     claimableWins.value = []
     isConnected.value = false
 
@@ -171,45 +170,82 @@ export const useProfileStore = defineStore('profile', () => {
       return
     }
     const tokenApi = new TokenApi(tokenContractUrl, browserClient.value)
-    if (forceRefresh || (!balances.value.length && connectedEthAddress)) {
-      balances.value = (
-        (await tokenApi.FetchBalances({ owner: connectedUserGCAddress.value })) as any
-      ).Data
-      console.log('loaded')
-    }
-  }
+    if (forceRefresh || (!balances.value && connectedEthAddress && connectedEthAddress.value)) {
+      const ethAddress = connectedEthAddress.value
+      if (ethAddress) {
+        try {
+          const response = await fetchBalances(ethAddress)
 
-  async function refreshGiveawayTokenBalances(tokenClassKey: TokenClassKeyProperties) {
-    if (!connectedUserGCAddress.value || !giveawaySettings.value.giveawayTokenType) {
-      return null
-    }
+          balances.value = response
+          // // Get balances from both sources
+          // const userBalancesArray = (response.userBalances?.Data || []).map((balance) => ({
+          //   ...balance,
+          //   // Convert string quantity to BigNumber
+          //   quantity: new BigNumber(balance.quantity)
+          // }))
 
-    try {
-      const response = await getGiveawayTokensAvailable(
-        tokenClassKey,
-        connectedUserGCAddress.value,
-        giveawaySettings.value.giveawayTokenType
-      )
-      
-      // Only update if the values are actually different
-      if (!giveawayTokenBalances.value || 
-          JSON.stringify(response) !== JSON.stringify(giveawayTokenBalances.value)) {
-        giveawayTokenBalances.value = response
+          // const giveawayBalancesArray = (response.giveawayWalletBalances?.Data || []).map(
+          //   (balance) => ({
+          //     ...balance,
+          //     // Convert string quantity to BigNumber
+          //     quantity: new BigNumber(balance.quantity)
+          //   })
+          // )
+          // const availableBalances = (response.availableBalances || []).map((balance) => ({
+          //   ...balance,
+          //   // Convert string quantity to BigNumber
+          //   quantity: new BigNumber(balance.quantity)
+          // }))
+
+          // // Combine both arrays of balances
+          // balances.value = {
+          //   availableBalances,
+          //   giveawayWalletBalances: giveawayBalancesArray,
+          //   userBalances: userBalancesArray,
+          //   requiredEscrow: response.requiredEscrow,
+          //   escrowAllowances: response.escrowAllowances,
+          // balances.value = [...availableBalances]
+
+          console.log('loaded balances', balances.value)
+        } catch (err) {
+          console.error('Error fetching balances:', err)
+          error.value = err as Error
+        }
       }
-      
-      return response
-    } catch (err) {
-      console.error('Error fetching wallet allowances:', err)
-      error.value = err as Error
-      return null
     }
   }
+
+  // async function refreshGiveawayTokenBalances(tokenClassKey: TokenClassKeyProperties) {
+  //   if (!connectedUserGCAddress.value || !giveawaySettings.value.giveawayTokenType) {
+  //     return null
+  //   }
+
+  //   try {
+  //     const response = await getGiveawayTokensAvailable(
+  //       tokenClassKey,
+  //       connectedUserGCAddress.value,
+  //       giveawaySettings.value.giveawayTokenType
+  //     )
+
+  //     // Only update if the values are actually different
+  //     if (!giveawayTokenBalances.value ||
+  //         JSON.stringify(response) !== JSON.stringify(giveawayTokenBalances.value)) {
+  //       giveawayTokenBalances.value = response
+  //     }
+
+  //     return response
+  //   } catch (err) {
+  //     console.error('Error fetching wallet allowances:', err)
+  //     error.value = err as Error
+  //     return null
+  //   }
+  // }
 
   function getTokenClasses() {
     let classes: TokenClassKeyProperties[] = []
     if (balances.value) {
       classes = classes.concat(
-        balances.value.map((balance) => ({
+        balances.value.availableBalances.map((balance) => ({
           additionalKey: balance.additionalKey,
           collection: balance.collection,
           category: balance.category,
@@ -261,10 +297,10 @@ export const useProfileStore = defineStore('profile', () => {
     }
   }
 
-  watch(giveawaySettings, async () => {
-    if (!giveawaySettings.value.giveawayToken) return
-    await refreshGiveawayTokenBalances(giveawaySettings.value.giveawayToken)
-  })
+  // watch(giveawaySettings, async () => {
+  //   if (!giveawaySettings.value.giveawayToken) return
+  //   await refreshGiveawayTokenBalances(giveawaySettings.value.giveawayToken)
+  // })
 
   watch(connectedUserGCAddress, async () => {
     if (!connectedUserGCAddress.value) return
@@ -279,9 +315,9 @@ export const useProfileStore = defineStore('profile', () => {
     connectedEthAddress.value = newAddress
     if (connectedEthAddress.value && connectedEthAddress.value != '') {
       await fetchProfile()
-      if (giveawaySettings.value?.giveawayToken) {
-        await refreshGiveawayTokenBalances(giveawaySettings.value.giveawayToken)
-      }
+      // if (giveawaySettings.value?.giveawayToken) {
+      //   await refreshGiveawayTokenBalances(giveawaySettings.value.giveawayToken)
+      // }
     }
   }
 
@@ -316,7 +352,6 @@ export const useProfileStore = defineStore('profile', () => {
     isFetchingProfile,
     metadata,
     createdTokens,
-    giveawayTokenBalances,
     showLoginModal,
     claimableWins,
     isFetchingClaimableWins,
@@ -325,7 +360,7 @@ export const useProfileStore = defineStore('profile', () => {
     connect,
     sign,
     getBalances,
-    refreshGiveawayTokenBalances,
+    // refreshGiveawayTokenBalances,
     setShowLoginModal,
     fetchClaimableWins,
     setTelegramUserLinked,

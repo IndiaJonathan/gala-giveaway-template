@@ -19,7 +19,7 @@
                     <span class="subtitle">$TOKEN BALANCE</span>
                     <span class="paragraph-small-regular">{{ formatNumber(new
                         BigNumber(giveawaySettings.giveawayToken.quantity))
-                    }}</span>
+                        }}</span>
                 </div>
                 <div class="info-item">
                     <span class="subtlitle">$TOKEN PRIZE POOL</span>
@@ -27,7 +27,7 @@
                 </div>
                 <div class="info-item">
                     <span class="subtitle">EST. $GALA GAS FEE</span>
-                    <span class="paragraph-small-regular">{{ gasForGiveaway }}</span>
+                    <span class="paragraph-small-regular">{{ requiredGas }}</span>
                 </div>
             </div>
         </div>
@@ -60,7 +60,7 @@ const emit = defineEmits(['is-valid']);
 
 
 const giveawayStore = useCreateGiveawayStore();
-const { giveawaySettings, gasForGiveaway } = storeToRefs(giveawayStore)
+const { giveawaySettings, requiredGas } = storeToRefs(giveawayStore)
 
 
 const selectedVal = computed({
@@ -79,13 +79,12 @@ const selectedVal = computed({
 const totalWinners = computed({
     get: () => giveawaySettings.value.maxWinners ? new BigNumber(giveawaySettings.value.maxWinners) : undefined,
     set: (value) => {
-        giveawayStore.updateSettings({ maxWinners: value?.toString() });
+        giveawayStore.updateSettings({ maxWinners: value ? value.toString() : undefined });
     }
 });
 
 const totalTokenPrizePool = computed(() => prizePerWinner.value ? prizePerWinner.value.multipliedBy(totalWinners.value ||
     BigNumber(1)) : undefined)
-const estimatedGasFee: Ref<BigNumber | undefined> = ref()
 
 
 const prizePerWinner = computed({
@@ -99,7 +98,7 @@ const prizePerWinner = computed({
 });
 
 function calculateMaxPrize() {
-    return (giveawaySettings.value.giveawayToken?.quantity || BigNumber(0))
+    return new BigNumber(giveawaySettings.value.giveawayToken?.quantity || 0)
         .dividedToIntegerBy(totalWinners.value || BigNumber(1));
 }
 

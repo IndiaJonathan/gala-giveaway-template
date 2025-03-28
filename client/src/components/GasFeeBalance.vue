@@ -1,14 +1,7 @@
 <template>
-    <TokenActionPanel
-        title="Gas fee balance"
-        tokenSymbol="$GALA"
-        :tokenImage="galaTokenImage"
-        :showStatusIndicator="hasMissingGasBalance"
-        statusText="MISSING BALANCE"
-        actionButtonText="Transfer Token"
-        :actionDisabled="!hasMissingGasBalance || giveawayTokenBalances === undefined"
-        @action-click="transferToken"
-    >
+    <TokenActionPanel title="Gas fee balance" tokenSymbol="$GALA" :tokenImage="galaTokenImage"
+        :showStatusIndicator="hasMissingGasBalance" statusText="MISSING BALANCE" actionButtonText="Transfer Token"
+        :actionDisabled="!hasMissingGasBalance || balances === undefined" @action-click="transferToken">
         <template #content>
             <div class="balance-info">
                 <div class="balance-item">
@@ -16,31 +9,34 @@
                     <div class="balance-value">{{ formatNumber(Number(totalRequiredGas)) }}</div>
                 </div>
                 <div class="balance-item">
-                    <div class="balance-label">YOUR BALANCE</div>
-                    <div v-if="giveawayTokenBalances !== undefined" class="balance-value">
-                        {{ formatNumber(Number(giveawayTokenBalances.galaBalance || 0)) }}
+                    <div class="balance-label">YOUR NET ESCROW BALANCE</div>
+                    <div v-if="balances !== undefined" class="balance-value">
+                        {{ formatNumber(netEscrowBalance) }}
                     </div>
                     <div v-else class="loading-spinner"></div>
                 </div>
                 <div class="balance-item">
-                    <div class="balance-label">MISSING BALANCE</div>
-                    <div v-if="giveawayTokenBalances !== undefined" class="balance-value">
+                    <div class="balance-label">MISSING ESCROW BALANCE</div>
+                    <div v-if="missingGasBalance !== undefined" class="balance-value">
                         {{ formatNumber(Number(missingGasBalance)) }}
                     </div>
                     <div v-else class="loading-spinner"></div>
                 </div>
             </div>
-            <div v-if="BigNumber(giveawayTokenBalances?.galaNeededForOtherGiveaways || 0).gt(0)" class="fees-breakdown">
+            <div v-if="BigNumber(findTokenInArray(balances?.giveawayWalletBalances?.Data, GALA)?.quantity || 0).gt(0)"
+                class="fees-breakdown">
                 <div class="divider"></div>
                 <h3 class="breakdown-title">Fee Breakdown:</h3>
                 <div class="breakdown-grid">
                     <div class="breakdown-item">
                         <div class="breakdown-label">Total Gas Fees:</div>
-                        <div class="breakdown-value">{{ formatNumber(Number(estimatedGalaFees)) }}</div>
+                        <div class="breakdown-value">{{ formatNumber(Number(requiredGas)) }}</div>
                     </div>
                     <div class="breakdown-item">
                         <div class="breakdown-label">Already Accounted Fees:</div>
-                        <div class="breakdown-value">{{ formatNumber(Number(giveawayTokenBalances?.galaNeededForOtherGiveaways || 0)) }}</div>
+                        <div class="breakdown-value">{{
+                            formatNumber(Number(findTokenInArray(balances?.giveawayWalletBalances?.Data,
+                                giveawaySettings.giveawayToken as any)?.quantity || 0)) }}</div>
                     </div>
                 </div>
             </div>
@@ -53,7 +49,7 @@ import { computed, watch, onMounted, watchEffect } from 'vue';
 import { useToast } from '@/composables/useToast';
 import { GalaChainApi } from '@/services/GalaChainApi';
 import { BrowserConnectClient } from '@gala-chain/connect';
-import { isErrorWithMessage } from '@/utils/Helpers';
+import { isErrorWithMessage, findTokenInArray } from '@/utils/Helpers';
 import { useProfileStore } from '@/stores/profile';
 import { useCreateGiveawayStore } from '@/stores/createGiveaway';
 import { storeToRefs } from 'pinia';
@@ -66,25 +62,27 @@ import galaTokenImage from '@/assets/gala-token.png';
 
 const profileStore = useProfileStore();
 const giveawayStore = useCreateGiveawayStore();
-const { giveawaySettings } = storeToRefs(giveawayStore);
-const { profile, giveawayTokenBalances } = storeToRefs(profileStore);
+const { giveawaySettings, requiredGas } = storeToRefs(giveawayStore);
+const { profile, balances } = storeToRefs(profileStore);
 const { showToast } = useToast();
 
 // Calculate actual required gas fees by considering already accounted for fees
 const totalRequiredGas = computed(() => {
-    const totalGasFees = estimatedGalaFees.value;
-    return totalGasFees.plus(giveawayTokenBalances.value?.galaNeededForOtherGiveaways || 0);
+    const requiredGalaEscrowBalance = findTokenInArray(balances.value?.requiredEscrow.balanceEscrowRequirements, GALA)?.quantity || 0;
+
+    return requiredGas.value.plus(requiredGalaEscrowBalance);
+});
+
+const netEscrowBalance = computed(() => {
+    const giveawayWalletGalaBalance = new BigNumber(findTokenInArray(balances.value?.giveawayWalletBalances?.Data, GALA)?.quantity || 0);
+    return new BigNumber(giveawayWalletGalaBalance.minus(totalRequiredGas.value));
 });
 
 const missingGasBalance = computed(() => {
-    return BigNumber.max(0, totalRequiredGas.value.minus(giveawayTokenBalances.value?.galaBalance || 0));
+    return BigNumber.max(0, netEscrowBalance.value.multipliedBy(-1));
 });
 
 const hasMissingGasBalance = computed(() => missingGasBalance.value.gt(0));
-
-const estimatedGalaFees = computed(() => {
-    return giveawayStore.estimateGalaFees();
-});
 
 async function transferToken() {
     const browserClient = new BrowserConnectClient();
@@ -99,7 +97,7 @@ async function transferToken() {
 
     // Cache the missing balance value to avoid reactive dependency
     const missingBalanceAmount = missingGasBalance.value.toString();
-    
+
     await tokenService.init();
     try {
         const grant = await tokenService.transferToken(
@@ -110,10 +108,10 @@ async function transferToken() {
 
         if (grant.Status === 1) {
             showToast('Gas tokens transferred successfully!');
-            
+
             // Use a slight delay to avoid synchronous reactive update loops
             setTimeout(async () => {
-                await profileStore.refreshGiveawayTokenBalances(giveawaySettings.value.giveawayToken);
+                await profileStore.getBalances();
                 emit('token-transferred');
             }, 0);
         }

@@ -91,21 +91,21 @@ export class GalaChainApi {
     return result
   }
 
-  public async getBalances(gcAddress: string, tokenClassKey: TokenClassKeyProperties) {
-    if (!this.tokenClient) {
-      throw new Error("TokenService is not initialized. Call 'init()' first.")
-    }
-    const fetchBalanceDto = await createValidDTO<FetchBalancesDto>(FetchBalancesDto, {
-      collection: tokenClassKey.collection,
-      category: tokenClassKey.category,
-      type: tokenClassKey.type,
-      additionalKey: tokenClassKey.additionalKey,
-      instance: '0',
-      owner: gcAddress as any
-    } as any)
-    const response = await this.tokenClient.FetchBalances(fetchBalanceDto)
-    return response
-  }
+  // public async getBalances(gcAddress: string, tokenClassKey: TokenClassKeyProperties) {
+  //   if (!this.tokenClient) {
+  //     throw new Error("TokenService is not initialized. Call 'init()' first.")
+  //   }
+  //   const fetchBalanceDto = await createValidDTO<FetchBalancesDto>(FetchBalancesDto, {
+  //     collection: tokenClassKey.collection,
+  //     category: tokenClassKey.category,
+  //     type: tokenClassKey.type,
+  //     additionalKey: tokenClassKey.additionalKey,
+  //     instance: '0',
+  //     owner: gcAddress as any
+  //   } as any)
+  //   const response = await this.tokenClient.FetchBalances(fetchBalanceDto)
+  //   return response
+  // }
 
   public async grantAllowance(
     tokenClassDto: TokenClassKeyProperties,

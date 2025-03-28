@@ -56,7 +56,7 @@ const emit = defineEmits(['is-valid']);
 
 
 const giveawayStore = useCreateGiveawayStore();
-const { giveawaySettings } = storeToRefs(giveawayStore)
+const { giveawaySettings, requiredGas } = storeToRefs(giveawayStore)
 const profileStore = useProfileStore();
 const tokenSelectRef = ref();
 
@@ -140,12 +140,6 @@ watch(totalWinners, (newVal, oldVal) => {
     }
 });
 
-
-watch([totalWinners, prizePerWinner, selectedVal], async () => {
-    if (giveawaySettings.value.giveawayTokenType && giveawaySettings.value.giveawayToken && giveawaySettings.value.giveawayType && totalWinners.value) {
-        estimatedGasFee.value = giveawayStore.estimateGalaFees()
-    }
-})
 
 const isValid = computed(() => {
     // For prize-related validation (if needed in this step)

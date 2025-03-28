@@ -1,4 +1,4 @@
-import { ref, type Ref } from 'vue'
+import { computed, ref, type Ref } from 'vue'
 import { defineStore, storeToRefs } from 'pinia'
 import {
   GiveawayTokenType,
@@ -29,9 +29,9 @@ export const useCreateGiveawayStore = defineStore('createGiveaway', () => {
   })
 
   // Gas fee properties from API
-  const requiredGas = ref(new BigNumber(0))
-  const escrowGas = ref(new BigNumber(0))
-  const gasForGiveaway = ref(new BigNumber(0))
+  const requiredGas = computed(() => {
+    return estimateGasFee()
+  })
   // Required token amount property
   const totalPoolAmount = ref(new BigNumber(0))
 
@@ -42,7 +42,6 @@ export const useCreateGiveawayStore = defineStore('createGiveaway', () => {
     } as Partial<GiveawaySettingsDto>
 
     // Recalculate estimates when settings change
-    calculateGalaFees()
     calculateTotalPoolAmount()
   }
 
@@ -94,40 +93,10 @@ export const useCreateGiveawayStore = defineStore('createGiveaway', () => {
   }
 
   /**
-   * Gets gas fee estimates from the API
-   */
-  async function calculateGalaFees() {
-    try {
-      if (!profileStore.connectedUserGCAddress) {
-        console.warn('GalaChain address not available. Unable to fetch gas estimates.')
-        return
-      }
-
-      // Get gas estimates from the API
-      const gasEstimates = await getRequiredGasForGiveaway(
-        profileStore.connectedUserGCAddress,
-        giveawaySettings.value as any
-      )
-
-      console.log('gasEstimates', gasEstimates)
-      // Update gas fee values from API response
-      requiredGas.value = new BigNumber(gasEstimates.requiredGas || 0)
-      escrowGas.value = new BigNumber(gasEstimates.escrowGas || 0)
-      gasForGiveaway.value = new BigNumber(gasEstimates.gasForGiveaway || 0)
-    } catch (error) {
-      console.error('Error fetching gas fee estimates:', error)
-      // Reset values on error
-      requiredGas.value = new BigNumber(0)
-      escrowGas.value = new BigNumber(0)
-      gasForGiveaway.value = new BigNumber(0)
-    }
-  }
-
-  /**
    * Gets the required token amount based on giveaway settings
    * @returns BigNumber representing the required token amount
    */
-  function getRequiredTokenAmount() {
+  function getTokenPoolAmount() {
     // Ensure the amount is up to date
     calculateTotalPoolAmount()
     return totalPoolAmount.value
@@ -137,9 +106,19 @@ export const useCreateGiveawayStore = defineStore('createGiveaway', () => {
    * Gets the total required GALA gas fee estimate
    * @returns BigNumber representing the required GALA tokens for gas
    */
-  function estimateGalaFees() {
-    console.log('estimateGalaFees', requiredGas.value)
-    return requiredGas.value
+  function estimateGasFee() {
+    // Check if it's a fully claimed FCFS giveaway
+    console.log('giveawaySettings.value.giveawayType', giveawaySettings.value.giveawayType)
+    if (giveawaySettings.value.giveawayType === 'FirstComeFirstServe') {
+      return new BigNumber(giveawaySettings.value.maxWinners || 0)
+    } else if (giveawaySettings.value.giveawayType === 'DistributedGiveaway') {
+      if (giveawaySettings.value.giveawayTokenType === GiveawayTokenType.ALLOWANCE) {
+        return new BigNumber(1)
+      } else {
+        return new BigNumber(giveawaySettings.value.maxWinners || 0)
+      }
+    }
+    throw new Error(`Giveaway type ${giveawaySettings.value.giveawayType} not supported`)
   }
 
   // Initialize estimates
@@ -150,11 +129,8 @@ export const useCreateGiveawayStore = defineStore('createGiveaway', () => {
     () => [giveawaySettings.value.giveawayType, giveawaySettings.value.maxWinners],
     (newValues, oldValues) => {
       // Only run calculations if values have actually changed
-      if (!oldValues || 
-          newValues[0] !== oldValues[0] || 
-          newValues[1] !== oldValues[1]) {
+      if (!oldValues || newValues[0] !== oldValues[0] || newValues[1] !== oldValues[1]) {
         console.log('Primary values changed, updating calculations')
-        calculateGalaFees()
         calculateTotalPoolAmount()
       }
     }
@@ -162,11 +138,12 @@ export const useCreateGiveawayStore = defineStore('createGiveaway', () => {
 
   // Watch for FirstComeFirstServe specific property
   watch(
-    () => giveawaySettings.value.giveawayType === 'FirstComeFirstServe' ?
-      giveawaySettings.value.winPerUser : undefined,
+    () =>
+      giveawaySettings.value.giveawayType === 'FirstComeFirstServe'
+        ? giveawaySettings.value.winPerUser
+        : undefined,
     (newValue, oldValue) => {
-      if (newValue !== oldValue &&
-        giveawaySettings.value.giveawayType === 'FirstComeFirstServe') {
+      if (newValue !== oldValue && giveawaySettings.value.giveawayType === 'FirstComeFirstServe') {
         console.log('FCFS claim per user changed, updating pool amount')
         calculateTotalPoolAmount()
       }
@@ -175,46 +152,47 @@ export const useCreateGiveawayStore = defineStore('createGiveaway', () => {
 
   // Watch for DistributedGiveaway specific property
   watch(
-    () => giveawaySettings.value.giveawayType === 'DistributedGiveaway' ?
-           giveawaySettings.value.winPerUser : undefined,
+    () =>
+      giveawaySettings.value.giveawayType === 'DistributedGiveaway'
+        ? giveawaySettings.value.winPerUser
+        : undefined,
     (newValue, oldValue) => {
-      if (newValue !== oldValue && 
-          giveawaySettings.value.giveawayType === 'DistributedGiveaway') {
+      if (newValue !== oldValue && giveawaySettings.value.giveawayType === 'DistributedGiveaway') {
         console.log('Distributed token quantity changed, updating pool amount')
         calculateTotalPoolAmount()
       }
     }
   )
 
-  watch(
-    () => [giveawaySettings.value.giveawayToken, connectedUserGCAddress],
-    (newValues, oldValues) => {
-      // Only refresh if values have actually changed
-      if (!oldValues || 
-          JSON.stringify(newValues[0]) !== JSON.stringify(oldValues[0]) || 
-          newValues[1] !== oldValues[1]) {
-        if (
-          giveawaySettings.value.giveawayToken &&
-          connectedUserGCAddress &&
-          connectedUserGCAddress.value
-        ) {
-          profileStore.refreshGiveawayTokenBalances(giveawaySettings.value.giveawayToken)
-        }
-      }
+  function $reset() {
+    giveawaySettings.value = {
+      endDateTime: new Date(new Date().setDate(new Date().getDate() + 1)),
+      telegramAuthRequired: false,
+      requireBurnTokenToClaim: false,
+      burnToken: {
+        collection: 'GALA',
+        category: 'Unit',
+        type: 'none',
+        additionalKey: 'none'
+      },
+      burnTokenQuantity: '1',
+      giveawayType: 'DistributedGiveaway',
+      giveawayToken: undefined,
+      giveawayTokenType: GiveawayTokenType.BALANCE
     }
-  )
+    totalPoolAmount.value = new BigNumber(0)
+    calculateTotalPoolAmount()
+  }
 
   return {
     giveawaySettings,
     updateSettings,
     setEndDateTime,
-    estimateGalaFees,
-    getRequiredTokenAmount,
+    getRequiredTokenAmount: getTokenPoolAmount,
     getPrizePool,
     getPrizePoolFCFS,
     requiredGas,
-    escrowGas,
-    gasForGiveaway,
-    requiredTokenAmount: totalPoolAmount
+    requiredTokenAmount: totalPoolAmount,
+    $reset
   }
 })

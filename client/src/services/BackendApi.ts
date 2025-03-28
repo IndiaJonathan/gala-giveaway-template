@@ -1,4 +1,5 @@
 import { useToast } from '@/composables/useToast'
+import type { BalanceResponseDto } from '@/dto/BalanceResponseDto'
 import type { Giveaway } from '@/types/giveaway'
 import type { SignedDto } from '@/types/web3'
 import {
@@ -17,34 +18,34 @@ const baseURL = import.meta.env.VITE_TELEGRAM_SERVER
 
 
 
-export async function getGiveawayTokensAvailable(
-  tokenClassKey: TokenClassKeyProperties,
-  gc_address: string | undefined,
-  giveawayTokenType: string
-): Promise<TokenBalances | undefined> {
-  if (!gc_address) {
-    throw new Error('GalaChain address is required')
-  }
+// export async function getGiveawayTokensAvailable(
+//   tokenClassKey: TokenClassKeyProperties,
+//   gc_address: string | undefined,
+//   giveawayTokenType: string
+// ): Promise<TokenBalances | undefined> {
+//   if (!gc_address) {
+//     throw new Error('GalaChain address is required')
+//   }
 
-  console.log("Getting tokens available for", gc_address, tokenClassKey, giveawayTokenType)
-  const response = await fetch(`${baseURL}/api/giveaway/tokens-available/${gc_address}`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      tokenInstanceKey: { ...tokenClassKey, instance: '0' },
-      tokenType: giveawayTokenType
-    })
-  })
+//   console.log("Getting tokens available for", gc_address, tokenClassKey, giveawayTokenType)
+//   const response = await fetch(`${baseURL}/api/giveaway/tokens-available/${gc_address}`, {
+//     method: 'POST',
+//     headers: {
+//       'Content-Type': 'application/json'
+//     },
+//     body: JSON.stringify({
+//       tokenInstanceKey: { ...tokenClassKey, instance: '0' },
+//       tokenType: giveawayTokenType
+//     })
+//   })
 
-  if (!response.ok) {
-    throw new Error('Network response was not ok')
-  }
+//   if (!response.ok) {
+//     throw new Error('Network response was not ok')
+//   }
 
-  const data = await response.json()
-  return data
-}
+//   const data = await response.json()
+//   return data
+// }
 
 export async function createWallet(payload: SignedDto) {
   const response = await fetch(`${baseURL}/api/wallet/register`, {
@@ -64,6 +65,26 @@ export async function createWallet(payload: SignedDto) {
 
   return false
 }
+
+
+export async function fetchBalances(gc_address: string): Promise<BalanceResponseDto> {
+  const response = await fetch(`${baseURL}/api/profile/balances/${gc_address}`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json'
+    }
+  })
+
+  if (!response.ok) {
+    const message = await response.text()
+    throw new Error(message)
+  }
+
+  const data = await response.json()
+
+  return data
+}
+
 
 export async function getProfile(gc_address: string): Promise<Profile> {
   const response = await fetch(`${baseURL}/api/profile/info/${gc_address}`, {

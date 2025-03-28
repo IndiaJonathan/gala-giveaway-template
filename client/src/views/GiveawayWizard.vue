@@ -249,6 +249,7 @@ async function launchGiveaway() {
     const result = await startGiveaway(signedGiveaway as StartBasicGivewaySettingsDto)
     if (result?.success) {
       showToast('Giveaway launched!')
+      giveawayStore.$reset()
       router.push('/')
     } else {
       console.log(result)

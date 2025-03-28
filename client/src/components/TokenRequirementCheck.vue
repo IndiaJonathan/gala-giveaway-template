@@ -9,10 +9,12 @@
         <template #content>
             <!-- Allowance UI -->
             <div v-if="checkType === GiveawayTokenType.ALLOWANCE">
-                <div v-if="currentAmount" class="text-muted mb-4">
-                    <p>You have a net allowance of <strong>{{ formatNumber(Number(currentAmount)) }}</strong> tokens
+                <div v-if="netEscrowBalance" class="text-muted mb-4">
+                    <p>You have a net allowance of <strong>{{ formatNumber(Number(netEscrowBalance)) }}</strong> tokens
                         allocated to the giveaway wallet.
                     </p>
+
+                    <p> <strong>Total required amount:</strong> {{ formatNumber(Number(totalRequiredAmount)) }}</p>
 
                     <div v-if="isAllowanceRequirementMet" class="success-alert mb-4">
                         You have sufficient allowance to start the giveaway.
@@ -33,22 +35,23 @@
             <!-- Balance UI -->
             <div v-else>
                 <div class="balance-info">
-                    <div v-if="giveawayTokenBalances && giveawayTokenBalances.galaNeededForOtherGiveaways"
+                    <div v-if="findTokenInArray(balances?.giveawayWalletBalances?.Data, giveawaySettings.giveawayToken as any)?.quantity"
                         class="balance-item">
-                        <div class="balance-label">HELD IN ESCROW:</div>
-                        <div class="balance-value">{{ formatNumber(Number(giveawayTokenBalances.galaNeededForOtherGiveaways)
-                            || 0) }}
+                        <div class="balance-label">ESCROW BALANCE:</div>
+                        <div class="balance-value">{{
+                            formatNumber(Number(findTokenInArray(balances?.giveawayWalletBalances?.Data,
+                                giveawaySettings.giveawayToken as any)?.quantity || 0)) }}
                         </div>
                     </div>
                     <div class="balance-item">
-                        <div class="balance-label">REQUIRED BALANCE</div>
+                        <div class="balance-label">CURRENT GIVEAWAY REQUIREMENTS</div>
                         <div class="balance-value">{{ formatNumber(Number(totalRequiredAmount)) }}</div>
                     </div>
                     <div class="balance-item">
-                        <div class="balance-label">YOUR BALANCE</div>
-                        <div class="balance-value">{{ formatNumber(Number(currentAmount)) }}</div>
+                        <div class="balance-label">YOUR NET ESCROW BALANCE</div>
+                        <div class="balance-value">{{ formatNumber(Number(netEscrowBalance)) }}</div>
                     </div>
-                    <div class="balance-item">
+                    <div class="balance-item" v-if="getMissingAmount().gt(0)">
                         <div class="balance-label">MISSING BALANCE</div>
                         <div class="balance-value">{{ formatNumber(Number(getMissingAmount())) }}</div>
                     </div>
@@ -82,7 +85,7 @@ import { useToast } from '@/composables/useToast'
 import { GalaChainApi } from '@/services/GalaChainApi'
 import BigNumber from "bignumber.js";
 import { computed, type PropType, watch, onMounted } from 'vue'
-import { isErrorWithMessage } from '@/utils/Helpers';
+import { findTokenInArray, isErrorWithMessage } from '@/utils/Helpers';
 import { useProfileStore } from '@/stores/profile';
 import { useCreateGiveawayStore } from '@/stores/createGiveaway';
 import { storeToRefs } from 'pinia';
@@ -108,8 +111,8 @@ const emit = defineEmits<{
 
 const profileStore = useProfileStore();
 const giveawayStore = useCreateGiveawayStore();
-const { profile, metadata, giveawayTokenBalances } = storeToRefs(profileStore)
-const { giveawaySettings, requiredTokenAmount, requiredGas, escrowGas, gasForGiveaway } = storeToRefs(giveawayStore);
+const { profile, metadata, balances } = storeToRefs(profileStore)
+const { giveawaySettings, requiredTokenAmount, requiredGas } = storeToRefs(giveawayStore);
 const { showToast } = useToast()
 
 const checkType = computed(() => {
@@ -123,20 +126,7 @@ const requiredAmount = computed(() => {
 });
 
 // Get current amount from store instead of props
-const currentAmount = computed(() => {
-    if (!giveawayTokenBalances.value) return new BigNumber(0);
 
-    let balance = new BigNumber(0);
-    if (checkType.value === GiveawayTokenType.ALLOWANCE) {
-        balance = new BigNumber(giveawayTokenBalances.value.allowances || '0');
-    } else {
-        balance = new BigNumber(giveawayTokenBalances.value.tokenBalance || '0');
-    }
-    if (giveawaySettings.value.giveawayToken && giveawaySettings.value.giveawayToken.collection === GALA.collection) {
-        balance = balance.minus(giveawayTokenBalances.value.galaNeededForOtherGiveaways || 0);
-    }
-    return balance;
-});
 
 
 // Check if the token is GALA
@@ -159,8 +149,28 @@ const totalRequiredAmount = computed(() => {
     if (checkType.value === GiveawayTokenType.ALLOWANCE) {
         return requiredAmount.value || new BigNumber(0);
     }
+
     return requiredAmount.value || new BigNumber(0);
 });
+
+const netEscrowBalance = computed(() => {
+
+
+    console.log("computin'")
+
+    if (giveawaySettings.value.giveawayTokenType === GiveawayTokenType.BALANCE) {
+        const currentBalance = new BigNumber(findTokenInArray(balances.value?.userBalances.Data, giveawaySettings.value.giveawayToken as any)?.quantity || '0');
+        const requiredTokenEscrowBalance = new BigNumber(findTokenInArray(balances.value?.requiredEscrow.balanceEscrowRequirements, giveawaySettings.value.giveawayToken as any)?.quantity || BigNumber(0));
+        // const requiredAmountAndEscrow = totalRequiredAmount.value.plus(requiredTokenEscrowBalance);
+        return requiredTokenEscrowBalance.minus(currentBalance).multipliedBy(-1);
+    } else {
+        const currentAllowance = new BigNumber(findTokenInArray(balances.value?.escrowAllowances, giveawaySettings.value.giveawayToken as any)?.quantity || '0');
+        const requiredTokenEscrowBalance = new BigNumber(findTokenInArray(balances.value?.requiredEscrow.allowanceEscrowRequirements, giveawaySettings.value.giveawayToken as any)?.quantity || BigNumber(0));
+        // const requiredAmountAndEscrow = totalRequiredAmount.value.plus(requiredTokenEscrowBalance);
+        return requiredTokenEscrowBalance.minus(currentAllowance).multipliedBy(-1);
+    }
+});
+
 
 const metadataMap = computed(() => {
     const map = new Map();
@@ -189,7 +199,15 @@ const getTokenImage = () => {
 };
 
 const isAllowanceRequirementMet = computed(() => {
-    return currentAmount.value.gte(totalRequiredAmount.value);
+    return netEscrowBalance.value.gte(totalRequiredAmount.value);
+});
+
+const isValid = computed(() => {
+    return isAllowanceRequirementMet.value;
+});
+
+defineExpose({
+    isValid
 });
 
 const isBalanceDeficient = computed(() => {
@@ -201,7 +219,7 @@ const hasMissingBalance = computed(() => {
 });
 
 const getMissingAmount = () => {
-    return BigNumber.max(0, totalRequiredAmount.value.minus(currentAmount.value));
+    return BigNumber.max(0, totalRequiredAmount.value.minus(netEscrowBalance.value));
 };
 
 // watch(isRequirementMet, (newValue) => {
@@ -259,6 +277,7 @@ async function performAction() {
 
             if (result.Status === 1) {
                 showToast('Allowance Granted!');
+                await profileStore.getBalances(true);
                 emit('requirement-met');
             }
         } else {
@@ -273,7 +292,7 @@ async function performAction() {
                 emit('requirement-met');
 
                 // Already correctly using profile store
-                await profileStore.refreshGiveawayTokenBalances(giveawaySettings.value.giveawayToken);
+                await profileStore.getBalances(true);
 
                 // Optional: emit an event to inform parent component to update the currentAmount prop
                 emit('balance-updated');
@@ -288,7 +307,7 @@ async function performAction() {
         showToast(`Unable to ${checkType.value === GiveawayTokenType.ALLOWANCE ? 'grant allowance' : 'transfer token'}. Error: ${errorMessage}`, true);
     } finally {
         console.log('refreshing giveaway token balances');
-        await profileStore.refreshGiveawayTokenBalances(giveawaySettings.value.giveawayToken);
+        await profileStore.getBalances(true);
     }
 }
 </script>

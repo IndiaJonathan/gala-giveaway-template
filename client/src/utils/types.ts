@@ -1,4 +1,4 @@
-import type { BurnTokenQuantity, TokenClassKeyProperties } from '@gala-chain/api'
+import type { BurnTokenQuantity } from '@gala-chain/api'
 import type { TokenBalance } from '@gala-chain/connect'
 import BigNumber from 'bignumber.js'
 
@@ -12,7 +12,7 @@ interface BasicGivewaySettingsBase {
   requireBurnTokenToClaim: boolean
   giveawayToken: TokenBalance
   burnTokenQuantity?: string
-  burnToken: TokenClassKeyProperties
+  burnToken: TokenClassKeyDto
   maxWinners?: string
   giveawayTokenType?: GiveawayTokenType
   winPerUser?: string
@@ -38,7 +38,6 @@ export interface RandomGiveawaySettingsDto extends BasicGivewaySettingsDto {
 
 export type GiveawaySettingsDto = FirstComeFirstServeGiveawaySettingsDto | RandomGiveawaySettingsDto
 
-
 export type FCFSRequiredSettingsDto = Required<FirstComeFirstServeGiveawaySettingsDto>
 export type RandomRequiredGiveawaySettingsDto = Required<RandomGiveawaySettingsDto>
 
@@ -58,6 +57,17 @@ export interface Profile {
   hasTelegramLinked: boolean
   giveawayWalletAddress: string
   claimableWins: ClaimableWinDtoLegacy[]
+  userBalances?: {
+    Hash: string
+    Status: number
+    Data: TokenBalance[]
+  }
+  giveawayWalletBalances?: {
+    Hash: string
+    Status: number
+    Data: TokenBalance[]
+  }
+  availableBalances?: TokenBalance[]
 }
 
 export interface ClaimableWinDtoLegacy {
@@ -65,8 +75,8 @@ export interface ClaimableWinDtoLegacy {
   giveaway: string
   amountWon: number
   gcAddress: string
-  giveawayToken: TokenClassKeyProperties
-  burnToken: TokenClassKeyProperties
+  giveawayToken: TokenClassKeyDto
+  burnToken: TokenClassKeyDto
   burnTokenQuantity: number
   claimed: boolean
 }
@@ -81,8 +91,9 @@ export interface GiveawayDetails {
 export interface TokenBalances extends GiveawayDetails {
   tokenBalance: string
   allowances: string
-  galaNeededForOtherGiveaways: string,
+  galaNeededForOtherGiveaways: string
   galaBalance: string
+  availableTokens: string
 }
 
 export interface GasFeeEstimateRequestDto {
@@ -95,40 +106,40 @@ export interface GasFeeEstimateRequestDto {
  * Represents a token class key in the system
  */
 export interface TokenClassKeyDto {
-  collection: string;
-  category: string;
-  type: string;
-  additionalKey: string;
+  collection: string
+  category: string
+  type: string
+  additionalKey: string
 }
 
 /**
  * Represents the filtered giveaway data returned to clients
  */
 export interface FilteredGiveawayDto {
-  endDateTime: Date;
-  giveawayType: 'DistributedGiveaway' | 'FirstComeFirstServe';
-  giveawayToken: TokenClassKeyDto;
-  tokenQuantity: string;
-  creator: any; // Using any since creator might be populated or just an ID
-  burnToken?: TokenClassKeyDto;
-  burnTokenQuantity?: string;
+  endDateTime: Date
+  giveawayType: 'DistributedGiveaway' | 'FirstComeFirstServe'
+  giveawayToken: TokenClassKeyDto
+  tokenQuantity: string
+  creator: any // Using any since creator might be populated or just an ID
+  burnToken?: TokenClassKeyDto
+  burnTokenQuantity?: string
 }
 
 /**
  * Represents a claimable win with filtered giveaway data
  */
 export interface ClaimableWinDto {
-  _id: string;
-  giveaway: FilteredGiveawayDto;
-  amountWon: string;
-  gcAddress: string;
-  claimed: boolean;
-  claimInfo?: string;
-  createdAt?: Date;
-  updatedAt?: Date;
+  _id: string
+  giveaway: FilteredGiveawayDto
+  amountWon: string
+  gcAddress: string
+  claimed: boolean
+  claimInfo?: string
+  createdAt?: Date
+  updatedAt?: Date
 }
 
 /**
  * Response type for getUserWonGiveaways endpoint
  */
-export type UserWonGiveawaysResponseDto = ClaimableWinDto[];
+export type UserWonGiveawaysResponseDto = ClaimableWinDto[]
