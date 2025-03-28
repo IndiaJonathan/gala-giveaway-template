@@ -42,7 +42,7 @@ defineProps({
     },
     clickable: {
         type: Boolean,
-        default: false
+        default: true
     }
 });
 

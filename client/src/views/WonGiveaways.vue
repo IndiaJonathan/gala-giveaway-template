@@ -20,7 +20,7 @@
           <template #name="{ item }">
             <div class="d-flex align-center">
               <v-avatar class="mr-2" size="40">
-                <v-img src="https://placehold.co/40x40" alt="Item" />
+                <v-img :src="getTokenImage(item.giveaway.giveawayToken)" alt="Item" />
               </v-avatar>
               <span>{{ getGiveawayDisplayName(item) }}</span>
             </div>
@@ -29,7 +29,7 @@
             <v-chip v-if="item.claimed" color="success" size="small" class="text-uppercase">Claimed</v-chip>
             <v-chip v-else-if="item.giveaway.burnTokenQuantity" color="warning" size="small" class="text-uppercase">Token
               burn required</v-chip>
-            <v-chip v-else color="info" size="small" class="text-uppercase">Claimable</v-chip>
+            <v-chip v-else color="success" size="small" class="text-uppercase">Won</v-chip>
           </template>
           <template #actions="{ item }">
             <div class="text-right">
@@ -52,34 +52,59 @@ import { storeToRefs } from 'pinia';
 import { useProfileStore } from '@/stores/profile';
 import { getClaimableWins, claimWin } from '@/services/BackendApi';
 import { BrowserConnectClient, type BurnTokensRequest } from '@gala-chain/connect';
-import type { ClaimableWin } from '@/types/claimable-win';
 import GiveawayTable from '@/components/GiveawayTable.vue';
 import BigNumber from 'bignumber.js';
+import type { ClaimableWinDto } from '@/utils/types';
+import { tokenToReadable } from '@/utils/GalaHelper';
+import type { TokenClassKeyProperties } from '@gala-chain/api';
 
 const { showToast } = useToast();
 const profileStore = useProfileStore();
-const { connectedUserGCAddress } = storeToRefs(profileStore);
+const { connectedUserGCAddress, metadata } = storeToRefs(profileStore);
 
 const tab = ref('all');
-const wins = ref<ClaimableWin[]>([]);
+const wins = ref<ClaimableWinDto[]>([]);
 const loading = ref(true);
+
+// Create a metadata map for token lookup
+const metadataMap = computed(() => {
+  const map = new Map();
+  if (metadata.value) {
+    metadata.value.forEach(meta => {
+      const key = tokenToReadable(meta);
+      map.set(key, meta);
+    });
+  }
+  return map;
+});
+
+// Get token image from metadata
+const getTokenImage = (token: TokenClassKeyProperties | undefined) => {
+  if (!token) return 'https://placehold.co/40x40';
+  
+  const tokenClass = metadataMap.value.get(tokenToReadable(token));
+  if (tokenClass && tokenClass.image) {
+    return tokenClass.image;
+  }
+  return 'https://placehold.co/40x40';
+};
 
 // Table headers
 const tableHeaders = [
   { key: 'name', title: 'NAME' },
   { key: 'status', title: 'STATUS' },
   { key: 'amountWon', title: 'QUANTITY' },
-  { key: 'claimedDate', title: 'CLAIMED DATE', formatter: (item: ClaimableWin) => item.claimedDate ? formatDate(item.claimedDate) : '-' },
-  { key: 'claimFee', title: 'CLAIM FEE', formatter: (item: ClaimableWin) => {
+  { key: 'timeWon', title: 'TIME WON', formatter: (item: ClaimableWinDto) => item.timeWon ? formatDate(item.timeWon) : '-' },
+  { key: 'claimedDate', title: 'CLAIMED DATE', formatter: (item: ClaimableWinDto) => item.timeClaimed ? formatDate(item.timeClaimed) : '-' },
+  { key: 'claimFee', title: 'CLAIM FEE', formatter: (item: ClaimableWinDto) => {
     if (item.giveaway.burnTokenQuantity) return `${item.giveaway.burnTokenQuantity} $TOKEN`;
-    if (item.claimed) return 'N/A';
-    return 'Free';
+    return '-';
   }},
   { key: 'actions', title: '', align: 'text-right' }
 ];
 
 // Format date function
-const formatDate = (dateString: string) => {
+const formatDate = (dateString: Date) => {
   const date = new Date(dateString);
   return date.toLocaleDateString('en-US', {
     day: '2-digit',
@@ -93,9 +118,13 @@ const filteredWins = computed(() => {
   if (tab.value === 'all') {
     return wins.value;
   } else if (tab.value === 'claimed') {
-    return wins.value.filter(win => win.claimed);
+    return wins.value.filter(win => win.claimed === true);
   } else if (tab.value === 'burn_required') {
-    return wins.value.filter(win => win.giveaway.burnTokenQuantity && !win.claimed);
+    return wins.value.filter(win => 
+      win.giveaway.burnTokenQuantity && 
+      new BigNumber(win.giveaway.burnTokenQuantity).gt(0) && 
+      !win.claimed
+    );
   }
   return wins.value;
 });
@@ -111,32 +140,8 @@ const fetchClaimableWins = async () => {
     loading.value = true;
     const response = await getClaimableWins(connectedUserGCAddress.value);
     console.log('Claimable wins:', response);
+    wins.value = response;
 
-    // Map the API response to match our ClaimableWin interface
-    wins.value = response.map((win: any) => {
-      return {
-        _id: win._id,
-        amountWon: win.amountWon,
-        gcAddress: win.gcAddress,
-        claimed: win.claimed || false,
-        __v: win.__v || 0,
-        giveaway: {
-          endDateTime: win.giveaway?.endDateTime || new Date().toISOString(),
-          giveawayType: win.giveaway?.giveawayType || 'Unknown',
-          giveawayToken: win.giveaway?.giveawayToken || { 
-            collection: '', 
-            type: '', 
-            category: '', 
-            additionalKey: '' 
-          },
-          tokenQuantity: win.giveaway?.tokenQuantity || '0',
-          creator: win.giveaway?.creator || '',
-          burnToken: win.giveaway?.burnToken,
-          burnTokenQuantity: win.giveaway?.burnTokenQuantity
-        },
-        claimedDate: win.claimedDate
-      } as ClaimableWin;
-    });
   } catch (error) {
     console.error('Error fetching claimable wins:', error);
     showToast(`Failed to fetch won items: ${(error as Error).message}`, true);
@@ -146,7 +151,7 @@ const fetchClaimableWins = async () => {
 };
 
 // Handle burn token action
-const handleBurn = async (win: ClaimableWin) => {
+const handleBurn = async (win: ClaimableWinDto) => {
   try {
     const connectClient = new BrowserConnectClient();
     await connectClient.connect();
@@ -171,7 +176,7 @@ const handleBurn = async (win: ClaimableWin) => {
     const signedDto = await connectClient.sign("BurnTokens", burnTokenRequest);
     await claimWin({ ...signedDto, claimId: win._id });
 
-    showToast('Token burn successful! Your item has been claimed.', false);
+    showToast('Giveaway won! Your item has been claimed successfully.', false);
     // Refresh the list after successful burn
     fetchClaimableWins();
   } catch (error) {
@@ -181,7 +186,13 @@ const handleBurn = async (win: ClaimableWin) => {
 };
 
 // Add a helper function to display a more descriptive name for the giveaway
-const getGiveawayDisplayName = (win: ClaimableWin) => {
+const getGiveawayDisplayName = (win: ClaimableWinDto) => {
+  // If giveaway has a name, use it
+  if (win.giveaway.name) {
+    return win.giveaway.name;
+  }
+  
+  // Otherwise fallback to the token information
   const token = win.giveaway.giveawayToken;
   if (!token) return 'Unknown Giveaway';
   

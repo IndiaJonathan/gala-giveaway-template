@@ -17,4 +17,5 @@ export interface Giveaway {
   winPerUser?: string
   claimsLeft?: number
   giveawayType: 'FirstComeFirstServe' | 'DistributedGiveaway'
+  name?: string
 }

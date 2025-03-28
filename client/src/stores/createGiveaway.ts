@@ -13,6 +13,7 @@ import { getRequiredGasForGiveaway } from '@/services/BackendApi'
 
 export const useCreateGiveawayStore = defineStore('createGiveaway', () => {
   const giveawaySettings = ref<Partial<GiveawaySettingsDto>>({
+    name: '',
     endDateTime: new Date(new Date().setDate(new Date().getDate() + 1)),
     telegramAuthRequired: false,
     requireBurnTokenToClaim: false,
@@ -166,6 +167,7 @@ export const useCreateGiveawayStore = defineStore('createGiveaway', () => {
 
   function $reset() {
     giveawaySettings.value = {
+      name: '',
       endDateTime: new Date(new Date().setDate(new Date().getDate() + 1)),
       telegramAuthRequired: false,
       requireBurnTokenToClaim: false,

@@ -1,4 +1,16 @@
 <template>
+    <div class="name-input-container" style="margin-bottom: 40px;">
+        <h5 style="margin-bottom: 16px;">Giveaway Name<span class="required">*</span></h5>
+        <v-text-field
+            v-model="giveawaySettings.name"
+            variant="outlined"
+            placeholder="e.g., Holiday Token Giveaway"
+            @update:modelValue="handleNameChange"
+            required
+            :error-messages="nameError"
+            :hint="(!giveawaySettings.name || giveawaySettings.name.trim().length <= 6) ? 'Name must be at least 6 characters long' : ''"
+        ></v-text-field>
+    </div>
     
     <TokenSelect ref="tokenSelectRef" @is-valid="handleValidityChange" :balances="balances"
         v-model:selected-token="giveawaySettings.giveawayToken" :created-tokens="createdTokens" :metadata="metadata"
@@ -30,7 +42,7 @@ const winnerSelectorRef = ref();
 const dateSelectorRef = ref();
 
 const isValid = ref(false);
-
+const nameError = ref('');
 
 const { profile, isConnected, error, balances, metadata, createdTokens, connectedEthAddress, connectedUserGCAddress } = storeToRefs(profileStore)
 const emit = defineEmits(['is-valid']);
@@ -43,11 +55,23 @@ tomorrow.setDate(tomorrow.getDate() + 1); // Set to tomorrow
 
 
 const handleValidityChange = () => {
+    const nameValid = giveawaySettings.value.name && giveawaySettings.value.name.trim().length > 6;
     const isTokenRefValid = tokenSelectRef.value && tokenSelectRef.value.isValid;
     const isWinnerRefValid = winnerSelectorRef.value && winnerSelectorRef.value.isValid;
     const isDateRefValid = dateSelectorRef.value && dateSelectorRef.value.isValid;
 
-    isValid.value = isTokenRefValid && isWinnerRefValid && isDateRefValid;
+    isValid.value = nameValid && isTokenRefValid && isWinnerRefValid && isDateRefValid;
+};
+
+const handleNameChange = () => {
+    if (!giveawaySettings.value.name) {
+        nameError.value = 'Name is required';
+    } else if (giveawaySettings.value.name.trim().length <= 6) {
+        nameError.value = 'Name must be longer than 6 characters';
+    } else {
+        nameError.value = '';
+    }
+    handleValidityChange();
 };
 
 watch(isValid, (newValue) => {
@@ -58,3 +82,9 @@ watch(isValid, (newValue) => {
 defineExpose({ isValid });
 
 </script>
+
+<style scoped>
+.required {
+    color: red;
+}
+</style>

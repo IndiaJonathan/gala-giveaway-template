@@ -94,8 +94,11 @@
       <div class="title-container">
         <div class="giveaway-title-row">
           <div class="giveaway-title">
-            {{ isToken ? `${getTokenAmount()} ${getTokenSymbol(giveaway.giveawayToken)} prize` : `${getTokenAmount()}
-            $${getTokenSymbol(giveaway.giveawayToken)} Claim Per User` }}
+            <template v-if="giveaway.name">{{ giveaway.name }}</template>
+            <template v-else>
+              {{ isToken ? `${getTokenAmount()} ${getTokenSymbol(giveaway.giveawayToken)} prize` : `${getTokenAmount()}
+              $${getTokenSymbol(giveaway.giveawayToken)} Claim Per User` }}
+            </template>
           </div>
         </div>
         <div class="giveaway-subtitle">

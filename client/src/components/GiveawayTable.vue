@@ -45,6 +45,7 @@ interface TableHeader {
   key: string;
   title: string;
   align?: string;
+  formatter?: (item: any) => any;
 }
 
 const props = defineProps({
@@ -68,6 +69,12 @@ const props = defineProps({
 
 // Helper function to get nested property values (e.g., 'giveaway.endDateTime')
 const getItemValue = (item: any, key: string) => {
+  // Check if there's a formatter for this header
+  const header = props.headers.find(h => h.key === key);
+  if (header && header.formatter) {
+    return header.formatter(item);
+  }
+  
   if (!key.includes('.')) {
     return item[key];
   }

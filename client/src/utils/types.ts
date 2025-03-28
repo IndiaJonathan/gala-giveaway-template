@@ -8,6 +8,7 @@ export enum GiveawayTokenType {
 }
 
 interface BasicGivewaySettingsBase {
+  name?: string
   telegramAuthRequired?: boolean
   requireBurnTokenToClaim: boolean
   giveawayToken: TokenBalance
@@ -116,6 +117,7 @@ export interface TokenClassKeyDto {
  * Represents the filtered giveaway data returned to clients
  */
 export interface FilteredGiveawayDto {
+  name?: string
   endDateTime: Date
   giveawayType: 'DistributedGiveaway' | 'FirstComeFirstServe'
   giveawayToken: TokenClassKeyDto
@@ -137,6 +139,8 @@ export interface ClaimableWinDto {
   claimInfo?: string
   createdAt?: Date
   updatedAt?: Date
+  timeWon?: Date
+  timeClaimed?: Date
 }
 
 /**

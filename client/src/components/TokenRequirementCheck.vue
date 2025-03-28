@@ -9,7 +9,7 @@
         <template #content>
             <!-- Allowance UI -->
             <div v-if="checkType === GiveawayTokenType.ALLOWANCE">
-                <div v-if="netEscrowBalance" class="text-muted mb-4">
+                <div v-if="balances && giveawaySettings.giveawayToken && netEscrowBalance" class="text-muted mb-4">
                     <p>You have a net allowance of <strong>{{ formatNumber(Number(netEscrowBalance)) }}</strong> tokens
                         allocated to the giveaway wallet.
                     </p>
@@ -28,7 +28,8 @@
                     </div>
                 </div>
                 <div v-else class="text-muted mb-4">
-                    <p>You have not granted any allowance of this token to the giveaway wallet yet.</p>
+                    <p v-if="!balances || !giveawaySettings.giveawayToken">Data not available. Please select a token first.</p>
+                    <p v-else>You have not granted any allowance of this token to the giveaway wallet yet.</p>
                 </div>
             </div>
 
@@ -45,15 +46,15 @@
                     </div>
                     <div class="balance-item">
                         <div class="balance-label">CURRENT GIVEAWAY REQUIREMENTS</div>
-                        <div class="balance-value">{{ formatNumber(Number(totalRequiredAmount)) }}</div>
+                        <div class="balance-value">{{ balances && giveawaySettings.giveawayToken ? formatNumber(Number(totalRequiredAmount)) : 'N/A' }}</div>
                     </div>
                     <div class="balance-item">
                         <div class="balance-label">YOUR NET ESCROW BALANCE</div>
-                        <div class="balance-value">{{ formatNumber(Number(netEscrowBalance)) }}</div>
+                        <div class="balance-value">{{ balances && giveawaySettings.giveawayToken ? formatNumber(Number(netEscrowBalance)) : 'N/A' }}</div>
                     </div>
                     <div class="balance-item" v-if="getMissingAmount().gt(0)">
                         <div class="balance-label">MISSING BALANCE</div>
-                        <div class="balance-value">{{ formatNumber(Number(getMissingAmount())) }}</div>
+                        <div class="balance-value">{{ balances && giveawaySettings.giveawayToken ? formatNumber(Number(getMissingAmount())) : 'N/A' }}</div>
                     </div>
                 </div>
 
@@ -154,20 +155,21 @@ const totalRequiredAmount = computed(() => {
 });
 
 const netEscrowBalance = computed(() => {
-
-
     console.log("computin'")
 
     if (giveawaySettings.value.giveawayTokenType === GiveawayTokenType.BALANCE) {
-        const currentBalance = new BigNumber(findTokenInArray(balances.value?.userBalances.Data, giveawaySettings.value.giveawayToken as any)?.quantity || '0');
+        const currentBalance = new BigNumber(findTokenInArray(balances.value?.giveawayWalletBalances.Data, giveawaySettings.value.giveawayToken as any)?.quantity || '0');
         const requiredTokenEscrowBalance = new BigNumber(findTokenInArray(balances.value?.requiredEscrow.balanceEscrowRequirements, giveawaySettings.value.giveawayToken as any)?.quantity || BigNumber(0));
         // const requiredAmountAndEscrow = totalRequiredAmount.value.plus(requiredTokenEscrowBalance);
-        return requiredTokenEscrowBalance.minus(currentBalance).multipliedBy(-1);
+        //IF 0, return 0, not -0
+        const result = requiredTokenEscrowBalance.minus(currentBalance).multipliedBy(-1);
+        return result.isZero() ? new BigNumber(0) : result;
     } else {
         const currentAllowance = new BigNumber(findTokenInArray(balances.value?.escrowAllowances, giveawaySettings.value.giveawayToken as any)?.quantity || '0');
         const requiredTokenEscrowBalance = new BigNumber(findTokenInArray(balances.value?.requiredEscrow.allowanceEscrowRequirements, giveawaySettings.value.giveawayToken as any)?.quantity || BigNumber(0));
         // const requiredAmountAndEscrow = totalRequiredAmount.value.plus(requiredTokenEscrowBalance);
-        return requiredTokenEscrowBalance.minus(currentAllowance).multipliedBy(-1);
+        const result = requiredTokenEscrowBalance.minus(currentAllowance).multipliedBy(-1);
+        return result.isZero() ? new BigNumber(0) : result;
     }
 });
 
@@ -211,14 +213,26 @@ defineExpose({
 });
 
 const isBalanceDeficient = computed(() => {
+    // Return false if we don't have valid data
+    if (!giveawaySettings.value.giveawayToken || !balances.value) {
+        return false;
+    }
     return !isAllowanceRequirementMet.value;
 });
 
 const hasMissingBalance = computed(() => {
+    // Return false if we don't have valid data
+    if (!giveawaySettings.value.giveawayToken || !balances.value) {
+        return false;
+    }
     return getMissingAmount().gt(0);
 });
 
 const getMissingAmount = () => {
+    // Return 0 if we don't have valid data
+    if (!giveawaySettings.value.giveawayToken || !balances.value) {
+        return new BigNumber(0);
+    }
     return BigNumber.max(0, totalRequiredAmount.value.minus(netEscrowBalance.value));
 };
 

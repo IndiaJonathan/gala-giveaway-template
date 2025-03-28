@@ -248,8 +248,8 @@ const getStatusColor = (status: string): string => {
 // Process giveaways data to match the expected format for display
 const processGiveawaysData = (data: CreatedGiveaway[]) => {
   return data.map(giveaway => {
-    // Generate a display name from token information
-    const name = `${giveaway.giveawayToken.collection} ${giveaway.tokenQuantity} ${giveaway.giveawayTokenType}`;
+    // Use the custom name if available, otherwise generate from token info
+    const name = giveaway.name || `${giveaway.giveawayToken.collection} ${giveaway.tokenQuantity} ${giveaway.giveawayTokenType}`;
     
     // Calculate claimed amount (completed winners)
     const claimed = giveaway.winners?.filter(winner => winner.completed).length || 0;

@@ -3,6 +3,7 @@ import type { BalanceResponseDto } from '@/dto/BalanceResponseDto'
 import type { Giveaway } from '@/types/giveaway'
 import type { SignedDto } from '@/types/web3'
 import {
+  type ClaimableWinDto,
   type ClaimFCFSDto,
   type GasFeeEstimateRequestDto,
   type Profile,
@@ -223,7 +224,7 @@ export async function signupForGiveaway(signupForGiveawayDto: SignupForGiveawayD
   return data
 }
 
-export async function getClaimableWins(gcAddress: string | undefined): Promise<UserWonGiveawaysResponseDto> {
+export async function getClaimableWins(gcAddress: string | undefined): Promise<ClaimableWinDto[]> {
   if (!gcAddress) {
     throw new Error('GalaChain address is required')
   }
