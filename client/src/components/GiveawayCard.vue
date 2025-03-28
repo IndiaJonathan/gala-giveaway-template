@@ -105,23 +105,33 @@
 
       <!-- Different button for different states -->
       <div class="button-container">
-        <v-tooltip
-          :disabled="!giveaway.requireBurnTokenToClaim || hasEnoughTokensToBurn"
-          location="bottom"
-          :text="getButtonTooltip"
-        >
-          <template v-slot:activator="{ props }">
-            <Web3Button v-if="!isUpcoming && shouldShowActionButton" class="web3-button" :disabled="buttonDisabled"
-              :onClick="handleClaimClick" :primaryText="getButtonText()" 
-              :connectWalletText="isDistributedGiveaway ? 'Sign up' : 'Claim'"
-              v-bind="giveaway.requireBurnTokenToClaim && !hasEnoughTokensToBurn ? props : {}" />
-          </template>
-        </v-tooltip>
+        <!-- For button that needs tooltip -->
+        <div v-if="!isUpcoming && shouldShowActionButton" class="button-wrapper">
+          <Web3Button 
+            ref="claimButton"
+            class="web3-button" 
+            :disabled="buttonDisabled"
+            :onClick="handleClaimClick" 
+            :primaryText="getButtonText()" 
+            :connectWalletText="isDistributedGiveaway ? 'Sign up' : 'Claim'"
+          />
+          <v-tooltip
+            :disabled="!(giveaway.requireBurnTokenToClaim && !hasEnoughTokensToBurn)"
+            activator="parent"
+            location="top"
+          >
+            {{ getButtonTooltip }}
+          </v-tooltip>
+        </div>
 
-        <Web3Button v-if="!isUpcoming && !shouldShowActionButton && !hasEnded && (hasClaimed || (isDistributedGiveaway && hasSignedUp))" class="web3-button"
-          :onClick="handleViewClick" :primaryText="isDistributedGiveaway ? 'Sign up' : 'Claim'" 
-          :connectWalletText="isDistributedGiveaway ? 'Sign up' : 'Claim'"
-          :disabled="true" />
+        <!-- Button for already claimed or signed up -->
+        <div v-if="!isUpcoming && !shouldShowActionButton && !hasEnded && (hasClaimed || (isDistributedGiveaway && hasSignedUp))" class="button-wrapper">
+          <Web3Button class="web3-button"
+            :onClick="handleViewClick" 
+            :primaryText="isDistributedGiveaway ? 'Sign up' : 'Claim'" 
+            :connectWalletText="isDistributedGiveaway ? 'Sign up' : 'Claim'"
+            :disabled="true" />
+        </div>
       </div>
     </div>
   </v-card>
@@ -488,6 +498,20 @@ const hasEnded = computed(() => {
   display: flex;
   min-width: 110px;
   overflow: visible;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+/* Button wrapper for tooltips */
+.button-wrapper {
+  position: relative;
+  display: inline-block;
+  line-height: 0; /* Prevent extra space */
+}
+
+/* Ensure tooltips are visible */
+:deep(.v-tooltip) {
+  z-index: 1000 !important;
 }
 
 .giveaway-title-row {
