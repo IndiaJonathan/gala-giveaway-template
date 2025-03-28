@@ -15,6 +15,7 @@
                 :sub-text="`Balance: ${token.quantity}`"
                 :token-image="getImage(token)"
                 :is-selected="false"
+                :clickable="false"
               />
             </v-list>
             <v-alert v-else type="info" color="primary" variant="tonal">
@@ -36,6 +37,7 @@
                 :sub-text="`Balance: ${token.quantity}`"
                 :token-image="getImage(token)"
                 :is-selected="false"
+                :clickable="false"
               />
             </v-list>
             <v-alert v-else type="info" color="primary" variant="tonal">
@@ -71,8 +73,6 @@ const getImage = (token: TokenClassKeyProperties) => {
 </script>
 
 <style scoped>
-
-
 .token-list {
   padding: 0;
 }

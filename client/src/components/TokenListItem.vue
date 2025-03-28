@@ -1,5 +1,10 @@
 <template>
-    <div class="token-item clickable" :class="{ selected: isSelected }" @click="$emit('click')">
+    <div class="token-item" 
+         :class="{ 
+            selected: isSelected, 
+            clickable: clickable 
+         }" 
+         @click="clickable ? $emit('click') : null">
         <img v-if="tokenImage" class="token-icon" :src="tokenImage" alt="token icon" />
         <div v-else class="token-icon-circle"></div>
 
@@ -34,6 +39,10 @@ defineProps({
     isSelected: {
         type: Boolean,
         default: false
+    },
+    clickable: {
+        type: Boolean,
+        default: false
     }
 });
 
@@ -55,7 +64,7 @@ defineEmits(['click']);
     cursor: pointer;
 }
 
-.token-item:hover {
+.token-item.clickable:hover {
     background-color: #1f1f1f;
 }
 

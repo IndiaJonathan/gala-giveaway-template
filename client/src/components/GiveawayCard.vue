@@ -105,21 +105,30 @@
 
       <!-- Different button for different states -->
       <div class="button-container">
-        <Web3Button v-if="!isUpcoming && shouldShowActionButton" class="web3-button" :disabled="buttonDisabled"
-          :onClick="handleClaimClick" :primaryText="getButtonText()" :connectWalletText="isDistributedGiveaway ? 'Sign up' : 'Claim'" />
+        <v-tooltip
+          :disabled="!giveaway.requireBurnTokenToClaim || hasEnoughTokensToBurn"
+          location="bottom"
+          :text="getButtonTooltip"
+        >
+          <template v-slot:activator="{ props }">
+            <Web3Button v-if="!isUpcoming && shouldShowActionButton" class="web3-button" :disabled="buttonDisabled"
+              :onClick="handleClaimClick" :primaryText="getButtonText()" 
+              :connectWalletText="isDistributedGiveaway ? 'Sign up' : 'Claim'"
+              v-bind="giveaway.requireBurnTokenToClaim && !hasEnoughTokensToBurn ? props : {}" />
+          </template>
+        </v-tooltip>
 
-        <Web3Button v-else-if="!hasEnded && (hasClaimed || (isDistributedGiveaway && hasSignedUp))" class="web3-button"
+        <Web3Button v-if="!isUpcoming && !shouldShowActionButton && !hasEnded && (hasClaimed || (isDistributedGiveaway && hasSignedUp))" class="web3-button"
           :onClick="handleViewClick" :primaryText="isDistributedGiveaway ? 'Sign up' : 'Claim'" 
           :connectWalletText="isDistributedGiveaway ? 'Sign up' : 'Claim'"
           :disabled="true" />
-
       </div>
     </div>
   </v-card>
 </template>
 
 <script lang="ts" setup>
-import { type PropType, computed, defineEmits } from 'vue'
+import { type PropType, computed, defineEmits, onMounted } from 'vue'
 import type { Giveaway } from '@/types/giveaway'
 import GiveawayPlaceholderJPG from '@/assets/giveaway-placeholder.jpg'
 import { tokenToReadable, getTokenSymbol } from '@/utils/GalaHelper'
@@ -128,6 +137,7 @@ import { storeToRefs } from 'pinia'
 import Web3Button from '@/components/Web3Button.vue'
 import { claimWin, requestClaimFCFS, signupForGiveaway } from '@/services/BackendApi'
 import { useToast } from '@/composables/useToast'
+import BigNumber from 'bignumber.js'
 
 const { giveaway } = defineProps({
   giveaway: {
@@ -287,12 +297,55 @@ const buttonDisabled = computed(() => {
     return true
   }
 
+  // Check if user has insufficient tokens for burn
+  if (giveaway.requireBurnTokenToClaim && !hasEnoughTokensToBurn.value) {
+    return true
+  }
+
   if (isDistributedGiveaway.value) {
     return hasSignedUp.value
   } else {
     // FirstComeFirstServe type - disable if no claims left, already claimed, or has ended
     return (giveaway.claimsLeft || 0) <= 0 || hasClaimed || hasEnded.value
   }
+})
+
+// Add a new computed property to check if user has enough tokens to burn
+const hasEnoughTokensToBurn = computed(() => {
+  if (!giveaway.requireBurnTokenToClaim || !giveaway.burnToken || !giveaway.burnTokenQuantity) {
+    return true
+  }
+
+  // Check if we have balances data
+  if (!profileStore.balances?.userBalances?.Data) {
+    return false
+  }
+
+  // Find the required token in user's balances
+  const requiredToken = profileStore.balances.userBalances.Data.find(token => 
+    token.collection === giveaway.burnToken.collection &&
+    token.category === giveaway.burnToken.category &&
+    token.type === giveaway.burnToken.type &&
+    token.additionalKey === giveaway.burnToken.additionalKey
+  )
+
+  // If token not found or quantity is less than required, return false
+  if (!requiredToken) {
+    return false
+  }
+
+  const userQuantity = new BigNumber(requiredToken.quantity || '0')
+  const requiredQuantity = new BigNumber(giveaway.burnTokenQuantity)
+  
+  return userQuantity.isGreaterThanOrEqualTo(requiredQuantity)
+})
+
+// Get tooltip text based on button state
+const getButtonTooltip = computed(() => {
+  if (giveaway.requireBurnTokenToClaim && !hasEnoughTokensToBurn.value) {
+    return `You need ${giveaway.burnTokenQuantity} ${getTokenSymbol(giveaway.burnToken)} to claim this giveaway`
+  }
+  return ''
 })
 
 const availableIn = computed(() => {
