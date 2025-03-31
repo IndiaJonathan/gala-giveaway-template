@@ -16,18 +16,20 @@
                 <div class="date-box">
                     <p class="subtitle">GIVEAWAY START DATE</p>
                     <p class="paragraph-small-regular">{{ formattedStartDate }}</p>
+                    <p v-if="startDateError" class="error-text">{{ startDateError }}</p>
                 </div>
             </v-col>
             <v-col style="width: 50%;" v-if="selected === options[1].key">
                 <div class="date-box">
                     <p class="subtitle">GIVEAWAY END DATE</p>
                     <p class="paragraph-small-regular">{{ formattedEndDate }}</p>
+                    <p v-if="endDateError" class="error-text">{{ endDateError }}</p>
                 </div>
             </v-col>
         </v-row>
 
         <VueDatePicker v-model="selectedDates" :range="!(selected === options[0].key)" inline auto-apply
-            :enable-time-picker="false" :min-date="tomorrow" :ui="{ calendar: 'testclass', menu: 'testclass' }"
+            :enable-time-picker="false" :min-date="today" :ui="{ calendar: 'testclass', menu: 'testclass' }"
             class="custom-date-picker paragraph-medium-bold">
 
             <template #arrow-left>
@@ -43,8 +45,10 @@
         </VueDatePicker>
 
         <TimeInput title="Start Time" v-model="startTime"></TimeInput>
+        <p v-if="startTimeError" class="error-text time-error">{{ startTimeError }}</p>
 
         <TimeInput v-if="selected === options[1].key" title="End Time" v-model="endTime"></TimeInput>
+        <p v-if="endTimeError && selected === options[1].key" class="error-text time-error">{{ endTimeError }}</p>
 
     </Collapsible>
 </template>
@@ -80,6 +84,11 @@ const { giveawaySettings } = storeToRefs(giveawayStore)
 const tomorrow = new Date();
 tomorrow.setDate(tomorrow.getDate() + 1);
 tomorrow.setHours(0, 0, 0, 0);
+
+// Today's date (for min-date)
+const today = new Date();
+today.setHours(0, 0, 0, 0);
+
 const options: [
     { key: string; label: string },
     { key: string; label: string }
@@ -173,12 +182,12 @@ const formattedEndDate = computed(() => {
 const isValid = computed(() => {
     if (selected.value === options[0].key && combinedStartDate.value) {
         // Only a start date is provided (no end date).
-        return isAtLeast30MinutesInFuture(combinedStartDate.value);
+        return isValidStartDate(combinedStartDate.value);
     } else if (combinedStartDate.value && combinedEndDate.value) {
         // Both start and end dates are provided.
 
-        const validity = isAtLeast30MinutesInFuture(combinedStartDate.value) &&
-            isAtLeast30MinutesInFuture(combinedEndDate.value);
+        const validity = isValidStartDate(combinedStartDate.value) &&
+            isAtLeastOneHourInFuture(combinedEndDate.value);
 
         console.log(`Validity: ${validity}`)
         return validity;
@@ -188,12 +197,113 @@ const isValid = computed(() => {
 
 const emit = defineEmits(['is-valid']);
 
+// Error messages for date validation
+const startDateError = ref<string | null>(null);
+const endDateError = ref<string | null>(null);
+const startTimeError = ref<string | null>(null);
+const endTimeError = ref<string | null>(null);
 
-function isAtLeast30MinutesInFuture(dateValue: Date): boolean {
-    const now = new Date();
-    const threshold = now.getTime() + 30 * 60 * 1000; // 30 minutes in ms
-    return dateValue.getTime() >= threshold;
+// Check start date validity and set error message
+function validateStartDate(date: Date | null): boolean {
+    if (!date) {
+        startDateError.value = "Please select a start date";
+        return false;
+    }
+    
+    if (date.getTime() < now.getTime()) {
+        startDateError.value = null;
+        startTimeError.value = "Select a time in the future";
+        return false;
+    }
+    
+    startDateError.value = null;
+    startTimeError.value = null;
+    return true;
 }
+
+// Check end date validity and set error message
+function validateEndDate(date: Date | null): boolean {
+    if (!date) {
+        if (selected.value === options[1].key) {
+            endDateError.value = "Please select an end date";
+            return false;
+        }
+        endDateError.value = null;
+        endTimeError.value = null;
+        return true;
+    }
+    
+    const threshold = now.getTime() + 60 * 60 * 1000; // 1 hour in ms
+    if (date.getTime() < threshold) {
+        endDateError.value = null; // Let the time error handle this
+        endTimeError.value = "End time must be at least 1 hour in the future";
+        return false;
+    }
+    
+    endDateError.value = null;
+    endTimeError.value = null;
+    return true;
+}
+
+// Allow start dates that are today or in the future
+function isValidStartDate(dateValue: Date): boolean {
+    return validateStartDate(dateValue);
+}
+
+// Ensure end dates are at least one hour in the future
+function isAtLeastOneHourInFuture(dateValue: Date): boolean {
+    return validateEndDate(dateValue);
+}
+
+// Watch for changes in dates to validate in real-time
+watch(combinedStartDate, (newDate) => {
+    if (newDate) {
+        validateStartDate(newDate);
+    } else {
+        startDateError.value = "Please select a start date";
+    }
+});
+
+watch(combinedEndDate, (newDate) => {
+    if (selected.value === options[1].key) {
+        if (newDate) {
+            validateEndDate(newDate);
+        } else {
+            endDateError.value = "Please select an end date";
+        }
+    } else {
+        endDateError.value = null;
+    }
+});
+
+// Watch for changes in times to validate in real-time
+watch(startTime, () => {
+    if (combinedStartDate.value) {
+        validateStartDate(combinedStartDate.value);
+    }
+});
+
+watch(endTime, () => {
+    if (combinedEndDate.value) {
+        validateEndDate(combinedEndDate.value);
+    }
+});
+
+// Also update the watch for selected toggle to clear errors when changing between date types
+watch(selected, (newValue) => {
+    if (newValue === options[0].key) {
+        // No end date mode
+        endDateError.value = null;
+        endTimeError.value = null;
+    } else {
+        // With end date, validate if we have an end date
+        if (combinedEndDate.value) {
+            validateEndDate(combinedEndDate.value);
+        } else {
+            endDateError.value = "Please select an end date";
+        }
+    }
+});
 
 watch(isValid, (newValue) => {
     emit('is-valid', newValue);
@@ -318,5 +428,16 @@ defineExpose({ isValid });
     border-top-right-radius: 10px;
     border-bottom-right-radius: 10px;
 
+}
+
+.error-text {
+    color: #e74c3c;
+    font-size: 14px;
+    margin-top: 4px;
+}
+
+.time-error {
+    margin-top: -16px;
+    margin-bottom: 16px;
 }
 </style>

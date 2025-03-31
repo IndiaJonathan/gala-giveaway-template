@@ -240,6 +240,7 @@ async function launchGiveaway() {
 
   const unsignedGiveaway = {
     ...signableSettings,
+    ...(settings.startDateTime && { startDateTime: settings.startDateTime.toISOString() }),
     ...(settings.endDateTime && { endDateTime: settings.endDateTime.toISOString() }),
   };
 

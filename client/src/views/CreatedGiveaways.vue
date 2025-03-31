@@ -15,41 +15,20 @@
           <v-tab value="past" class="text-subtitle-1 text-grey px-6">Past</v-tab>
         </v-tabs>
 
-        <!-- Filter chips -->
-        <div class="d-flex pa-4 filter-bg rounded-t-0">
-          <v-btn
-            :variant="selectedFilter === 'all' ? 'tonal' : 'text'"
-            :class="selectedFilter === 'all' ? 'filter-active' : 'filter-inactive'" 
-            class="mr-2"
-            size="small"
-            @click="selectedFilter = 'all'"
-          >
-            All
-          </v-btn>
-          <v-btn
-            :variant="selectedFilter === 'tokens' ? 'tonal' : 'text'"
-            :class="selectedFilter === 'tokens' ? 'filter-active' : 'filter-inactive'"
-            size="small"
-            @click="selectedFilter = 'tokens'"
-          >
-            Tokens
-          </v-btn>
-        </div>
-
         <!-- Giveaways table -->
         <giveaway-table
           :headers="tableHeaders"
           :items="filteredGiveaways"
           :loading="loading"
           empty-message="No created giveaways found for this filter."
-          class="giveaway-table rounded-b-lg"
+          class="giveaway-table rounded-lg"
         >
           <template #name="{ item }">
             <div class="d-flex align-center">
-              <v-avatar class="mr-3" size="40" rounded>
-                <v-img :src="item.imageUrl || 'https://placehold.co/40x40'" :alt="item.name" />
+              <v-avatar class="mr-2" size="40">
+                <v-img :src="getTokenImage(item.giveawayToken)" :alt="item.name" />
               </v-avatar>
-              <span class="text-white">{{ item.name }}</span>
+              <span>{{ getGiveawayDisplayName(item) }}</span>
             </div>
           </template>
           <template #status="{ item }">
@@ -145,6 +124,8 @@ import { storeToRefs } from 'pinia';
 import { useProfileStore } from '@/stores/profile';
 import { getCreatedGiveaways } from '@/services/BackendApi';
 import GiveawayTable from '@/components/GiveawayTable.vue';
+import { tokenToReadable } from '@/utils/GalaHelper';
+import type { TokenClassKeyProperties } from '@gala-chain/api';
 
 interface GiveawayToken {
   collection: string;
@@ -182,28 +163,51 @@ interface CreatedGiveaway {
   name?: string; // Will be derived from token info
   claimed?: number; // Will be calculated from winners
   totalQuantity?: number; // Will be derived from maxWinners
+  claimsLeft?: number; // Number of remaining claims for FCFS giveaways
 }
 
 const { showToast } = useToast();
 const profileStore = useProfileStore();
-const { connectedUserGCAddress } = storeToRefs(profileStore);
+const { connectedUserGCAddress, metadata } = storeToRefs(profileStore);
 
 const tab = ref('active');
-const selectedFilter = ref('all');
 const giveaways = ref<CreatedGiveaway[]>([]);
 const loading = ref(true);
+
+// Create a metadata map for token image lookup
+const metadataMap = computed(() => {
+  const map = new Map();
+  if (metadata.value) {
+    metadata.value.forEach(meta => {
+      const key = tokenToReadable(meta);
+      map.set(key, meta);
+    });
+  }
+  return map;
+});
+
+// Get token image from metadata
+const getTokenImage = (token: TokenClassKeyProperties | undefined) => {
+  if (!token) return 'https://placehold.co/40x40';
+  
+  const tokenClass = metadataMap.value.get(tokenToReadable(token));
+  if (tokenClass && tokenClass.image) {
+    return tokenClass.image;
+  }
+  return 'https://placehold.co/40x40';
+};
 
 // Table headers
 const tableHeaders = [
   { key: 'name', title: 'NAME' },
   { key: 'status', title: 'STATUS' },
   { key: 'claimed', title: 'CLAIMED', formatter: (item: CreatedGiveaway) => `${item.claimed || 0} / ${item.totalQuantity || item.maxWinners}` },
-  { key: 'startDateTime', title: 'START DATE', formatter: formatDate },
-  { key: 'endDateTime', title: 'END DATE', formatter: formatDate }
+  { key: 'startDateTime', title: 'START DATE', formatter: (item: CreatedGiveaway) => formatDate(item.startDateTime) },
+  { key: 'endDateTime', title: 'END DATE', formatter: (item: CreatedGiveaway) => formatDate(item.endDateTime) }
 ];
 
 // Format date function
-function formatDate(dateString: string) {
+function formatDate(dateString: string | undefined) {
   if (!dateString) return 'N/A';
   const date = new Date(dateString);
   return date.toLocaleDateString('en-US', {
@@ -268,21 +272,44 @@ const processGiveawaysData = (data: CreatedGiveaway[]) => {
   });
 };
 
-// Filter giveaways based on selected tab and filter
+// Add a helper function to display a more descriptive name for the giveaway
+const getGiveawayDisplayName = (giveaway: CreatedGiveaway) => {
+  // If giveaway has a name, use it
+  if (giveaway.name) {
+    return giveaway.name;
+  }
+  
+  // Otherwise fallback to the token information
+  const token = giveaway.giveawayToken;
+  if (!token) return 'Unknown Giveaway';
+  
+  return `${token.collection} ${token.category} ${giveaway.giveawayType}`;
+};
+
+// Filter giveaways based on selected tab
 const filteredGiveaways = computed(() => {
-  // First filter by tab (active or past)
+  // Filter by tab (active or past)
   const now = new Date();
   let filtered = giveaways.value;
   
   if (tab.value === 'active') {
-    filtered = filtered.filter(g => new Date(g.endDateTime) >= now);
+    filtered = filtered.filter(g => {
+      // Consider a giveaway as "past" if it's FCFS and has no claims left
+      if (g.giveawayType === 'FirstComeFirstServe' && (g.claimsLeft === 0 || g.claimed === g.totalQuantity)) {
+        return false; // Not active if all claims are used
+      }
+      // Otherwise use the normal date check
+      return new Date(g.endDateTime) >= now;
+    });
   } else if (tab.value === 'past') {
-    filtered = filtered.filter(g => new Date(g.endDateTime) < now);
-  }
-  
-  // Then filter by type (all or tokens)
-  if (selectedFilter.value === 'tokens') {
-    filtered = filtered.filter(g => g.giveawayTokenType === 'Balance' || g.giveawayTokenType === 'Token');
+    filtered = filtered.filter(g => {
+      // Include in "past" if it's FCFS and has no claims left
+      if (g.giveawayType === 'FirstComeFirstServe' && (g.claimsLeft === 0 || g.claimed === g.totalQuantity)) {
+        return true; // Considered past if all claims are used
+      }
+      // Otherwise use the normal date check
+      return new Date(g.endDateTime) < now;
+    });
   }
   
   return filtered;
@@ -350,22 +377,10 @@ h1 {
   min-width: 80px;
 }
 
-.filter-bg {
-  background-color: #1E1E1E;
-}
-
-.filter-active {
-  background-color: #333333 !important;
-  color: white;
-}
-
-.filter-inactive {
-  color: #BBBBBB;
-}
-
 .giveaway-table {
   background-color: #121212;
   border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 0 0 8px 8px;
 }
 
 /* Footer styling */

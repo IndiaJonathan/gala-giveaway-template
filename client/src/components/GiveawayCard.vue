@@ -2,7 +2,7 @@
   <v-card class="giveaway-card" rounded="xl">
     <!-- Main image container -->
     <div class="position-relative">
-      <v-img :src="giveaway.image || GiveawayPlaceholderJPG" height="358px" cover class="giveaway-image">
+      <v-img :src="getGiveawayImage()" height="358px" contain class="giveaway-image">
         <!-- Burn requirement badge -->
         <div v-if="giveaway.requireBurnTokenToClaim" class="burn-badge-container">
           <v-chip
@@ -141,7 +141,7 @@
 </template>
 
 <script lang="ts" setup>
-import { type PropType, computed, defineEmits, onMounted } from 'vue'
+import { type PropType, computed, defineEmits, onMounted, onUnmounted, ref, nextTick } from 'vue'
 import type { Giveaway } from '@/types/giveaway'
 import GiveawayPlaceholderJPG from '@/assets/giveaway-placeholder.jpg'
 import { tokenToReadable, getTokenSymbol } from '@/utils/GalaHelper'
@@ -159,15 +159,121 @@ const { giveaway } = defineProps({
   }
 })
 
-const emit = defineEmits(['signup-success'])
+const emit = defineEmits(['signup-success', 'giveaway-available'])
 
 const profileStore = useProfileStore()
-const { connectedUserGCAddress, profile } = storeToRefs(profileStore)
+const { connectedUserGCAddress, profile, metadata } = storeToRefs(profileStore)
 
 const hasClaimed = giveaway.isWinner === true
 
 const startTime = new Date(giveaway.startDateTime)
-const isUpcoming = startTime > new Date()
+// Use ref instead of computed for isUpcoming
+const isUpcoming = ref(startTime > new Date())
+
+// Change from computed to ref for timer updates
+const availableIn = ref('')
+let countdownTimer: number | null = null
+
+// Calculate and update the remaining time
+function updateRemainingTime() {
+  // Refresh the calculation of whether the giveaway is upcoming
+  isUpcoming.value = startTime > new Date()
+  
+  if (!isUpcoming.value) {
+    availableIn.value = ''
+    // Clear the timer if we're no longer upcoming
+    if (countdownTimer) {
+      clearInterval(countdownTimer)
+      countdownTimer = null
+    }
+    return
+  }
+
+  const now = new Date()
+  const secondsRemaining = Math.floor((startTime.getTime() - now.getTime()) / 1000)
+
+  // less than 1 minute - update every second
+  if (secondsRemaining < 60) {
+    availableIn.value = `${secondsRemaining}s`
+    
+    // If we're showing seconds, make sure we're updating every second
+    if (countdownTimer) {
+      clearInterval(countdownTimer)
+      countdownTimer = setInterval(updateRemainingTime, 1000) as unknown as number
+    }
+  } 
+  // less than 1 hour - update every minute
+  else if (secondsRemaining < 3600) {
+    const minutesRemaining = Math.round(secondsRemaining / 60)
+    availableIn.value = `${minutesRemaining}m`
+    
+    // If we're showing minutes, we can update once per minute
+    if (countdownTimer && secondsRemaining % 60 === 0) {
+      clearInterval(countdownTimer)
+      countdownTimer = setInterval(updateRemainingTime, 60000) as unknown as number
+    }
+  } 
+  // more than 1 hour - update every minute
+  else {
+    const minutesTotalRemaining = Math.round(secondsRemaining / 60)
+    const hoursRemaining = Math.floor(minutesTotalRemaining / 60)
+    const minutesRemaining = minutesTotalRemaining % 60
+    availableIn.value = `${hoursRemaining}h ${minutesRemaining}m`
+  }
+  
+  // Check if we've gone past the start time
+  if (secondsRemaining <= 0) {
+    // Refresh the component data when timer ends
+    if (countdownTimer) {
+      clearInterval(countdownTimer)
+      countdownTimer = null
+    }
+    
+    // Update isUpcoming again
+    isUpcoming.value = startTime > new Date()
+    
+    // If the giveaway just became available
+    if (!isUpcoming.value) {
+      // Emit an event to trigger any parent components to update
+      emit('giveaway-available', giveaway._id)
+      
+      // Force refresh of component state
+      availableIn.value = ''
+      
+      // Force a UI refresh without directly assigning to computed properties
+      nextTick(() => {
+        // Just triggering the nextTick will force a UI refresh
+        // No need to assign to computed property values
+      })
+    }
+  }
+}
+
+// Set up the timer when the component is mounted
+onMounted(() => {
+  // Update immediately
+  updateRemainingTime()
+  
+  // Determine initial update frequency based on time remaining
+  const now = new Date()
+  const secondsRemaining = Math.floor((startTime.getTime() - now.getTime()) / 1000)
+  
+  let updateInterval = 60000 // Default to every minute
+  if (secondsRemaining < 60) {
+    updateInterval = 1000 // Every second when less than a minute remains
+  }
+  
+  // Then update at the determined interval
+  countdownTimer = setInterval(updateRemainingTime, updateInterval) as unknown as number
+})
+
+// Clean up the timer when the component is unmounted
+onUnmounted(() => {
+  if (countdownTimer) {
+    clearInterval(countdownTimer)
+    countdownTimer = null
+  }
+})
 
 // Check if the giveaway is of type DistributedGiveaway
 const isDistributedGiveaway = computed(() => {
@@ -306,7 +412,7 @@ const hasSignedUp = computed(() => {
 
 // Determine if the button should be disabled based on giveaway type and status
 const buttonDisabled = computed(() => {
-  if (isUpcoming) {
+  if (isUpcoming.value) {
     return true
   }
 
@@ -361,37 +467,10 @@ const getButtonTooltip = computed(() => {
   return ''
 })
 
-const availableIn = computed(() => {
-  if (!isUpcoming) {
-    return ''
-  }
-
-  const now = new Date()
-
-  const secondsRemaining = Math.floor((startTime.getTime() - now.getTime()) / 1000)
-
-  // less than 1 minute
-  if (secondsRemaining < 60) {
-    return `${secondsRemaining}s`
-    // less than 1 hour
-  } else if (secondsRemaining < 3600) {
-    const minutesRemaining = Math.round(secondsRemaining / 60)
-
-    return `${minutesRemaining}m`
-    // more than 1 hour
-  } else {
-    const minutesTotalRemaining = Math.round(secondsRemaining / 60)
-    const hoursRemaining = Math.floor(minutesTotalRemaining / 60)
-    const minutesRemaining = minutesTotalRemaining % 60
-
-    return `${hoursRemaining}h ${minutesRemaining}m`
-  }
-})
-
 // Calculate the footer subtitle text based on giveaway type
 const footerSubtitle = computed(() => {
   // For upcoming giveaways, show available soon
-  if (isUpcoming) {
+  if (isUpcoming.value) {
     return 'Available soon';
   }
 
@@ -441,6 +520,27 @@ const hasEnded = computed(() => {
   const endTime = new Date(giveaway.endDateTime);
   return endTime < new Date();
 })
+
+// Get the giveaway image based on the metadata
+const getGiveawayImage = () => {
+  // Check if we have the metadata and giveaway token
+  if (metadata.value && giveaway.giveawayToken) {
+    // Find the token metadata
+    const tokenMetadata = metadata.value.find(meta => 
+      meta.collection === giveaway.giveawayToken.collection &&
+      meta.category === giveaway.giveawayToken.category &&
+      meta.type === giveaway.giveawayToken.type
+    );
+    
+    // Use the metadata image if available
+    if (tokenMetadata && tokenMetadata.image) {
+      return tokenMetadata.image;
+    }
+  }
+  
+  // Fall back to the giveaway image or placeholder
+  return giveaway.image || GiveawayPlaceholderJPG;
+}
 </script>
 
 <style scoped>
