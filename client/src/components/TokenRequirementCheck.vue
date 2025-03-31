@@ -5,6 +5,9 @@
         statusText="MISSING BALANCE"
         :actionButtonText="checkType === GiveawayTokenType.ALLOWANCE ? 'Grant Allowance' : 'Transfer Tokens'"
         :actionDisabled="checkType === GiveawayTokenType.BALANCE ? !hasMissingBalance : isAllowanceRequirementMet"
+        :explanatoryText="checkType === GiveawayTokenType.ALLOWANCE ?
+            'You need to grant allowance for the giveaway system to use your tokens. This allows the giveaway system to mint the tokens on your behalf' :
+            'You need to transfer the required number of tokens to the giveaway wallet. These tokens will be distributed to winners of your giveaway.'"
         @action-click="performAction">
         <template #content>
             <!-- Allowance UI -->
@@ -28,7 +31,8 @@
                     </div>
                 </div>
                 <div v-else class="text-muted mb-4">
-                    <p v-if="!balances || !giveawaySettings.giveawayToken">Data not available. Please select a token first.</p>
+                    <p v-if="!balances || !giveawaySettings.giveawayToken">Data not available. Please select a token
+                        first.</p>
                     <p v-else>You have not granted any allowance of this token to the giveaway wallet yet.</p>
                 </div>
             </div>
@@ -46,15 +50,18 @@
                     </div>
                     <div class="balance-item">
                         <div class="balance-label">CURRENT GIVEAWAY REQUIREMENTS</div>
-                        <div class="balance-value">{{ balances && giveawaySettings.giveawayToken ? formatNumber(Number(totalRequiredAmount)) : 'N/A' }}</div>
+                        <div class="balance-value">{{ balances && giveawaySettings.giveawayToken ?
+                            formatNumber(Number(totalRequiredAmount)) : 'N/A' }}</div>
                     </div>
                     <div class="balance-item">
                         <div class="balance-label">YOUR NET ESCROW BALANCE</div>
-                        <div class="balance-value">{{ balances && giveawaySettings.giveawayToken ? formatNumber(Number(netEscrowBalance)) : 'N/A' }}</div>
+                        <div class="balance-value">{{ balances && giveawaySettings.giveawayToken ?
+                            formatNumber(Number(netEscrowBalance)) : 'N/A' }}</div>
                     </div>
                     <div class="balance-item" v-if="getMissingAmount().gt(0)">
                         <div class="balance-label">MISSING BALANCE</div>
-                        <div class="balance-value">{{ balances && giveawaySettings.giveawayToken ? formatNumber(Number(getMissingAmount())) : 'N/A' }}</div>
+                        <div class="balance-value">{{ balances && giveawaySettings.giveawayToken ?
+                            formatNumber(Number(getMissingAmount())) : 'N/A' }}</div>
                     </div>
                 </div>
 
@@ -107,7 +114,8 @@ const props = defineProps({
 
 const emit = defineEmits<{
     (e: 'requirement-met'): void,
-    (e: 'balance-updated'): void
+    (e: 'balance-updated'): void,
+    (e: 'is-valid', valid: boolean): void
 }>()
 
 const profileStore = useProfileStore();
@@ -125,10 +133,6 @@ const checkType = computed(() => {
 const requiredAmount = computed(() => {
     return requiredTokenAmount.value;
 });
-
-// Get current amount from store instead of props
-
-
 
 // Check if the token is GALA
 const isGalaToken = computed(() => {
@@ -155,8 +159,6 @@ const totalRequiredAmount = computed(() => {
 });
 
 const netEscrowBalance = computed(() => {
-    console.log("computin'")
-
     if (giveawaySettings.value.giveawayTokenType === GiveawayTokenType.BALANCE) {
         const currentBalance = new BigNumber(findTokenInArray(balances.value?.giveawayWalletBalances.Data, giveawaySettings.value.giveawayToken as any)?.quantity || '0');
         const requiredTokenEscrowBalance = new BigNumber(findTokenInArray(balances.value?.requiredEscrow.balanceEscrowRequirements, giveawaySettings.value.giveawayToken as any)?.quantity || BigNumber(0));
@@ -208,8 +210,25 @@ const isValid = computed(() => {
     return isAllowanceRequirementMet.value;
 });
 
+// Make sure to expose the isValid computed property
 defineExpose({
     isValid
+});
+
+// Watch for changes in validity and emit all events
+watch(isAllowanceRequirementMet, (newValue) => {
+    if (newValue) {
+        emit('requirement-met');
+    }
+    emit('is-valid', newValue);
+});
+
+// Initial check when component is mounted
+onMounted(() => {
+    if (isAllowanceRequirementMet.value) {
+        emit('requirement-met');
+    }
+    emit('is-valid', isAllowanceRequirementMet.value);
 });
 
 const isBalanceDeficient = computed(() => {
@@ -235,18 +254,6 @@ const getMissingAmount = () => {
     }
     return BigNumber.max(0, totalRequiredAmount.value.minus(netEscrowBalance.value));
 };
-
-// watch(isRequirementMet, (newValue) => {
-//     if (newValue) {
-//         emit('requirement-met');
-//     }
-// });
-
-// onMounted(() => {
-//     if (isRequirementMet.value) {
-//         emit('requirement-met');
-//     }
-// });
 
 const tokenSymbol = computed(() => {
     if (isGalaToken.value) return 'GALA';
@@ -293,6 +300,7 @@ async function performAction() {
                 showToast('Allowance Granted!');
                 await profileStore.getBalances(true);
                 emit('requirement-met');
+                emit('is-valid', true);
             }
         } else {
             result = await tokenService.transferToken(
@@ -304,6 +312,7 @@ async function performAction() {
             if (result.Status === 1) {
                 showToast('Token transferred!');
                 emit('requirement-met');
+                emit('is-valid', true);
 
                 // Already correctly using profile store
                 await profileStore.getBalances(true);

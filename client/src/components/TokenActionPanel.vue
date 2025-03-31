@@ -50,7 +50,7 @@ const props = defineProps({
   },
   explanatoryText: {
     type: String,
-    default: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Curabitur iaculis pharetra lectus quis dictum. Etiam vulputate orci vel orci auctor pellentesque.'
+    default: 'This panel allows you to manage token actions. Select the token and follow the instructions to proceed with transfers or other operations.'
   },
   tokenLabelText: {
     type: String,

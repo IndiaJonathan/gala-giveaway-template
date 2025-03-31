@@ -19,27 +19,27 @@
         </div>
         <TokenRequirementCheck v-else ref="tokenRequirementCheck"
             :includeGasFees="isGalaToken && giveawaySettings.giveawayTokenType === GiveawayTokenType.BALANCE"
-            @requirement-met="checkValidity" />
+            @is-valid="onTokenRequirementValid" />
 
         <!-- Only show separate GasFeeBalance if token is not GALA or if using allowance -->
         <GasFeeBalance v-if="!isGalaToken || giveawaySettings.giveawayTokenType === 'Allowance'"
-            :giveawaySettings="giveawaySettings as GiveawaySettingsDto" @token-transferred="checkValidity" />
+            :giveawaySettings="giveawaySettings as GiveawaySettingsDto" 
+            @token-transferred="checkRequirements"
+            @is-valid="onGasFeeValid" 
+            ref="gasFeeBalance" />
     </div>
 </template>
 
 <script lang="ts" setup>
-import { ref, watch, computed, onMounted, watchEffect } from 'vue';
+import { ref, watch, computed, onMounted } from 'vue';
 import Collapsible from './Collapsible.vue';
-import { findTokenInArray, formatNumber, isErrorWithMessage } from '@/utils/Helpers';
+import { findTokenInArray } from '@/utils/Helpers';
 import { useCreateGiveawayStore } from '@/stores/createGiveaway';
 import { storeToRefs } from 'pinia';
 import { useProfileStore } from '@/stores/profile';
 import BigNumber from 'bignumber.js';
 import { useToast } from '@/composables/useToast';
-import { GalaChainApi } from '@/services/GalaChainApi';
-import { BrowserConnectClient } from '@gala-chain/connect';
-import { type GiveawayDetails, type GiveawaySettingsDto, type Profile } from '@/utils/types';
-import type { TokenClassKeyProperties } from '@gala-chain/api';
+import { type GiveawaySettingsDto } from '@/utils/types';
 import { GALA } from '@/utils/constants';
 import TokenRequirementCheck from './TokenRequirementCheck.vue';
 import GasFeeBalance from './GasFeeBalance.vue';
@@ -48,11 +48,16 @@ import { GiveawayTokenType } from '@/utils/types';
 const emit = defineEmits(['is-valid']);
 
 const tokenRequirementCheck = ref<InstanceType<typeof TokenRequirementCheck> | null>(null);
+const gasFeeBalance = ref<InstanceType<typeof GasFeeBalance> | null>(null);
+
+// Track validity state from child components
+const tokenRequirementValid = ref(false);
+const gasFeeValid = ref(true); // Default to true if GasFeeBalance is not shown
 
 const giveawayStore = useCreateGiveawayStore();
-const { giveawaySettings, requiredTokenAmount,requiredGas } = storeToRefs(giveawayStore);
+const { giveawaySettings, requiredGas } = storeToRefs(giveawayStore);
 const profileStore = useProfileStore();
-const { profile, balances, connectedEthAddress } = storeToRefs(profileStore);
+const { profile, balances } = storeToRefs(profileStore);
 const { showToast } = useToast();
 
 // Get wallet address from profile store
@@ -71,84 +76,54 @@ const isGalaToken = computed(() => {
         token.additionalKey === GALA.additionalKey;
 });
 
-// Get token details from giveaway settings
-const tokenSymbol = computed(() => {
-    const token = giveawaySettings.value.giveawayToken;
-    if (token) {
-        // Use collection name if symbol is not available
-        return token.collection?.substring(0, 4) || 'Token';
-    }
-    return 'Select token';
-});
+// Event handlers for child component validity changes
+const onTokenRequirementValid = (valid: boolean) => {
+    tokenRequirementValid.value = valid;
+    checkRequirements();
+};
 
-// Use TokenRequirementCheck's isValid property instead of our own implementation
-const isValid = computed(() => {
-    // If tokenRequirementCheck is not available or if required amount is zero, handle it ourselves
-    if (!tokenRequirementCheck.value || requiredTokenAmount.value.isZero()) {
-        if (requiredTokenAmount.value.isZero() &&
-            (giveawaySettings.value.giveawayTokenType === 'Allowance' ||
-                giveawaySettings.value.giveawayTokenType === 'Balance')) {
-            return true;
-        }
-        return false;
+const onGasFeeValid = (valid: boolean) => {
+    gasFeeValid.value = valid;
+    checkRequirements();
+};
+
+// Combined validation based on both child components
+const allRequirementsMet = computed(() => {
+    // If using GALA with Balance type, gas fee is included in token requirement
+    if (isGalaToken.value && giveawaySettings.value.giveawayTokenType === GiveawayTokenType.BALANCE) {
+        return tokenRequirementValid.value;
     }
     
-    // Otherwise use TokenRequirementCheck's isValid
-    return tokenRequirementCheck.value.isValid;
+    // Otherwise, both requirements must be met
+    return tokenRequirementValid.value && gasFeeValid.value;
 });
 
-// Check gas fee requirement
-const gasFeesValid = computed(() => {
-    // If token is GALA and using Balance, gas fees are already included in isValid check
-    if (isGalaToken.value && giveawaySettings.value.giveawayTokenType === 'Balance') {
-        return true;
-    }
-
-    // Estimate required gas fees, accounting for fees already covered
-    const currentGalaFeesNeeded = BigNumber(findTokenInArray(balances.value?.giveawayWalletBalances?.Data, giveawaySettings.value.giveawayToken as any)?.quantity || 0);
-    const actualGasFeeNeeded = BigNumber.max(0, requiredGas.value.minus(currentGalaFeesNeeded));
-
-    // Check if gas fee requirement is zero or we have enough balance
-    return actualGasFeeNeeded.isZero() ||
-        BigNumber(findTokenInArray(balances.value?.availableBalances, giveawaySettings.value.giveawayToken as any)?.quantity || 0).gte(actualGasFeeNeeded);
-});
-
-// Combined validation - both token and gas requirements must be met
-const allRequirementsMet = computed(() => {
-    return isValid.value && gasFeesValid.value;
-});
-
-const checkValidity = () => {
+// Function to check requirements and emit validity
+const checkRequirements = () => {
     emit('is-valid', allRequirementsMet.value);
 };
 
-// Watch for changes in validity
+// Watch for changes in validity and emit
 watch([allRequirementsMet], (newValue) => {
     emit('is-valid', newValue[0]);
 });
 
-// Fetch allowance data when component is mounted
-onMounted(async () => {
-    /**
-    if (giveawaySettings.value.giveawayToken && profile.value?.galaChainAddress) {
-            try {
-                // Use the profile store to fetch allowances
-                await profileStore.refreshGiveawayTokenBalances(
-                    {
-                        collection: giveawaySettings.value.giveawayToken?.collection,
-                        category: giveawaySettings.value.giveawayToken?.category,
-                        type: giveawaySettings.value.giveawayToken?.type,
-                        additionalKey: giveawaySettings.value.giveawayToken?.additionalKey
-                    } as TokenClassKeyProperties
-                );
-            } catch (error) {
-                console.error('Error fetching allowances:', error);
-            }
-        }
+// Initial check when component is mounted
+onMounted(() => {
+    // When mounted, if TokenRequirementCheck is mounted, get its isValid state directly
+    if (tokenRequirementCheck.value) {
+        tokenRequirementValid.value = tokenRequirementCheck.value.isValid;
+    }
     
-    */
-
-    checkValidity();
+    // If GasFeeBalance is mounted, get its isValid state directly
+    if (gasFeeBalance.value) {
+        gasFeeValid.value = gasFeeBalance.value.isValid;
+    } else if (isGalaToken.value && giveawaySettings.value.giveawayTokenType === GiveawayTokenType.BALANCE) {
+        // If gas fee is included in token requirement, mark as valid
+        gasFeeValid.value = true;
+    }
+    
+    checkRequirements();
 });
 
 defineExpose({ isValid: allRequirementsMet });

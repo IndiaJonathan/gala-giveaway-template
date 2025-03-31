@@ -177,6 +177,10 @@ const handleBurn = async (win: ClaimableWinDto) => {
     await claimWin({ ...signedDto, claimId: win._id });
 
     showToast('Giveaway won! Your item has been claimed successfully.', false);
+    
+    // Reload balances after successful claim
+    await profileStore.getBalances(true);
+    
     // Refresh the list after successful burn
     fetchClaimableWins();
   } catch (error) {

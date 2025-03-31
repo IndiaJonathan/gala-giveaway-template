@@ -1,9 +1,14 @@
 <template>
     <Collapsible title="Schedule Giveaway" :collapsible="true" :isOpen="isOpen">
 
-        <p style="margin-bottom: 32px;" class="explanatory-text">
-            Lorem ipsum dolor sit amet, consectetur adipiscing elit. Curabitur iaculis pharetra lectus quis dictum.
-            Etiam vulputate orci vel orci auctor pellentesque.
+        <p style="margin-bottom: 32px;" class="explanatory-text" v-if="giveawaySettings.giveawayType === 'FirstComeFirstServe'">
+            Set the timing for your giveaway. You can choose to run it indefinitely or specify a start and end date.
+            Select dates from the calendar and set precise times below.
+        </p>
+
+        <p style="margin-bottom: 32px;" class="explanatory-text" v-else>
+            Set the timing for your raffle giveaway. Specify both a start and end date to determine when users can enter.
+            Select dates from the calendar and set precise times below.
         </p>
 
         <ToggleSwitch v-if="giveawaySettings.giveawayType === 'FirstComeFirstServe'" v-model:selected="selected"

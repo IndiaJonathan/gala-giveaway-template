@@ -364,6 +364,8 @@ const handleClaimClick = async () => {
       const success = await requestClaimFCFS(signedPayload);
       if (success) {
         await profileStore.fetchProfile();
+        // Reload balances after successful claim
+        await profileStore.getBalances(true);
         // Emit an event so parent components can reload giveaways
         emit('signup-success');
         showToast('Successfully claimed the giveaway!');

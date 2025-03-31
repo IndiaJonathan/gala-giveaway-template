@@ -1,7 +1,8 @@
 <template>
     <TokenActionPanel title="Gas fee balance" tokenSymbol="$GALA" :tokenImage="galaTokenImage"
         :showStatusIndicator="hasMissingGasBalance" statusText="MISSING BALANCE" actionButtonText="Transfer Token"
-        :actionDisabled="!hasMissingGasBalance || balances === undefined" @action-click="transferToken">
+        :actionDisabled="!hasMissingGasBalance || balances === undefined" @action-click="transferToken"
+        explanatoryText="Gas fees are required to process transactions on the blockchain. Ensure you have sufficient GALA tokens to cover gas fees for your giveaway operations.">
         <template #content>
             <div class="balance-info">
                 <div class="balance-item">
@@ -84,6 +85,11 @@ const missingGasBalance = computed(() => {
 
 const hasMissingGasBalance = computed(() => missingGasBalance.value.gt(0));
 
+const isValid = computed(() => !hasMissingGasBalance.value);
+
+// Expose isValid property
+defineExpose({ isValid });
+
 async function transferToken() {
     const browserClient = new BrowserConnectClient();
     await browserClient.connect();
@@ -113,6 +119,7 @@ async function transferToken() {
             setTimeout(async () => {
                 await profileStore.getBalances();
                 emit('token-transferred');
+                emit('is-valid', true);
             }, 0);
         }
     } catch (e: unknown) {
@@ -127,10 +134,18 @@ async function transferToken() {
 
 const emit = defineEmits<{
     (e: 'token-transferred'): void;
+    (e: 'is-valid', valid: boolean): void;
 }>();
 
-// Add computed property to check if gas requirements are met
+// Watch for changes in validity and emit when requirements are met
+watch(isValid, (newValue) => {
+    emit('is-valid', newValue);
+});
 
+// Initial check when component is mounted
+onMounted(() => {
+    emit('is-valid', isValid.value);
+});
 </script>
 
 <style scoped>

@@ -250,6 +250,10 @@ async function launchGiveaway() {
     const result = await startGiveaway(signedGiveaway as StartBasicGivewaySettingsDto)
     if (result?.success) {
       showToast('Giveaway launched!')
+      
+      // Reload balances after successful giveaway launch
+      await profileStore.getBalances(true);
+      
       giveawayStore.$reset()
       router.push('/')
     } else {
