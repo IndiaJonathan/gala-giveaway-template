@@ -260,13 +260,16 @@ export const useProfileStore = defineStore('profile', () => {
   watch(
     () => getTokenClasses(), // Track changes to getTokenClasses
     async (newTokenClasses) => {
-      if (!browserClient || !newTokenClasses || !newTokenClasses.length) {
+      if (!newTokenClasses || !newTokenClasses.length) {
         metadata.value = []
         return
       }
 
-      const tokenApi = new TokenApi(tokenContractUrl, browserClient.value)
       try {
+        // Create a client for token metadata fetching - this doesn't require authentication for viewing
+        const client = browserClient?.value || new BrowserConnectClient()
+        const tokenApi = new TokenApi(tokenContractUrl, client)
+        
         const foo = ((await tokenApi.FetchTokenClasses({ tokenClasses: newTokenClasses })) as any)
           .Data
         metadata.value = foo

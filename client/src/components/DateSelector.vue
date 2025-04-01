@@ -72,7 +72,8 @@ const selectedDates = ref<Date[]>();
 
 const now = new Date();
 
-const futureDate = new Date(now.getTime() + 30 * 60 * 1000);
+// Use current time instead of 30 minutes ahead
+const futureDate = new Date(now.getTime());
 
 const startTime = ref(futureDate);
 const endTime = ref(futureDate);
