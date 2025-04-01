@@ -95,26 +95,24 @@ const handleTelegramAuthChange = () => {
 
 
 const handleValidityChange = () => {
-    let isValid = true;
     console.log("hit here")
+    const isValid = checkAllValid();
+
+    // Emit validity change when token selection validity changes
+    emit('is-valid', isValid);
+    return isValid;
+};
+
+const checkAllValid = () => {
+    // If burn token is required, check if token selection is valid
+    let isValid = true;
     if (giveawaySettings.value.requireBurnTokenToClaim) {
         const isTokenRefValid = tokenSelectRef.value && tokenSelectRef.value.isValid;
         isValid = isValid && isTokenRefValid;
     }
 
-    // Emit validity change when token selection validity changes
-    emit('is-valid', true);
-    return true;
-};
-
-const checkAllValid = () => {
-    // If burn token is required, check if token selection is valid
-    // if (giveawaySettings.value.requireBurnTokenToClaim) {
-    //     return tokenSelectRef.value && tokenSelectRef.value.isValid;
-    // }
-
     // If neither option requires validation, return true
-    return true;
+    return isValid;
 };
 
 const prizePerWinner = computed({

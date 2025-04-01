@@ -6,16 +6,17 @@
         <div v-else-if="availableTokens.length === 0">
             <p>No tokens available</p>
         </div>
-        <TokenListItem
-            v-else
-            v-for="(token, index) in availableTokens.filter((token: TokenBalance) => new BigNumber(token.quantity).gt(0))"
-            :key="index"
-            :token-image="getImage(token)"
-            :token-name="getTokenSymbol(token)"
-            :sub-text="``"
-            :is-selected="isTokenSelected(token)"
-            @click="() => handleTokenClick(token)"
-        />
+        <div class="scrollable-list" v-else>
+            <TokenListItem
+                v-for="(token, index) in availableTokens.filter((token: TokenBalance) => new BigNumber(token.quantity).gt(0))"
+                :key="index"
+                :token-image="getImage(token)"
+                :token-name="getTokenSymbol(token)"
+                :sub-text="``"
+                :is-selected="isTokenSelected(token)"
+                @click="() => handleTokenClick(token)"
+            />
+        </div>
         
         <div v-if="selectedToken" class="quantity-selector">
             <p class="selector-label">Quantity to burn:</p>
@@ -110,6 +111,37 @@ defineExpose({ isValid, burnQuantity });
     gap: 6px;
     border-radius: 16px;
     border: 1px solid rgba(236, 236, 236, 0.1);
+}
+
+/* Reusable scrollable list styling */
+.scrollable-list {
+    max-height: 300px;
+    overflow-y: auto;
+    width: 100%;
+    
+    /* Custom scrollbar styling */
+    &::-webkit-scrollbar {
+        width: 6px;
+        background-color: transparent;
+    }
+
+    &::-webkit-scrollbar-thumb {
+        background-color: rgba(255, 255, 255, 0.2);
+        border-radius: 3px;
+        
+        &:hover {
+            background-color: rgba(255, 255, 255, 0.3);
+        }
+    }
+
+    &::-webkit-scrollbar-track {
+        background-color: rgba(0, 0, 0, 0.1);
+        border-radius: 3px;
+    }
+
+    /* Firefox scrollbar styling */
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.2) rgba(0, 0, 0, 0.1);
 }
 
 .quantity-selector {

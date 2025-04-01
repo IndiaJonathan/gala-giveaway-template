@@ -7,7 +7,7 @@
             Your Balances
           </v-card-title>
           <v-card-text>
-            <v-list v-if="balances && balances.userBalances && balances.userBalances.Data.filter(token => Number(token.quantity) > 0).length" class="token-list">
+            <v-list v-if="balances && balances.userBalances && balances.userBalances.Data.filter(token => Number(token.quantity) > 0).length" class="token-list scrollable-list">
               <TokenListItem
                 v-for="(token, index) in balances.userBalances.Data.filter(token => Number(token.quantity) > 0)"
                 :key="index"
@@ -29,7 +29,7 @@
             Giveaway Wallet Balances
           </v-card-title>
           <v-card-text>
-            <v-list v-if="balances && balances.giveawayWalletBalances && balances.giveawayWalletBalances.Data.filter(token => Number(token.quantity) > 0).length" class="token-list">
+            <v-list v-if="balances && balances.giveawayWalletBalances && balances.giveawayWalletBalances.Data.filter(token => Number(token.quantity) > 0).length" class="token-list scrollable-list">
               <TokenListItem
                 v-for="(token, index) in balances.giveawayWalletBalances.Data.filter(token => Number(token.quantity) > 0)"
                 :key="index"
@@ -75,5 +75,36 @@ const getImage = (token: TokenClassKeyProperties) => {
 <style scoped>
 .token-list {
   padding: 0;
+}
+
+/* Reusable scrollable list styling */
+.scrollable-list {
+  max-height: 300px;
+  overflow-y: auto;
+  width: 100%;
+  
+  /* Custom scrollbar styling */
+  &::-webkit-scrollbar {
+    width: 6px;
+    background-color: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background-color: rgba(255, 255, 255, 0.2);
+    border-radius: 3px;
+    
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.3);
+    }
+  }
+
+  &::-webkit-scrollbar-track {
+    background-color: rgba(0, 0, 0, 0.1);
+    border-radius: 3px;
+  }
+
+  /* Firefox scrollbar styling */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.2) rgba(0, 0, 0, 0.1);
 }
 </style>

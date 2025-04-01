@@ -15,16 +15,17 @@
             <div v-else-if="balances.availableBalances.length === 0">
                 <p>No current balances</p>
             </div>
-            <TokenListItem
-                v-else
-                v-for="(token, index) in balances.availableBalances.filter(token => new BigNumber(token.quantity).gt(0))"
-                :key="index"
-                :token-image="getImage(token)"
-                :token-name="getTokenSymbol(token)"
-                :sub-text="`Balance: ${token.quantity}`"
-                :is-selected="isTokenBalanceSelected(token)"
-                @click="() => handleTokenClick(token)"
-            />
+            <div class="scrollable-list" v-else>
+                <TokenListItem
+                    v-for="(token, index) in balances.availableBalances.filter(token => new BigNumber(token.quantity).gt(0))"
+                    :key="index"
+                    :token-image="getImage(token)"
+                    :token-name="getTokenSymbol(token)"
+                    :sub-text="`Balance: ${token.quantity}`"
+                    :is-selected="isTokenBalanceSelected(token)"
+                    @click="() => handleTokenClick(token)"
+                />
+            </div>
         </div>
 
         <!-- Created Tokens -->
@@ -39,16 +40,17 @@
                         Connect</a>
                 </v-alert>
             </div>
-            <TokenListItem
-                v-else
-                v-for="(transaction, index) in createdTokens"
-                :key="index"
-                :token-image="transaction.tokenDetails.image"
-                :token-name="transaction.tokenDetails.name || transaction.tokenDetails.tokenClass.collection"
-                :sub-text="`Symbol: ${transaction.tokenDetails.symbol}`"
-                :is-selected="isTransactionSelected(transaction)"
-                @click="() => handleCreatedTokenClick(transaction)"
-            />
+            <div class="scrollable-list" v-else>
+                <TokenListItem
+                    v-for="(transaction, index) in createdTokens"
+                    :key="index"
+                    :token-image="transaction.tokenDetails.image"
+                    :token-name="transaction.tokenDetails.name || transaction.tokenDetails.tokenClass.collection"
+                    :sub-text="`Symbol: ${transaction.tokenDetails.symbol}`"
+                    :is-selected="isTransactionSelected(transaction)"
+                    @click="() => handleCreatedTokenClick(transaction)"
+                />
+            </div>
         </div>
     </div>
 </template>
@@ -194,6 +196,37 @@ defineExpose({ isValid });
     gap: 6px;
     border-radius: 16px;
     border: 1px solid rgba(236, 236, 236, 0.1);
+}
+
+/* Reusable scrollable list styling */
+.scrollable-list {
+    max-height: 300px;
+    overflow-y: auto;
+    width: 100%;
+    
+    /* Custom scrollbar styling */
+    &::-webkit-scrollbar {
+        width: 6px;
+        background-color: transparent;
+    }
+
+    &::-webkit-scrollbar-thumb {
+        background-color: rgba(255, 255, 255, 0.2);
+        border-radius: 3px;
+        
+        &:hover {
+            background-color: rgba(255, 255, 255, 0.3);
+        }
+    }
+
+    &::-webkit-scrollbar-track {
+        background-color: rgba(0, 0, 0, 0.1);
+        border-radius: 3px;
+    }
+
+    /* Firefox scrollbar styling */
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.2) rgba(0, 0, 0, 0.1);
 }
 
 .label {
