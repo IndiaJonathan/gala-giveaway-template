@@ -26,6 +26,7 @@ export const useCreateGiveawayStore = defineStore('createGiveaway', () => {
     burnTokenQuantity: '1',
     giveawayType: 'DistributedGiveaway',
     giveawayToken: undefined,
+    winPerUser: undefined,
     giveawayTokenType: GiveawayTokenType.BALANCE
   })
 

@@ -8,13 +8,8 @@
             </p>
 
             <div class="summary-item">
-                <div class="label">TYPE:</div>
-                <div class="value">NFT</div>
-            </div>
-
-            <div class="summary-item">
-                <div class="label">NUMBER OF NFTS:</div>
-                <div class="value">{{ numberOfNfts }}</div>
+                <div class="label">TOTAL TOKENS TO GIVEAWAY :</div>
+                <div class="value">{{ requiredTokenAmount }}</div>
             </div>
 
             <div class="summary-item">
@@ -23,7 +18,7 @@
             </div>
 
             <div class="summary-item">
-                <div class="label">CRITERIA:</div>
+                <div class="label">Giveaway Type:</div>
                 <div class="value">{{ criteria }}</div>
             </div>
 
@@ -33,41 +28,39 @@
             </div>
 
             <div class="summary-item">
+                <div class="label">END DATE:</div>
+                <div class="value">{{ endDate }}</div>
+            </div>
+
+            <div class="summary-item">
                 <div class="label">TOKEN:</div>
                 <div class="value">{{ token }}</div>
+            </div>
+
+
+            <div class="summary-item">
+                <div class="label">Giveaway Duration:</div>
+                <div class="value">{{ giveawayDuration }}</div>
             </div>
         </Collapsible>
 
         <!-- Settings Section -->
-        <Collapsible title="Settings" :collapsible="false" isOpen class="mb-4">
-            <p class="explanatory-text mb-8">
-                These settings control how participants can enter your giveaway, including any token requirements for
-                participation and claim periods.
-            </p>
-
+        <Collapsible title="Burn Token Settings" :collapsible="false" isOpen class="mb-4">
             <div class="summary-item">
                 <div class="label">TOKEN REQUIRED TO PARTICIPATE:</div>
-                <div class="value">NFT</div>
-            </div>
-
-            <div class="summary-item">
-                <div class="label">RUN DAYS TO CLAIM:</div>
-                <div class="value">50</div>
-            </div>
-
-            <div class="summary-item">
-                <div class="label">TOKEN TYPE:</div>
-                <div class="value">NFT</div>
+                <div class="value">{{ requiredTokenToClaim }}</div>
             </div>
 
             <div class="summary-item">
                 <div class="label">REQUIRED TOKEN BURN AMOUNT:</div>
-                <div class="value">{{ requiredTokenToClaim }}</div>
+                <div class="value">{{ requiredTokenQuantityToClaim }}</div>
             </div>
+
+
         </Collapsible>
 
         <!-- Allowance Section -->
-        <Collapsible title="Allowance" :collapsible="false" isOpen class="mb-4">
+        <Collapsible title="Escrow Wallet" :collapsible="false" isOpen class="mb-4">
             <p class="explanatory-text mb-8">
                 This section shows the wallet that will hold your giveaway tokens and the total amount of tokens that
                 will be distributed to winners.
@@ -81,11 +74,6 @@
             <div class="summary-item">
                 <div class="label">GIVEAWAY TOKEN AMOUNT:</div>
                 <div class="value">{{ giveawayTokenAmount }}</div>
-            </div>
-
-            <div class="summary-item">
-                <div class="label">BLOCK SIZE CAP:</div>
-                <div class="value">{{ blockSizeCap }}</div>
             </div>
         </Collapsible>
 
@@ -123,11 +111,12 @@ import Collapsible from './Collapsible.vue';
 import { useCreateGiveawayStore } from '@/stores/createGiveaway';
 import { storeToRefs } from 'pinia';
 import { useProfileStore } from '@/stores/profile';
+import { getTokenSymbol, tokenToReadable } from '@/utils/GalaHelper';
 
 const emit = defineEmits(['is-valid']);
 
 const giveawayStore = useCreateGiveawayStore();
-const { giveawaySettings } = storeToRefs(giveawayStore);
+const { giveawaySettings, requiredTokenAmount } = storeToRefs(giveawayStore);
 const profileStore = useProfileStore();
 const { profile } = storeToRefs(profileStore);
 
@@ -143,21 +132,14 @@ const giveawayTokenAmount = computed(() => {
     return (settings as any).tokenQuantity || (settings as any).winPerUser || '0';
 });
 
-const numberOfNfts = computed(() => {
-    return '50'; // Using default value from the image
-});
-
-const numberOfWinners = computed(() => {
-    return '50'; // Using default value from the image
-});
-
-const criteria = computed(() => {
-    return 'First come first serve'; // Using default value from the image
-});
-
 const startDate = computed(() => {
-    return giveawaySettings.value.startDateTime ? 
+    return giveawaySettings.value.startDateTime ?
         new Date(giveawaySettings.value.startDateTime).toLocaleDateString() : 'Not set';
+});
+
+const endDate = computed(() => {
+    return giveawaySettings.value.endDateTime ?
+        new Date(giveawaySettings.value.endDateTime).toLocaleDateString() : 'Not set';
 });
 
 const token = computed(() => {
@@ -165,14 +147,37 @@ const token = computed(() => {
     return tokenInfo ? `${tokenInfo.collection}` : 'NFT';
 });
 
-const requiredTokenToClaim = computed(() => {
-    return giveawaySettings.value.requireBurnTokenToClaim ? 
-        `${giveawaySettings.value.burnTokenQuantity || '0'} ${giveawaySettings.value.burnToken?.collection || 'Token'}` : 
+const giveawayDuration = computed(() => {
+    const start = giveawaySettings.value.startDateTime;
+    const end = giveawaySettings.value.endDateTime;
+
+    if (!start || !end) {
+        return 'Indefinite';
+    }
+
+    const startDate = new Date(start);
+    const endDate = new Date(end);
+    const diffTime = Math.abs(endDate.getTime() - startDate.getTime());
+    const diffHours = Math.ceil(diffTime / (1000 * 60 * 60));
+
+    if (diffHours < 24) {
+        return `${diffHours} ${diffHours === 1 ? 'hour' : 'hours'}`;
+    }
+
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return `${diffDays} ${diffDays === 1 ? 'day' : 'days'}`;
+});
+
+const requiredTokenQuantityToClaim = computed(() => {
+    return giveawaySettings.value.requireBurnTokenToClaim ?
+        `${giveawaySettings.value.burnTokenQuantity || '0'} Token(s)` :
         'None';
 });
 
-const blockSizeCap = computed(() => {
-    return '25,000'; // Using default value from the image
+const requiredTokenToClaim = computed(() => {
+    return giveawaySettings.value.requireBurnTokenToClaim && giveawaySettings.value.burnToken ?
+        `${getTokenSymbol(giveawaySettings.value.burnToken)}` :
+        'None';
 });
 
 // Terms agreement
@@ -324,4 +329,4 @@ defineExpose({ isValid });
 .PublishButton:hover {
     opacity: 0.9;
 }
-</style> 
+</style>

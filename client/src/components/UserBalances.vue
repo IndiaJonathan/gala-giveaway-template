@@ -54,7 +54,7 @@
 import { storeToRefs } from 'pinia';
 import { useProfileStore } from '@/stores/profile';
 import TokenListItem from '@/components/TokenListItem.vue';
-import { tokenToReadable, getTokenSymbol } from '@/utils/GalaHelper';
+import { getTokenSymbol } from '@/utils/GalaHelper';
 import type { TokenClassKeyProperties } from '@gala-chain/api';
 
 const profileStore = useProfileStore();

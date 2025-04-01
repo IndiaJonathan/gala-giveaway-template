@@ -12,19 +12,30 @@
             :key="index"
             :token-image="getImage(token)"
             :token-name="getTokenSymbol(token)"
-            :sub-text="`Balance: ${token.quantity}`"
+            :sub-text="``"
             :is-selected="isTokenSelected(token)"
             @click="() => handleTokenClick(token)"
         />
+        
+        <div v-if="selectedToken" class="quantity-selector">
+            <p class="selector-label">Quantity to burn:</p>
+            <InputBox 
+                v-model="burnQuantity" 
+                placeholder="Enter amount to burn"
+            />
+        </div>
     </div>
 </template>
 
 <script lang="ts" setup>
-import { computed, type PropType } from 'vue';
+import { computed, type PropType, ref, watch } from 'vue';
 import TokenListItem from './TokenListItem.vue';
+import InputBox from './InputBox.vue';
 import { tokenToReadable, checkTokenEquivalancy, getTokenSymbol } from '@/utils/GalaHelper';
 import type { TokenBalance, TokenClass } from '@gala-chain/connect';
 import BigNumber from 'bignumber.js';
+import { useCreateGiveawayStore } from '@/stores/createGiveaway';
+import { storeToRefs } from 'pinia';
 
 const props = defineProps({
     availableTokens: {
@@ -41,7 +52,19 @@ const props = defineProps({
     }
 });
 
-const emit = defineEmits(['update:selectedToken', 'token-selected']);
+const emit = defineEmits(['update:selectedToken', 'token-selected', 'update:quantity']);
+
+// Get the store
+const giveawayStore = useCreateGiveawayStore();
+const { giveawaySettings } = storeToRefs(giveawayStore);
+
+// Create a computed property that binds to the store
+const burnQuantity = computed({
+    get: () => giveawaySettings.value.burnTokenQuantity ? new BigNumber(giveawaySettings.value.burnTokenQuantity) : undefined,
+    set: (value) => {
+        giveawayStore.updateSettings({ burnTokenQuantity: value ? value.toString() : undefined });
+    }
+});
 
 const getImage = (token: TokenBalance) => {
     const tokenClass = props.metadata.get(tokenToReadable(token));
@@ -56,13 +79,25 @@ const isTokenSelected = (token: TokenBalance): boolean => {
 const handleTokenClick = (token: TokenBalance) => {
     emit('update:selectedToken', token);
     emit('token-selected', token);
+    burnQuantity.value = undefined;
 };
 
 const isValid = computed(() => {
-    return !!props.selectedToken;
+    if (!props.selectedToken) return false;
+    if (!burnQuantity.value) return false;
+    
+    return burnQuantity.value.gt(0) && 
+           burnQuantity.value.lte(new BigNumber(props.selectedToken.quantity));
 });
 
-defineExpose({ isValid });
+// Emit quantity changes
+watch(burnQuantity, (newValue) => {
+    if (newValue) {
+        emit('update:quantity', newValue);
+    }
+});
+
+defineExpose({ isValid, burnQuantity });
 </script>
 
 <style scoped>
@@ -75,5 +110,16 @@ defineExpose({ isValid });
     gap: 6px;
     border-radius: 16px;
     border: 1px solid rgba(236, 236, 236, 0.1);
+}
+
+.quantity-selector {
+    margin-top: 20px;
+    width: 100%;
+}
+
+.selector-label {
+    font-size: 16px;
+    color: white;
+    margin-bottom: 10px;
 }
 </style> 
