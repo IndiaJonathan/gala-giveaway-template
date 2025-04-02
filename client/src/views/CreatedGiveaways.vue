@@ -1,10 +1,15 @@
 <template>
   <div class="created-giveaways-page">
     <!-- Main container with gradient background -->
-    <v-container class="created-giveaways-container pa-0 mt-16" fluid>
-      <div class="d-flex justify-space-between align-center px-10 pt-10 pb-6">
-        <h1 class="text-white">My created items</h1>
-        <v-btn color="primary" to="/create-giveaway" rounded="pill" class="create-btn">Create Giveaway</v-btn>
+    <v-container class="created-giveaways-container pa-0" fluid>
+      <div class="hero-container" style="padding-top: 40px;"
+        :class="{ 'mobile-hero-container': $vuetify.display.smAndDown, 'desktop-hero-container': !$vuetify.display.smAndDown }">
+        <div class="hero-content px-10" :class="{ 'desktop-hero-content': !$vuetify.display.smAndDown }">
+          <div class="d-flex justify-space-between align-center" style="width: 100%; max-width: 100%">
+            <h1 style="margin: 0">My created items</h1>
+            <v-btn to="/create-giveaway" class="create-giveaway-btn">Create Giveaway</v-btn>
+          </div>
+        </div>
       </div>
 
       <!-- Tabs and filter section -->
@@ -16,13 +21,8 @@
         </v-tabs>
 
         <!-- Giveaways table -->
-        <giveaway-table
-          :headers="tableHeaders"
-          :items="filteredGiveaways"
-          :loading="loading"
-          empty-message="No created giveaways found for this filter."
-          class="giveaway-table rounded-lg"
-        >
+        <giveaway-table :headers="tableHeaders" :items="filteredGiveaways" :loading="loading"
+          empty-message="No created giveaways found for this filter." class="giveaway-table rounded-lg">
           <template #name="{ item }">
             <div class="d-flex align-center">
               <v-avatar class="mr-2" size="40">
@@ -32,12 +32,8 @@
             </div>
           </template>
           <template #status="{ item }">
-            <v-chip 
-              :color="getStatusColor(item.status)" 
-              size="small" 
-              class="text-uppercase font-weight-medium"
-              density="comfortable"
-            >
+            <v-chip :color="getStatusColor(item.status)" size="small" class="text-uppercase font-weight-medium"
+              density="comfortable">
               {{ item.status }}
             </v-chip>
           </template>
@@ -56,19 +52,14 @@
             <div class="mb-8">
               <h3 class="text-white mb-4">Get the latest news</h3>
               <div class="d-flex">
-                <v-text-field
-                  placeholder="Email address"
-                  variant="outlined"
-                  hide-details
-                  class="email-input mr-2"
-                  bg-color="rgba(255,255,255,0.05)"
-                ></v-text-field>
+                <v-text-field placeholder="Email address" variant="outlined" hide-details class="email-input mr-2"
+                  bg-color="rgba(255,255,255,0.05)"></v-text-field>
                 <v-btn class="submit-btn">Submit</v-btn>
               </div>
             </div>
           </div>
         </v-col>
-        
+
         <!-- Resources section -->
         <v-col cols="12" md="3">
           <h3 class="text-white mb-4">Resources</h3>
@@ -78,7 +69,7 @@
             <a href="#" class="d-block mb-2">Contact us</a>
           </div>
         </v-col>
-        
+
         <!-- Social media section -->
         <v-col cols="12" md="3">
           <h3 class="text-white mb-4">Social media</h3>
@@ -89,7 +80,7 @@
             <a href="#" class="d-block mb-2">Instagram</a>
           </div>
         </v-col>
-        
+
         <!-- Ecosystem section -->
         <v-col cols="12" md="3">
           <h3 class="text-white mb-4">Ecosystem</h3>
@@ -102,7 +93,7 @@
           </div>
         </v-col>
       </v-row>
-      
+
       <!-- Copyright section -->
       <v-row class="mt-12">
         <v-col cols="12" md="6">
@@ -189,7 +180,7 @@ const metadataMap = computed(() => {
 // Get token image from metadata
 const getTokenImage = (token: TokenClassKeyProperties | undefined) => {
   if (!token) return 'https://placehold.co/40x40';
-  
+
   const tokenClass = metadataMap.value.get(tokenToReadable(token));
   if (tokenClass && tokenClass.image) {
     return tokenClass.image;
@@ -254,13 +245,13 @@ const processGiveawaysData = (data: CreatedGiveaway[]) => {
   return data.map(giveaway => {
     // Use the custom name if available, otherwise generate from token info
     const name = giveaway.name || `${giveaway.giveawayToken.collection} ${giveaway.tokenQuantity} ${giveaway.giveawayTokenType}`;
-    
+
     // Calculate claimed amount (completed winners)
     const claimed = giveaway.winners?.filter(winner => winner.completed).length || 0;
-    
+
     // Map API status to display status
     const status = mapStatusToDisplay(giveaway.giveawayStatus);
-    
+
     // Add derived fields to the giveaway object
     return {
       ...giveaway,
@@ -278,11 +269,11 @@ const getGiveawayDisplayName = (giveaway: CreatedGiveaway) => {
   if (giveaway.name) {
     return giveaway.name;
   }
-  
+
   // Otherwise fallback to the token information
   const token = giveaway.giveawayToken;
   if (!token) return 'Unknown Giveaway';
-  
+
   return `${token.collection} ${token.category} ${giveaway.giveawayType}`;
 };
 
@@ -291,7 +282,7 @@ const filteredGiveaways = computed(() => {
   // Filter by tab (active or past)
   const now = new Date();
   let filtered = giveaways.value;
-  
+
   if (tab.value === 'active') {
     filtered = filtered.filter(g => {
       // Consider a giveaway as "past" if it's FCFS and has no claims left
@@ -311,7 +302,7 @@ const filteredGiveaways = computed(() => {
       return new Date(g.endDateTime) < now;
     });
   }
-  
+
   return filtered;
 });
 
@@ -356,15 +347,78 @@ watch(connectedUserGCAddress, () => {
   min-height: 80vh;
 }
 
+/* Mobile hero styling */
+.mobile-hero-container {
+  position: relative;
+  width: 100%;
+  height: 215px;
+  z-index: 1;
+  margin-top: 0;
+  background: radial-gradient(60% 70% at 92% 95%, rgba(18, 18, 18, 0.65) 0%, rgba(18, 18, 18, 0.2) 100%),
+    linear-gradient(180deg, rgba(18, 18, 18, 0.15) 0%, rgba(18, 18, 18, 1) 98%),
+    linear-gradient(245.92deg, rgba(18, 18, 18, 0) 25%, rgba(18, 18, 18, 0.6) 87.84%),
+    linear-gradient(155deg, #FF5722 0%, #FF8A00 30%, #FF7043 40%, #7E3FD1 70%, #B83FCF 100%);
+}
+
+/* Desktop hero styling */
+.desktop-hero-container {
+  position: relative;
+  width: 100%;
+  height: 215px;
+  z-index: 1;
+  background: radial-gradient(60% 70% at 92% 95%, rgba(18, 18, 18, 0.65) 0%, rgba(18, 18, 18, 0.2) 100%),
+    linear-gradient(180deg, rgba(18, 18, 18, 0.15) 0%, rgba(18, 18, 18, 1) 98%),
+    linear-gradient(245.92deg, rgba(18, 18, 18, 0) 25%, rgba(18, 18, 18, 0.6) 87.84%),
+    linear-gradient(155deg, #FF5722 0%, #FF8A00 30%, #FF7043 40%, #7E3FD1 70%, #B83FCF 100%);
+}
+
+.hero-content {
+  padding-top: 40px;
+  display: flex;
+  flex-direction: column;
+  z-index: 2;
+}
+
+.desktop-hero-content {
+  padding-top: 40px;
+  width: 100%;
+}
+
+.hero-subtitle {
+  font-family: 'Figtree', sans-serif;
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 145%;
+  color: #9E9E9E;
+  margin: 0;
+}
+
 h1 {
   font-size: 2.5rem;
   font-weight: 600;
 }
 
-.create-btn {
+.create-giveaway-btn {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  padding: 0 36px;
+  min-width: 160px;
+  height: 48px;
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(9.99368px);
+  border-radius: 100px;
+  color: white;
   font-weight: 500;
+  font-size: 16px;
   letter-spacing: 0.5px;
-  padding: 0 20px;
+  text-transform: none;
+  transition: background 0.2s ease;
+}
+
+.create-giveaway-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
 }
 
 .giveaway-tabs {
@@ -411,4 +465,4 @@ h1 {
   background-color: #333333;
   color: white;
 }
-</style> 
+</style>

@@ -6,7 +6,7 @@
 
       <div v-if="connectedEthAddress && connectedUserGCAddress" style="width: 100%; height: 100%;">
 
-        <h2 class="mb-4">Create giveaway</h2>
+        <h2 class="mb-4 mt-16">Create giveaway</h2>
         <p class="paragraph-small-regular mb-10" style="color: rgba(255, 255, 255, 0.6);">Est. 15min</p>
         <StepProgress :current-step="currentStep" :steps=steps class="mb-10">
 

@@ -4,18 +4,8 @@
     <v-app>
       <LoginModal v-model:show="showLoginModal" />
 
-      <v-app-bar app flat sticky :class="$vuetify.display.smAndDown ? 'pa-2' : 'pa-8'" height="96px"
-        :style="$vuetify.display.smAndDown ? 'background: transparent;' : 'background-color: inherit;'">
-        <!-- Show hamburger menu on small screens -->
-        <v-app-bar-nav-icon v-if="$vuetify.display.smAndDown" @click="drawer = !drawer"
-          color="white"></v-app-bar-nav-icon>
-
-        <div :class="['d-flex align-center', $vuetify.display.smAndDown ? 'mobile-logo' : '']">
-          <v-icon icon="mdi-gift-outline" size="x-large" color="white" class="me-2"></v-icon>
-        </div>
-
-        <v-spacer></v-spacer>
-
+      <!-- Profile Menu -->
+      <div class="profile-menu-container">
         <template v-if="connectedUserGCAddress">
           <v-menu offset-y>
             <template v-slot:activator="{ props }">
@@ -41,8 +31,7 @@
             :class="$vuetify.display.smAndDown ? 'mobile-web3-btn' : 'desktop-web3-btn'">
           </Web3Button>
         </template>
-      </v-app-bar>
-
+      </div>
 
       <SideNav v-model="drawer" />
 
@@ -162,6 +151,13 @@ watch([connectedEthAddress, connectedUserGCAddress], ([newEthAddress, newGCAddre
   background-color: #fff;
   text-transform: none;
   font-weight: 600;
+}
+
+.profile-menu-container {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  z-index: 1000;
 }
 
 .profile-avatar-container {

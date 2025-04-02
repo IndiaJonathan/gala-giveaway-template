@@ -1,14 +1,20 @@
 <template>
-  <v-container class="won-giveaways-container pa-0" fluid>
-    <h1 class="px-10 pt-10 pb-6">My claimed items</h1>
+  <div class="won-giveaways-page">
+    <!-- Main container with gradient background -->
+    <v-container class="won-giveaways-container pa-0" fluid>
+      <div class="hero-container" style="padding-top: 40px;"
+        :class="{ 'mobile-hero-container': $vuetify.display.smAndDown, 'desktop-hero-container': !$vuetify.display.smAndDown }">
+        <div class="hero-content px-10" :class="{ 'desktop-hero-content': !$vuetify.display.smAndDown }">
+          <h1 style="margin: 0">My claimed items</h1>
+        </div>
+      </div>
 
-    <v-card flat class="mx-10">
-      <v-card-text class="pa-0">
-        <!-- Tabs for filtering -->
-        <v-tabs v-model="tab" bg-color="#121212" color="white">
-          <v-tab value="all">All</v-tab>
-          <v-tab value="claimed">Claimed</v-tab>
-          <v-tab value="burn_required">Burn required</v-tab>
+      <!-- Tabs and table section -->
+      <div class="mx-10">
+        <v-tabs v-model="tab" bg-color="transparent" color="white" class="giveaway-tabs">
+          <v-tab value="all" class="text-white text-subtitle-1 font-weight-bold px-6">All</v-tab>
+          <v-tab value="claimed" class="text-subtitle-1 text-grey px-6">Claimed</v-tab>
+          <v-tab value="burn_required" class="text-subtitle-1 text-grey px-6">Burn required</v-tab>
         </v-tabs>
 
         <giveaway-table
@@ -16,6 +22,7 @@
           :items="filteredWins"
           :loading="loading"
           empty-message="No items found for this filter."
+          class="giveaway-table rounded-lg"
         >
           <template #name="{ item }">
             <div class="d-flex align-center">
@@ -40,9 +47,9 @@
             </div>
           </template>
         </giveaway-table>
-      </v-card-text>
-    </v-card>
-  </v-container>
+      </div>
+    </v-container>
+  </div>
 </template>
 
 <script lang="ts" setup>
@@ -213,7 +220,70 @@ watch(connectedUserGCAddress, () => {
 </script>
 
 <style scoped>
+.won-giveaways-page {
+  background: linear-gradient(135deg, #121212 0%, #121212 60%, #3f1d36 100%);
+  min-height: 100vh;
+}
+
 .won-giveaways-container {
   min-height: 80vh;
+}
+
+/* Mobile hero styling */
+.mobile-hero-container {
+  position: relative;
+  width: 100%;
+  height: 215px;
+  z-index: 1;
+  margin-top: 0;
+  background: radial-gradient(60% 70% at 92% 95%, rgba(18, 18, 18, 0.65) 0%, rgba(18, 18, 18, 0.2) 100%),
+    linear-gradient(180deg, rgba(18, 18, 18, 0.15) 0%, rgba(18, 18, 18, 1) 98%),
+    linear-gradient(245.92deg, rgba(18, 18, 18, 0) 25%, rgba(18, 18, 18, 0.6) 87.84%),
+    linear-gradient(155deg, #FF5722 0%, #FF8A00 30%, #FF7043 40%, #7E3FD1 70%, #B83FCF 100%);
+}
+
+/* Desktop hero styling */
+.desktop-hero-container {
+  position: relative;
+  width: 100%;
+  height: 215px;
+  z-index: 1;
+  background: radial-gradient(60% 70% at 92% 95%, rgba(18, 18, 18, 0.65) 0%, rgba(18, 18, 18, 0.2) 100%),
+    linear-gradient(180deg, rgba(18, 18, 18, 0.15) 0%, rgba(18, 18, 18, 1) 98%),
+    linear-gradient(245.92deg, rgba(18, 18, 18, 0) 25%, rgba(18, 18, 18, 0.6) 87.84%),
+    linear-gradient(155deg, #FF5722 0%, #FF8A00 30%, #FF7043 40%, #7E3FD1 70%, #B83FCF 100%);
+}
+
+.hero-content {
+  padding-top: 40px;
+  display: flex;
+  flex-direction: column;
+  z-index: 2;
+}
+
+.desktop-hero-content {
+  padding-top: 40px;
+  width: 100%;
+}
+
+h1 {
+  font-size: 2.5rem;
+  font-weight: 600;
+}
+
+.giveaway-tabs {
+  border-bottom: none;
+}
+
+.giveaway-tabs .v-tab {
+  text-transform: none;
+  letter-spacing: 0;
+  min-width: 80px;
+}
+
+.giveaway-table {
+  background-color: #121212;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 0 0 8px 8px;
 }
 </style>
