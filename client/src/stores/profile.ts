@@ -55,6 +55,13 @@ export const useProfileStore = defineStore('profile', () => {
     // })
   } catch (e) {
     browserClient = null
+    //Show alert modal
+    // showDialog.value = true
+    // dialogConfig.value = {
+    //   title: 'Error',
+    //   body: 'Error connecting to wallet',
+    //   ctaPrimary: 'OK'
+    // }
   }
   const connectedEthAddress: Ref<string | undefined> = ref()
   const connectedUserGCAddress: Ref<string | undefined> = ref(undefined)

@@ -59,6 +59,17 @@
           <v-btn variant="text" @click="toast.visible = false"> Close </v-btn>
         </template>
       </v-snackbar>
+
+      <AlertModal
+        v-if="dialogType === 'alert'"
+        v-model:show="showDialog"
+        :title="dialogConfig?.title || ''"
+        :body="dialogConfig?.body || ''"
+        :cta-primary="dialogConfig?.ctaPrimary || ''"
+        :cta-secondary="dialogConfig?.ctaSecondary"
+        @click-primary="handlePrimaryClick"
+        @click-secondary="handleSecondaryClick"
+      />
     </v-app>
   </v-responsive>
 </template>
@@ -74,6 +85,8 @@ import Web3Button from './components/Web3Button.vue';
 import { useToast } from './composables/useToast';
 import { ref, onMounted, watch } from 'vue';
 import { useDisplay } from 'vuetify';
+import AlertModal from './modals/AlertModal.vue';
+import { useDialog } from './composables/useDialog';
 
 const profileStore = useProfileStore()
 // Destructure to get reactive variables
@@ -84,6 +97,8 @@ const display = useDisplay();
 const router = useRouter();
 
 const drawer = ref(!display.smAndDown.value); // Closed on mobile by default, open on desktop
+
+const { showDialog, dialogConfig, dialogType, handlePrimaryClick, handleSecondaryClick } = useDialog();
 
 const navigateToProfile = () => {
   router.push('/profile');

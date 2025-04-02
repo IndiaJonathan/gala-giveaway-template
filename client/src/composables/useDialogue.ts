@@ -1,4 +1,5 @@
 import { reactive } from 'vue'
+import { useDialog as useAlertDialog } from './useDialog'
 
 interface DialogOptions {
   title: string
@@ -40,7 +41,8 @@ function openMetamask() {
 
 export function openNoWeb3WalletDialog() {
   console.log("called")
-  openDialog({
+  const { openDialog } = useAlertDialog()
+  openDialog('alert', {
     title: 'Web3 provider not found',
     body: 'Please install a web3 wallet provider to connect a wallet. We recommend MetaMask, a popular and secure Web3 wallet that works as a browser extension or mobile app.',
     ctaPrimary: 'Get Metamask',
