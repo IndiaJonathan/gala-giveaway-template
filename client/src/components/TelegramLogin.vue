@@ -28,16 +28,26 @@ const emit = defineEmits<{
   (e: 'auth', user: TelegramUser): void
 }>()
 
+const isMobile = () => {
+  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|MetaMask/i.test(navigator.userAgent)
+}
+
 const onTelegramLogin = () => {
-  // Create a popup window for Telegram authentication
+  const telegramAuthUrl = `https://oauth.telegram.org/auth?bot_id=${botID}&origin=${encodeURIComponent(
+    window.location.origin
+  )}&embed=0&request_access=write`
+
+  if (isMobile()) {
+    // For mobile devices, redirect directly
+    window.location.href = telegramAuthUrl
+    return
+  }
+
+  // For desktop, continue using popup
   const width = 550
   const height = 520
   const left = (screen.width - width) / 2
   const top = (screen.height - height) / 2
-
-  const telegramAuthUrl = `https://oauth.telegram.org/auth?bot_id=${botID}&origin=${encodeURIComponent(
-    window.location.origin
-  )}&embed=0&request_access=write`
 
   const authWindow = window.open(
     telegramAuthUrl,
