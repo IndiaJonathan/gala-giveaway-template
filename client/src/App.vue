@@ -89,6 +89,18 @@ const drawer = ref(!display.smAndDown.value); // Closed on mobile by default, op
 
 const { showDialog, dialogConfig, dialogType, handlePrimaryClick, handleSecondaryClick } = useDialog();
 
+// Function to check if login modal should be shown
+const checkShowLoginModal = () => {
+  const protectedRoutes = ['/create-giveaway', '/created', '/profile', '/won'];
+  const currentPath = router.currentRoute.value.path;
+  
+  if (protectedRoutes.includes(currentPath) && !profile.value && !isFetchingProfile.value) {
+    profileStore.setShowLoginModal(true);
+  } else {
+    profileStore.setShowLoginModal(false);
+  }
+};
+
 const navigateToProfile = () => {
   router.push('/profile');
 };
@@ -113,20 +125,18 @@ onMounted(() => {
   if (!display.smAndDown.value && !drawer.value) {
     drawer.value = true;
   }
+  checkShowLoginModal();
 });
 
-watch(() => router.currentRoute.value.path, (newPath) => {
-  console.log('newPath:', newPath)
-  // Define an array of protected routes that require authentication
-  const protectedRoutes = ['/create-giveaway', '/created', '/profile', '/won'];
+// Watch for route changes
+watch(() => router.currentRoute.value.path, () => {
+  checkShowLoginModal();
+}, { immediate: true });
 
-  // Check if current path is in protected routes and user is not connected
-  if (protectedRoutes.includes(newPath) && !connectedEthAddress.value && !connectedUserGCAddress.value) {
-    profileStore.setShowLoginModal(true)
-  } else {
-    profileStore.setShowLoginModal(false)
-  }
-})
+// Watch for profile changes
+watch([profile, isFetchingProfile], () => {
+  checkShowLoginModal();
+}, { immediate: true });
 
 // Watch for disconnection events
 watch([connectedEthAddress, connectedUserGCAddress], ([newEthAddress, newGCAddress], [oldEthAddress, oldGCAddress]) => {

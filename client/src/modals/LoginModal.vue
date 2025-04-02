@@ -26,7 +26,6 @@
 <script setup lang="ts">
 import { useProfileStore } from '@/stores/profile';
 import Web3Button from '@/components/Web3Button.vue';
-import { onMounted } from 'vue';
 
 const props = defineProps({
   show: {
@@ -39,10 +38,6 @@ const props = defineProps({
 const emit = defineEmits(['update:show', 'close']);
 
 const profileStore = useProfileStore();
-
-onMounted(() => {
-  emit('update:show', false);
-});
 
 const close = () => {
   emit('update:show', false);
