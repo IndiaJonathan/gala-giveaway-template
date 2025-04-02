@@ -106,6 +106,9 @@ const selected: Ref = ref(options[1].key);
 
 const clearDate = () => {
     selectedDates.value = undefined;
+    if (selected.value === options[0].key) {
+        giveawayStore.updateSettings({ endDateTime: undefined });
+    }
 }
 
 
@@ -170,9 +173,7 @@ watch(combinedStartDate, (newStartDate) => {
 });
 
 watch(combinedEndDate, (newEndDate) => {
-  if (newEndDate) {
-    giveawayStore.updateSettings({ endDateTime: newEndDate });
-  }
+  giveawayStore.updateSettings({ endDateTime: newEndDate || undefined });
 });
 
 

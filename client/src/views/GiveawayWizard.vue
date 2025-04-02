@@ -241,8 +241,13 @@ async function launchGiveaway() {
   const unsignedGiveaway = {
     ...signableSettings,
     ...(settings.startDateTime && { startDateTime: settings.startDateTime.toISOString() }),
-    ...(settings.endDateTime && { endDateTime: settings.endDateTime.toISOString() }),
   };
+
+  if (settings.endDateTime) {
+    unsignedGiveaway.endDateTime = settings.endDateTime.toISOString();
+  } else{
+    delete unsignedGiveaway.endDateTime;
+  }
 
   const signedGiveaway = await connectClient.sign('StartGiveaway', unsignedGiveaway)
 

@@ -94,7 +94,10 @@ const options: [
 const selectedVal = computed({
     get: () => giveawayStore.giveawaySettings.giveawayTokenType,
     set: (value: string) => {
-        giveawayStore.updateSettings({ giveawayTokenType: value as GiveawayTokenType });
+        giveawayStore.updateSettings({ 
+            giveawayTokenType: value as GiveawayTokenType,
+            giveawayToken: undefined 
+        });
     }
 });
 
