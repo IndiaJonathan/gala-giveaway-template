@@ -1,14 +1,17 @@
 <!-- src/components/TelegramLogin.vue -->
 <template>
-  <v-btn color="primary" class="telegram-button" large block @click="onTelegramLogin">
-    <v-icon left>mdi-telegram</v-icon>
-    LOGIN WITH TELEGRAM
-  </v-btn>
+  <div>
+    <v-btn color="primary" class="telegram-button" large block @click="onTelegramLogin">
+      <v-icon left>mdi-telegram</v-icon>
+      LOGIN WITH TELEGRAM
+    </v-btn>
+  </div>
 </template>
 
 <script lang="ts" setup>
-const botID = import.meta.env.VITE_BOT_ID
+import { ref } from 'vue'
 
+const botID = import.meta.env.VITE_BOT_ID
 
 interface TelegramUser {
   id: number
@@ -33,36 +36,44 @@ const isMobile = () => {
 }
 
 const onTelegramLogin = () => {
-  const telegramAuthUrl = `https://oauth.telegram.org/auth?bot_id=${botID}&origin=${encodeURIComponent(
+  const returnUrl = `${window.location.origin}/telegram-callback`
+  
+  const baseUrl = `https://oauth.telegram.org/auth?bot_id=${botID}&origin=${encodeURIComponent(
     window.location.origin
-  )}&embed=0&request_access=write`
+  )}&request_access=write`
 
   if (isMobile()) {
-    // For mobile devices, redirect directly
-    window.location.href = telegramAuthUrl
+    const mobileUrl = `${baseUrl}&embed=1&return_to=${encodeURIComponent(returnUrl)}`
+    sessionStorage.setItem('telegram_auth_return_path', window.location.pathname)
+    window.location.href = mobileUrl
     return
   }
 
-  // For desktop, continue using popup
+  const desktopUrl = `${baseUrl}&return_to=${encodeURIComponent(returnUrl)}`
+  
   const width = 550
   const height = 520
   const left = (screen.width - width) / 2
   const top = (screen.height - height) / 2
 
   const authWindow = window.open(
-    telegramAuthUrl,
+    desktopUrl,
     'TelegramAuth',
     `width=${width},height=${height},top=${top},left=${left},status=no,scrollbars=no,resizable=no`
   )
 
-  // Listen for messages from the popup
   window.addEventListener('message', async function handleMessage(event) {
-    const eventData = JSON.parse(event.data)
-
-    if (eventData.event === 'auth_result' && eventData.result) {
-      emit('auth', eventData.result)
-      window.removeEventListener('message', handleMessage)
-      authWindow?.close() // Optionally close the popup window after auth
+    if (!event.data) return
+    
+    try {
+      const eventData = JSON.parse(event.data)
+      if (eventData.event === 'auth_result' && eventData.result) {
+        emit('auth', eventData.result)
+        window.removeEventListener('message', handleMessage)
+        authWindow?.close()
+      }
+    } catch (error) {
+      console.error('Error processing Telegram auth message:', error)
     }
   })
 }

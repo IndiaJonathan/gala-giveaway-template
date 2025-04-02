@@ -15,7 +15,18 @@
               v-else-if="loading"
               indeterminate
               color="primary"
+              class="mt-4"
             ></v-progress-circular>
+            <div v-if="userName" class="text-center mt-4">
+              <p>Successfully authenticated!</p>
+              <v-btn
+                color="primary"
+                class="mt-4"
+                @click="returnToOriginalPage"
+              >
+                Continue
+              </v-btn>
+            </div>
           </v-card-text>
         </v-card>
       </v-col>
@@ -34,48 +45,61 @@ const loading = ref(true)
 const authError = ref<string | null>(null)
 const userName = ref<string | null>(null)
 const router = useRouter()
-const bypass = false
+
+const returnToOriginalPage = () => {
+  const returnPath = sessionStorage.getItem('telegram_auth_return_path') || '/'
+  sessionStorage.removeItem('telegram_auth_return_path')
+  router.push(returnPath)
+}
 
 const handleTelegramAuth = async () => {
-  // Extract the tgAuthResult from the URL
-  const hash = window.location.hash
-  const tgAuthResult = hash.split('tgAuthResult=')[1]
+  // Check for Telegram auth data in URL
+  const urlParams = new URLSearchParams(window.location.search)
+  let authData = Object.fromEntries(urlParams.entries())
+  
+  if (!Object.keys(authData).length) {
+    // If no query params, check for hash data
+    const hash = window.location.hash
+    if (hash && hash.includes('tgAuthResult=')) {
+      const tgAuthResult = hash.split('tgAuthResult=')[1]
+      try {
+        const decodedData = JSON.parse(atob(tgAuthResult))
+        authData = decodedData
+      } catch (error) {
+        console.error('Error decoding hash data:', error)
+        authError.value = `Failed to decode auth data: ${error}`
+        loading.value = false
+        return
+      }
+    }
+  }
 
-  if (!tgAuthResult) {
-    authError.value = 'No authentication result found.'
+  if (!Object.keys(authData).length) {
+    authError.value = 'No authentication data found.'
     loading.value = false
     return
   }
 
   try {
-    // Decode the base64 tgAuthResult
-    const decodedData = JSON.parse(atob(tgAuthResult))
-
-    if (bypass) {
-      userName.value = decodedData.first_name
-      loading.value = false
+    // Set the user name for display
+    userName.value = authData.first_name || 'User'
+    
+    // If we're in a popup, send message to parent
+    if (window.opener) {
+      window.opener.postMessage(JSON.stringify({
+        event: 'auth_result',
+        result: authData
+      }), window.location.origin)
     } else {
-      const response = await fetch(`${telegramServer}/api/verify-telegram-auth`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(decodedData)
-      })
-
-      const result = await response.json()
-
-      if (result.success) {
-        // If successful, display the user's first name
-        userName.value = decodedData.first_name
-        loading.value = false
-      } else {
-        authError.value = 'Authentication failed. Please try again.'
-        loading.value = false
-      }
+      // For mobile flow, store the auth data and redirect back
+      sessionStorage.setItem('telegram_auth_data', JSON.stringify(authData))
+      returnToOriginalPage()
     }
-    // Send the decoded data to the server
   } catch (error) {
-    authError.value = 'An error occurred during authentication.'
-    console.warn(error)
+    console.error('Auth error:', error)
+    const errorMessage = error instanceof Error ? error.message : String(error)
+    authError.value = `Authentication error: ${errorMessage}`
+  } finally {
     loading.value = false
   }
 }

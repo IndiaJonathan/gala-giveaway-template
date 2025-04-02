@@ -80,7 +80,7 @@ h3 {
 </style>
 
 <script lang="ts" setup>
-import { ref, type Ref } from 'vue'
+import { ref, type Ref, onMounted } from 'vue'
 import TelegramLogin from '../components/TelegramLogin.vue'
 import { BrowserConnectClient, TokenApi, TokenBalance } from '@gala-chain/connect'
 import { useToast } from '@/composables/useToast'
@@ -112,11 +112,25 @@ const profileStore = useProfileStore();
 const { connect } = profileStore
 const { connectedUserGCAddress, connectedEthAddress, profile, balances, } = storeToRefs(profileStore)
 
+const tempTelegramUser = ref<TelegramUser | null>(null)
+
+// Check for stored Telegram auth data on mount
+onMounted(() => {
+  const storedAuthData = sessionStorage.getItem('telegram_auth_data')
+  if (storedAuthData) {
+    try {
+      const authData = JSON.parse(storedAuthData)
+      tempTelegramUser.value = authData
+      sessionStorage.removeItem('telegram_auth_data')
+    } catch (error) {
+      console.error('Error parsing stored Telegram auth data:', error)
+    }
+  }
+})
+
 const onTelegramAuth = (user: TelegramUser) => {
   tempTelegramUser.value = user
 }
-
-const tempTelegramUser = ref<TelegramUser | null>(null)
 
 const linkWallets = async () => {
   if (!tempTelegramUser.value || !connectedUserGCAddress.value) {
