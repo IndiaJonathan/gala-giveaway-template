@@ -4,6 +4,13 @@
     <v-app>
       <LoginModal v-model:show="showLoginModal" />
 
+      <!-- Mobile Menu Button -->
+      <div v-if="$vuetify.display.smAndDown" class="mobile-menu-container">
+        <v-btn icon @click="drawer = !drawer" class="mobile-menu-btn">
+          <v-icon>mdi-menu</v-icon>
+        </v-btn>
+      </div>
+
       <!-- Profile Menu -->
       <div class="profile-menu-container">
         <template v-if="connectedUserGCAddress">
@@ -226,5 +233,31 @@ watch([connectedEthAddress, connectedUserGCAddress], ([newEthAddress, newGCAddre
 .desktop-web3-btn {
   min-width: 140px;
   margin-right: 16px;
+}
+
+/* Mobile menu styling */
+.mobile-menu-container {
+  position: fixed;
+  top: 24px;
+  left: 24px;
+  z-index: 1000;
+}
+
+.mobile-menu-btn {
+  color: white !important;
+  background-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Adjust profile menu container for mobile */
+@media screen and (max-width: 600px) {
+  .profile-menu-container {
+    top: 24px;
+    right: 16px;
+  }
+  
+  .mobile-menu-container {
+    top: 24px;
+    left: 16px;
+  }
 }
 </style>

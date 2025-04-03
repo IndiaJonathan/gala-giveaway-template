@@ -2,20 +2,31 @@
   <v-navigation-drawer
     :model-value="modelValue"
     @update:model-value="$emit('update:modelValue', $event)"
-    floating
-    sticky
+    :location="$vuetify.display.smAndDown ? 'left' : undefined"
+    :floating="!$vuetify.display.smAndDown"
     :temporary="$vuetify.display.smAndDown"
     :permanent="!$vuetify.display.smAndDown"
+    :mobile-breakpoint="960"
     style="background-color: #121212; z-index: 1200;"
     :style="$vuetify.display.smAndDown ? 'height: 100vh; top: 0;' : 'height: 100vh; top: 0; position: fixed;'"
     :overlay="$vuetify.display.smAndDown"
     :close-on-content-click="$vuetify.display.smAndDown"
+    :scrim="$vuetify.display.smAndDown"
     app
   >    
     <!-- Logo section for both mobile and desktop -->
     <div class="d-flex align-center pa-4">
       <v-icon icon="mdi-gift-outline" size="large" color="white" class="me-2"></v-icon>
       <span class="text-h6 font-weight-bold white--text">GALACHAIN GIVEAWAYS</span>
+      <v-btn
+        v-if="$vuetify.display.smAndDown"
+        icon
+        variant="text"
+        class="ms-auto"
+        @click="closeOnMobile"
+      >
+        <v-icon>mdi-close</v-icon>
+      </v-btn>
     </div>
 
     <v-list nav class="mt-2" :selected="[currentRoute]">
@@ -153,5 +164,28 @@ const handleLogout = async () => {
 :deep(.v-list-item--active:not(.v-list-item--selected)) {
   background: transparent !important;
   color: inherit !important;
+}
+
+/* Mobile navigation styles */
+:deep(.v-navigation-drawer--temporary) {
+  .v-list-item {
+    padding: 16px;
+    margin: 4px 12px;
+    border-radius: 8px;
+  }
+  
+  .v-list-item:hover {
+    background-color: rgba(255, 255, 255, 0.08);
+  }
+}
+
+/* Ensure text is white in dark mode */
+:deep(.v-list-item-title) {
+  color: white;
+}
+
+/* Active item styling */
+.nav-item-active {
+  background-color: rgba(255, 255, 255, 0.12) !important;
 }
 </style>
