@@ -53,26 +53,32 @@ const giveawaysTab = ref<'active' | 'past'>('active')
 
 
 const activeGiveaways = computed(() => {
-  let isActive = true
   return giveaways.value.filter((giveaway) => {
-    if (giveaway.endDateTime) {
-      isActive = new Date(giveaway.endDateTime) > new Date()
+    // Check if the end date is in the future (if provided)
+    let isActive = !giveaway.endDateTime || new Date(giveaway.endDateTime) > new Date();
+    
+    // Check if there are claims left (if claimsLeft is defined)
+    if (giveaway.claimsLeft !== undefined) {
+      isActive = isActive && giveaway.claimsLeft > 0;
     }
-    if (giveaway.claimsLeft != undefined) {
-      isActive = isActive && giveaway.claimsLeft > 0
-    }
-    // If no endDateTime is provided, consider it active
-    return isActive
+    
+    return isActive;
   })
 })
 
 const completedGiveaways = computed(() => {
   return giveaways.value.filter((giveaway) => {
-    if (giveaway.endDateTime) {
-      return new Date(giveaway.endDateTime) <= new Date()
+    // If end date is in the past, it's completed
+    if (giveaway.endDateTime && new Date(giveaway.endDateTime) <= new Date()) {
+      return true;
     }
-    // If no endDateTime is provided, consider it active
-    return false
+    
+    // If claims left is 0, consider it completed even if no endDateTime is provided
+    if (giveaway.claimsLeft !== undefined && giveaway.claimsLeft === 0) {
+      return true;
+    }
+    
+    return false;
   })
 })
 
