@@ -149,13 +149,6 @@ defineExpose({ isValid: allRequirementsMet });
 </script>
 
 <style scoped>
-/* Add container style */
-.allowance-step-container {
-    width: 100%;
-    padding: 0 8px;
-    box-sizing: border-box;
-    overflow-x: hidden;
-}
 
 .explanatory-text {
     font-size: 16px;
@@ -164,14 +157,6 @@ defineExpose({ isValid: allRequirementsMet });
     text-align: left;
     color: rgba(255, 255, 255, 0.6);
     word-wrap: break-word;
-}
-
-.mb-8 {
-    margin-bottom: 32px;
-}
-
-.mb-4 {
-    margin-bottom: 16px;
 }
 
 .wallet-address {
@@ -376,56 +361,5 @@ defineExpose({ isValid: allRequirementsMet });
     margin-top: 12px;
 }
 
-/* Media queries for responsive design */
-@media (max-width: 600px) {
-    .allowance-step-container {
-        padding: 0 12px;
-    }
-    
-    .balance-info {
-        flex-direction: column;
-    }
-    
-    .balance-item {
-        width: 100%;
-        margin-bottom: 16px;
-    }
-    
-    .address {
-        font-size: 12px;
-    }
-    
-    .label {
-        font-size: 12px;
-    }
-    
-    .explanatory-text {
-        font-size: 14px;
-    }
 
-    :deep(.collapsible-container) {
-        border-radius: 8px;
-        padding: 16px 12px;
-        margin: 0;
-        width: 100%;
-        box-sizing: border-box;
-    }
-    
-    /* Fix any potential button overflow */
-    .grant-allowance-btn,
-    .transfer-token-btn {
-        padding: 12px 16px;
-        font-size: 13px;
-    }
-    
-    .token-info {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-    
-    .token-label {
-        margin-bottom: 4px;
-        margin-right: 0;
-    }
-}
 </style>
