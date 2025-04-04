@@ -2,7 +2,7 @@
   <v-card class="giveaway-card" rounded="xl">
     <!-- Main image container -->
     <div class="position-relative">
-      <v-img :src="getGiveawayImage()" height="358px" contain class="giveaway-image">
+      <v-img :src="giveaway.giveawayToken.image" height="358px" contain class="giveaway-image">
         <!-- Burn requirement badge -->
         <div v-if="giveaway.requireBurnTokenToClaim" class="burn-badge-container">
           <v-chip color="warning" class="burn-badge" label>
@@ -514,25 +514,25 @@ const hasEnded = computed(() => {
 })
 
 // Get the giveaway image based on the metadata
-const getGiveawayImage = () => {
-  // Check if we have the metadata and giveaway token
-  if (metadata.value && giveaway.giveawayToken) {
-    // Find the token metadata
-    const tokenMetadata = metadata.value.find(meta =>
-      meta.collection === giveaway.giveawayToken.collection &&
-      meta.category === giveaway.giveawayToken.category &&
-      meta.type === giveaway.giveawayToken.type
-    );
+// const getGiveawayImage = () => {
+//   // Check if we have the metadata and giveaway token
+//   if (metadata.value && giveaway.giveawayToken) {
+//     // Find the token metadata
+//     const tokenMetadata = metadata.value.find(meta =>
+//       meta.collection === giveaway.giveawayToken.collection &&
+//       meta.category === giveaway.giveawayToken.category &&
+//       meta.type === giveaway.giveawayToken.type
+//     );
 
-    // Use the metadata image if available
-    if (tokenMetadata && tokenMetadata.image) {
-      return tokenMetadata.image;
-    }
-  }
+//     // Use the metadata image if available
+//     if (tokenMetadata && tokenMetadata.image) {
+//       return tokenMetadata.image;
+//     }
+//   }
 
-  // Fall back to the giveaway image or placeholder
-  return giveaway.image || GiveawayPlaceholderJPG;
-}
+//   // Fall back to the giveaway image or placeholder
+//   return giveaway.giveawayToken.image || GiveawayPlaceholderJPG;
+// }
 
 // Add useToast and useDisplay
 const { showToast } = useToast()

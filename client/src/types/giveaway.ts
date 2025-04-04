@@ -2,17 +2,16 @@ import type { TokenClassKeyProperties } from '@gala-chain/api'
 
 export interface Giveaway {
   _id: string
-  giveawayToken: TokenClassKeyProperties
+  giveawayToken: TokenClassKeyProperties & { image: string }
   maxWinners: string
   signature: string
-  image: string
   startDateTime: string
   endDateTime?: string
   usersSignedUp: string[]
   telegramAuthRequired: boolean
   requireBurnTokenToClaim: boolean
   burnTokenQuantity?: string
-  burnToken: TokenClassKeyProperties
+  burnToken: TokenClassKeyProperties & { image: string }
   isWinner?: boolean
   winPerUser?: string
   claimsLeft?: number
