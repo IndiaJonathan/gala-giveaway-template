@@ -1,5 +1,5 @@
 <template>
-    <div>
+    <div class="allowance-step-container">
         <Collapsible title="Giveaway escrow wallet" :collapsible="false" isOpen class="mb-4">
             <p class="explanatory-text mb-8">
                 This wallet will securely hold your giveaway tokens until they are claimed by winners. The tokens will
@@ -8,7 +8,12 @@
             </p>
             <div class="wallet-address">
                 <div class="label">WALLET ADDRESS:</div>
-                <div class="address">{{ walletAddress }}</div>
+                <div class="address-container">
+                    <div class="address">{{ walletAddress }}</div>
+                    <button class="copy-button" @click="copyAddressToClipboard" title="Copy to clipboard">
+                        <v-icon icon="mdi-content-copy" size="small"></v-icon>
+                    </button>
+                </div>
             </div>
 
         </Collapsible>
@@ -64,6 +69,20 @@ const { showToast } = useToast();
 const walletAddress = computed(() => {
     return profile.value?.giveawayWalletAddress || 'Not connected';
 });
+
+// Function to copy address to clipboard
+const copyAddressToClipboard = () => {
+    if (walletAddress.value && walletAddress.value !== 'Not connected') {
+        navigator.clipboard.writeText(walletAddress.value)
+            .then(() => {
+                showToast('Wallet address copied to clipboard!');
+            })
+            .catch((err) => {
+                console.error('Failed to copy: ', err);
+                showToast('Failed to copy address', true);
+            });
+    }
+};
 
 // Check if current token is GALA
 const isGalaToken = computed(() => {
@@ -130,12 +149,21 @@ defineExpose({ isValid: allRequirementsMet });
 </script>
 
 <style scoped>
+/* Add container style */
+.allowance-step-container {
+    width: 100%;
+    padding: 0 8px;
+    box-sizing: border-box;
+    overflow-x: hidden;
+}
+
 .explanatory-text {
     font-size: 16px;
     font-weight: 400;
-    line-height: 20px;
+    line-height: 1.5;
     text-align: left;
     color: rgba(255, 255, 255, 0.6);
+    word-wrap: break-word;
 }
 
 .mb-8 {
@@ -148,7 +176,7 @@ defineExpose({ isValid: allRequirementsMet });
 
 .wallet-address {
     display: flex;
-    align-items: center;
+    flex-direction: column;
     margin-bottom: 16px;
 }
 
@@ -156,19 +184,49 @@ defineExpose({ isValid: allRequirementsMet });
     font-size: 14px;
     font-weight: 500;
     color: rgba(255, 255, 255, 0.6);
-    margin-right: 8px;
+    margin-bottom: 8px;
+}
+
+.address-container {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    word-break: break-all;
 }
 
 .address {
     font-size: 14px;
     font-weight: 500;
     color: rgba(255, 255, 255, 1);
+    margin-right: 8px;
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+    max-width: calc(100% - 40px);
+}
+
+.copy-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: transparent;
+    border: none;
+    cursor: pointer;
+    color: rgba(255, 255, 255, 0.6);
+    transition: color 0.3s;
+    padding: 4px;
+    border-radius: 4px;
+}
+
+.copy-button:hover {
+    color: rgba(255, 255, 255, 1);
+    background-color: rgba(255, 255, 255, 0.1);
 }
 
 .token-info {
     display: flex;
     align-items: center;
     margin-bottom: 16px;
+    flex-wrap: wrap;
 }
 
 .token-label {
@@ -224,6 +282,8 @@ defineExpose({ isValid: allRequirementsMet });
     justify-content: space-between;
     margin-bottom: 24px;
     width: 100%;
+    flex-wrap: wrap;
+    gap: 16px;
 }
 
 .balance-item {
@@ -231,6 +291,7 @@ defineExpose({ isValid: allRequirementsMet });
     flex-direction: column;
     align-items: flex-start;
     flex: 1;
+    min-width: 200px;
 }
 
 .balance-label {
@@ -245,6 +306,7 @@ defineExpose({ isValid: allRequirementsMet });
     font-size: 16px;
     font-weight: 600;
     color: rgba(255, 255, 255, 1);
+    word-break: break-word;
 }
 
 .grant-allowance-btn,
@@ -261,6 +323,8 @@ defineExpose({ isValid: allRequirementsMet });
     transition: background-color 0.3s;
     width: 100%;
     text-align: center;
+    word-wrap: break-word;
+    white-space: normal;
 }
 
 .grant-allowance-btn:hover:not(.disabled),
@@ -297,6 +361,7 @@ defineExpose({ isValid: allRequirementsMet });
     font-weight: 500;
     color: rgba(255, 255, 255, 0.6);
     text-align: center;
+    padding: 0 16px;
 }
 
 @keyframes spin {
@@ -309,5 +374,58 @@ defineExpose({ isValid: allRequirementsMet });
     display: flex;
     align-items: center;
     margin-top: 12px;
+}
+
+/* Media queries for responsive design */
+@media (max-width: 600px) {
+    .allowance-step-container {
+        padding: 0 12px;
+    }
+    
+    .balance-info {
+        flex-direction: column;
+    }
+    
+    .balance-item {
+        width: 100%;
+        margin-bottom: 16px;
+    }
+    
+    .address {
+        font-size: 12px;
+    }
+    
+    .label {
+        font-size: 12px;
+    }
+    
+    .explanatory-text {
+        font-size: 14px;
+    }
+
+    :deep(.collapsible-container) {
+        border-radius: 8px;
+        padding: 16px 12px;
+        margin: 0;
+        width: 100%;
+        box-sizing: border-box;
+    }
+    
+    /* Fix any potential button overflow */
+    .grant-allowance-btn,
+    .transfer-token-btn {
+        padding: 12px 16px;
+        font-size: 13px;
+    }
+    
+    .token-info {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .token-label {
+        margin-bottom: 4px;
+        margin-right: 0;
+    }
 }
 </style>
