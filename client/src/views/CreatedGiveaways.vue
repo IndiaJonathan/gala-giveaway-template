@@ -5,9 +5,9 @@
       <div class="hero-container" style="padding-top: 40px;"
         :class="{ 'mobile-hero-container': $vuetify.display.smAndDown, 'desktop-hero-container': !$vuetify.display.smAndDown }">
         <div class="hero-content px-10" :class="{ 'desktop-hero-content': !$vuetify.display.smAndDown }">
-          <div class="d-flex justify-space-between align-center" style="width: 100%; max-width: 100%">
+          <div :class="{ 'd-flex justify-space-between align-center': !$vuetify.display.smAndDown, 'd-flex flex-column': $vuetify.display.smAndDown }" style="width: 100%; max-width: 100%">
             <h1 style="margin: 0">My created items</h1>
-            <v-btn to="/create-giveaway" class="create-giveaway-btn">Create Giveaway</v-btn>
+            <v-btn :class="{ 'mt-4': $vuetify.display.smAndDown }" to="/create-giveaway" class="create-giveaway-btn">Create Giveaway</v-btn>
           </div>
         </div>
       </div>
