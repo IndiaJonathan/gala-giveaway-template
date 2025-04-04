@@ -5,11 +5,7 @@
       <v-img :src="getGiveawayImage()" height="358px" contain class="giveaway-image">
         <!-- Burn requirement badge -->
         <div v-if="giveaway.requireBurnTokenToClaim" class="burn-badge-container">
-          <v-chip
-            color="warning"
-            class="burn-badge"
-            label
-          >
+          <v-chip color="warning" class="burn-badge" label>
             <v-icon start size="small">mdi-fire</v-icon>
             {{ giveaway.burnTokenQuantity }} {{ getTokenSymbol(giveaway.burnToken) }} burn required
           </v-chip>
@@ -110,30 +106,21 @@
       <div class="button-container">
         <!-- For button that needs tooltip -->
         <div v-if="!isUpcoming && shouldShowActionButton" class="button-wrapper">
-          <Web3Button 
-            ref="claimButton"
-            class="web3-button" 
-            :disabled="buttonDisabled"
-            :onClick="handleClaimClick" 
-            :primaryText="getButtonText()" 
-            :connectWalletText="isDistributedGiveaway ? 'Sign up' : 'Claim'"
-          />
-          <v-tooltip
-            :disabled="!(giveaway.requireBurnTokenToClaim && !hasEnoughTokensToBurn)"
-            activator="parent"
-            location="top"
-          >
+          <Web3Button ref="claimButton" class="web3-button" :disabled="buttonDisabled" :onClick="handleButtonClick"
+            :primaryText="getButtonText()" :connectWalletText="isDistributedGiveaway ? 'Sign up' : 'Claim'" />
+          <v-tooltip :disabled="!(giveaway.requireBurnTokenToClaim && !hasEnoughTokensToBurn) || display.mobile.value"
+            activator="parent" location="top">
             {{ getButtonTooltip }}
           </v-tooltip>
         </div>
 
         <!-- Button for already claimed or signed up -->
-        <div v-if="!isUpcoming && !shouldShowActionButton && !hasEnded && (hasClaimed || (isDistributedGiveaway && hasSignedUp))" class="button-wrapper">
-          <Web3Button class="web3-button"
-            :onClick="handleViewClick" 
-            :primaryText="isDistributedGiveaway ? 'Sign up' : 'Claim'" 
-            :connectWalletText="isDistributedGiveaway ? 'Sign up' : 'Claim'"
-            :disabled="true" />
+        <div
+          v-if="!isUpcoming && !shouldShowActionButton && !hasEnded && (hasClaimed || (isDistributedGiveaway && hasSignedUp))"
+          class="button-wrapper">
+          <Web3Button class="web3-button" :onClick="handleViewClick"
+            :primaryText="isDistributedGiveaway ? 'Sign up' : 'Claim'"
+            :connectWalletText="isDistributedGiveaway ? 'Sign up' : 'Claim'" :disabled="true" />
         </div>
       </div>
     </div>
@@ -150,6 +137,7 @@ import { storeToRefs } from 'pinia'
 import Web3Button from '@/components/Web3Button.vue'
 import { claimWin, requestClaimFCFS, signupForGiveaway } from '@/services/BackendApi'
 import { useToast } from '@/composables/useToast'
+import { useDisplay } from 'vuetify'
 import BigNumber from 'bignumber.js'
 
 const { giveaway } = defineProps({
@@ -178,7 +166,7 @@ let countdownTimer: number | null = null
 function updateRemainingTime() {
   // Refresh the calculation of whether the giveaway is upcoming
   isUpcoming.value = startTime > new Date()
-  
+
   if (!isUpcoming.value) {
     availableIn.value = ''
     // Clear the timer if we're no longer upcoming
@@ -195,24 +183,24 @@ function updateRemainingTime() {
   // less than 1 minute - update every second
   if (secondsRemaining < 60) {
     availableIn.value = `${secondsRemaining}s`
-    
+
     // If we're showing seconds, make sure we're updating every second
     if (countdownTimer) {
       clearInterval(countdownTimer)
       countdownTimer = setInterval(updateRemainingTime, 1000) as unknown as number
     }
-  } 
+  }
   // less than 1 hour - update every minute
   else if (secondsRemaining < 3600) {
     const minutesRemaining = Math.round(secondsRemaining / 60)
     availableIn.value = `${minutesRemaining}m`
-    
+
     // If we're showing minutes, we can update once per minute
     if (countdownTimer && secondsRemaining % 60 === 0) {
       clearInterval(countdownTimer)
       countdownTimer = setInterval(updateRemainingTime, 60000) as unknown as number
     }
-  } 
+  }
   // more than 1 hour - update every minute
   else {
     const minutesTotalRemaining = Math.round(secondsRemaining / 60)
@@ -220,7 +208,7 @@ function updateRemainingTime() {
     const minutesRemaining = minutesTotalRemaining % 60
     availableIn.value = `${hoursRemaining}h ${minutesRemaining}m`
   }
-  
+
   // Check if we've gone past the start time
   if (secondsRemaining <= 0) {
     // Refresh the component data when timer ends
@@ -228,18 +216,18 @@ function updateRemainingTime() {
       clearInterval(countdownTimer)
       countdownTimer = null
     }
-    
+
     // Update isUpcoming again
     isUpcoming.value = startTime > new Date()
-    
+
     // If the giveaway just became available
     if (!isUpcoming.value) {
       // Emit an event to trigger any parent components to update
       emit('giveaway-available', giveaway._id)
-      
+
       // Force refresh of component state
       availableIn.value = ''
-      
+
       // Force a UI refresh without directly assigning to computed properties
       nextTick(() => {
         // Just triggering the nextTick will force a UI refresh
@@ -253,16 +241,16 @@ function updateRemainingTime() {
 onMounted(() => {
   // Update immediately
   updateRemainingTime()
-  
+
   // Determine initial update frequency based on time remaining
   const now = new Date()
   const secondsRemaining = Math.floor((startTime.getTime() - now.getTime()) / 1000)
-  
+
   let updateInterval = 60000 // Default to every minute
   if (secondsRemaining < 60) {
     updateInterval = 1000 // Every second when less than a minute remains
   }
-  
+
   // Then update at the determined interval
   countdownTimer = setInterval(updateRemainingTime, updateInterval) as unknown as number
 })
@@ -325,7 +313,7 @@ const handleClaimClick = async () => {
     if (isDistributedGiveaway.value) {
       console.log('Sign up clicked for raffle giveaway:', giveaway._id)
       // Use the profile store to sign a payload for the giveaway signup
-      let payload:any = {
+      let payload: any = {
         giveawayId: giveaway._id,
         uniqueKey: 'giveaway-signup-' + giveaway._id + Date.now().toString()
       }
@@ -343,12 +331,12 @@ const handleClaimClick = async () => {
         showToast('Failed to sign up for the giveaway.', true);
       }
     } else {
-    //FCFS
-      const payload:any  = {
+      //FCFS
+      const payload: any = {
         giveawayId: giveaway._id,
         uniqueKey: 'giveaway-claim-' + giveaway._id + Date.now().toString()
       }
-            if (giveaway.requireBurnTokenToClaim && giveaway.burnToken && giveaway.burnTokenQuantity) {
+      if (giveaway.requireBurnTokenToClaim && giveaway.burnToken && giveaway.burnTokenQuantity) {
         payload.tokenInstances = [{
           quantity: giveaway.burnTokenQuantity,
           tokenInstanceKey: {
@@ -366,6 +354,8 @@ const handleClaimClick = async () => {
         await profileStore.fetchProfile();
         // Reload balances after successful claim
         await profileStore.getBalances(true);
+        await profileStore.fetchGiveaways()
+
         // Emit an event so parent components can reload giveaways
         emit('signup-success');
         showToast('Successfully claimed the giveaway!');
@@ -373,7 +363,7 @@ const handleClaimClick = async () => {
     }
   } catch (error: any) {
     console.error('Error in handleClaimClick:', error);
-    const errorMessage = error.message||  error|| 'Unknown error occurred';
+    const errorMessage = error.message || error || 'Unknown error occurred';
     showToast(errorMessage || 'Failed to process giveaway action. Error: Unknown error occurred', true);
   }
 
@@ -418,8 +408,8 @@ const buttonDisabled = computed(() => {
     return true
   }
 
-  // Check if user has insufficient tokens for burn
-  if (giveaway.requireBurnTokenToClaim && !hasEnoughTokensToBurn.value) {
+  // Check if user has insufficient tokens for burn - only disable on desktop
+  if (giveaway.requireBurnTokenToClaim && !hasEnoughTokensToBurn.value && !display.mobile.value) {
     return true
   }
 
@@ -443,7 +433,7 @@ const hasEnoughTokensToBurn = computed(() => {
   }
 
   // Find the required token in user's balances
-  const requiredToken = profileStore.balances.userBalances.Data.find(token => 
+  const requiredToken = profileStore.balances.userBalances.Data.find(token =>
     token.collection === giveaway.burnToken.collection &&
     token.category === giveaway.burnToken.category &&
     token.type === giveaway.burnToken.type &&
@@ -457,7 +447,7 @@ const hasEnoughTokensToBurn = computed(() => {
 
   const userQuantity = new BigNumber(requiredToken.quantity || '0')
   const requiredQuantity = new BigNumber(giveaway.burnTokenQuantity)
-  
+
   return userQuantity.isGreaterThanOrEqualTo(requiredQuantity)
 })
 
@@ -528,20 +518,38 @@ const getGiveawayImage = () => {
   // Check if we have the metadata and giveaway token
   if (metadata.value && giveaway.giveawayToken) {
     // Find the token metadata
-    const tokenMetadata = metadata.value.find(meta => 
+    const tokenMetadata = metadata.value.find(meta =>
       meta.collection === giveaway.giveawayToken.collection &&
       meta.category === giveaway.giveawayToken.category &&
       meta.type === giveaway.giveawayToken.type
     );
-    
+
     // Use the metadata image if available
     if (tokenMetadata && tokenMetadata.image) {
       return tokenMetadata.image;
     }
   }
-  
+
   // Fall back to the giveaway image or placeholder
   return giveaway.image || GiveawayPlaceholderJPG;
+}
+
+// Add useToast and useDisplay
+const { showToast } = useToast()
+const display = useDisplay()
+
+// Add method to handle button click on mobile
+const handleButtonClick = async () => {
+  // Show toast on mobile devices instead of tooltip
+  if (display.mobile.value && giveaway.requireBurnTokenToClaim && !hasEnoughTokensToBurn.value) {
+    showToast(getButtonTooltip.value, true)
+    // Return a resolved promise to satisfy the Web3Button's onClick requirement
+    // but DON'T proceed with the claim action
+    return Promise.resolve()
+  }
+
+  // Original button action for desktop or when conditions are met
+  return handleClaimClick()
 }
 </script>
 
@@ -611,7 +619,8 @@ const getGiveawayImage = () => {
 .button-wrapper {
   position: relative;
   display: inline-block;
-  line-height: 0; /* Prevent extra space */
+  line-height: 0;
+  /* Prevent extra space */
 }
 
 /* Ensure tooltips are visible */

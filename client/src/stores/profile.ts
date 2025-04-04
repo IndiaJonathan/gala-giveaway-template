@@ -1,10 +1,11 @@
 // stores/profile.ts
 
 import { defineStore, storeToRefs } from 'pinia'
-import { getProfile, getClaimableWins, fetchBalances } from '@/services/BackendApi'
+import { getProfile, getClaimableWins, fetchBalances, getGiveaways } from '@/services/BackendApi'
 import type { Profile, TokenBalances } from '@/utils/types'
 import {
   BrowserConnectClient,
+  SigningType,
   TokenApi,
   TokenBalance,
   TokenBalanceWithMetadata,
@@ -13,12 +14,14 @@ import {
 } from '@gala-chain/connect'
 import { ref, shallowRef, onMounted, watch, type Ref, type ShallowRef, computed } from 'vue'
 import { openNoWeb3WalletDialog } from '@/composables/useDialogue'
-import { getConnectedAddress } from '@/utils/GalaHelper'
+import { getConnectedAddress, tokenToReadable } from '@/utils/GalaHelper'
 import type { TokenClassKeyProperties } from '@gala-chain/api'
 import { getCreatedTokens, type Transaction } from '@/services/GalaSwapApi'
 import BigNumber from 'bignumber.js'
 import { useCreateGiveawayStore } from './createGiveaway'
 import type { BalanceResponseDto } from '@/dto/BalanceResponseDto'
+import type { Giveaway } from '@/types/giveaway'
+import { useToast } from '@/composables/useToast'
 
 export const useProfileStore = defineStore('profile', () => {
   // State
@@ -27,9 +30,47 @@ export const useProfileStore = defineStore('profile', () => {
   const showLoginModal = ref(false)
   const claimableWins = ref<any[]>([])
   const isFetchingClaimableWins = ref(false)
+  const giveaways = ref<Giveaway[]>([])
 
   const isConnected = ref(false)
   const error = ref<Error | null>(null)
+  // Use a Map to store unique tokens with string keys
+  const uniqueTokenClasses = ref<Map<string, TokenClassKeyProperties>>(new Map())
+
+  const isFetchingGiveaways = ref(false)
+  const { showToast } = useToast()
+
+  // Function to add a token to uniqueTokenClasses with deduplication
+  function addUniqueToken(token: TokenClassKeyProperties) {
+    const key = tokenToReadable(token)
+    uniqueTokenClasses.value.set(key, token)
+  }
+
+  // Convert uniqueTokenClasses Map to array
+  function getUniqueTokensArray(): TokenClassKeyProperties[] {
+    return Array.from(uniqueTokenClasses.value.values())
+  }
+
+  // Declare fetchGiveaways function
+  const fetchGiveaways = async () => {
+    try {
+      isFetchingGiveaways.value = true
+      console.log('Fetching giveaways...')
+      giveaways.value = await getGiveaways(connectedUserGCAddress.value)
+      // Add each giveaway token to the map, deduplicating by key
+      giveaways.value.forEach((giveaway) => {
+        addUniqueToken(giveaway.giveawayToken)
+      })
+      console.log('uniqueTokenClasses', getUniqueTokensArray())
+      return giveaways.value
+    } catch (e) {
+      showToast((e as any).message || JSON.stringify(e), true)
+      console.error(e)
+    } finally {
+      isFetchingGiveaways.value = false
+    }
+  }
+
   let browserClient: ShallowRef<BrowserConnectClient, BrowserConnectClient> | null
   try {
     browserClient = shallowRef<BrowserConnectClient>(new BrowserConnectClient())
@@ -165,7 +206,7 @@ export const useProfileStore = defineStore('profile', () => {
     await connect()
     try {
       isAwaitingSign.value = true
-      return await browserClient.value.sign(method, dto)
+      return await browserClient.value.sign(method, dto, SigningType.PERSONAL_SIGN)
     } finally {
       isAwaitingSign.value = false
     }
@@ -248,26 +289,24 @@ export const useProfileStore = defineStore('profile', () => {
   //   }
   // }
 
-  function getTokenClasses() {
-    let classes: TokenClassKeyProperties[] = []
+  function getUniqueTokenClassesFromBalances() {
     if (balances.value) {
-      classes = classes.concat(
-        balances.value.availableBalances.map((balance) => ({
+      balances.value.availableBalances.forEach((balance) => {
+        addUniqueToken({
           additionalKey: balance.additionalKey,
           collection: balance.collection,
           category: balance.category,
           type: balance.type
-        }))
-      )
+        })
+      })
     }
-
-    return classes
+    return getUniqueTokensArray()
   }
 
   watch(
-    () => getTokenClasses(), // Track changes to getTokenClasses
-    async (newTokenClasses) => {
-      if (!newTokenClasses || !newTokenClasses.length) {
+    uniqueTokenClasses, // Track changes to uniqueTokenClasses map
+    async (newTokenClassesMap) => {
+      if (!newTokenClassesMap || newTokenClassesMap.size === 0) {
         metadata.value = []
         return
       }
@@ -276,9 +315,10 @@ export const useProfileStore = defineStore('profile', () => {
         // Create a client for token metadata fetching - this doesn't require authentication for viewing
         const client = browserClient?.value || new BrowserConnectClient()
         const tokenApi = new TokenApi(tokenContractUrl, client)
-        
-        const foo = ((await tokenApi.FetchTokenClasses({ tokenClasses: newTokenClasses })) as any)
-          .Data
+
+        const tokenClasses = getUniqueTokensArray()
+
+        const foo = ((await tokenApi.FetchTokenClasses({ tokenClasses })) as any).Data
         metadata.value = foo
       } catch (error) {
         console.error('Error fetching token classes:', error)
@@ -319,7 +359,35 @@ export const useProfileStore = defineStore('profile', () => {
     console.log('created tokens', createdTokens.value)
     // Fetch claimable wins when the GC address changes
     fetchClaimableWins()
+    fetchGiveaways()
   })
+
+  // Add watcher to fetch giveaways on startup
+  watch(
+    () => true,
+    async () => {
+      const giveaways = await fetchGiveaways()
+      if (giveaways) {
+        // Add each giveaway token to the map
+        giveaways.forEach((giveaway) => {
+          addUniqueToken(giveaway.giveawayToken)
+        })
+        console.log('giveaways', giveaways)
+      }
+    },
+    { immediate: true }
+  )
+
+  // Add watcher to update uniqueTokenClasses when balances change
+  watch(
+    balances,
+    () => {
+      if (balances.value) {
+        getUniqueTokenClassesFromBalances()
+      }
+    },
+    { deep: true }
+  )
 
   async function walletAddressChanged(newAddress?: string) {
     connectedEthAddress.value = newAddress
@@ -365,15 +433,17 @@ export const useProfileStore = defineStore('profile', () => {
     showLoginModal,
     claimableWins,
     isFetchingClaimableWins,
+    giveaways,
+    isFetchingGiveaways,
     // Actions
     fetchProfile,
     connect,
     sign,
     getBalances,
-    // refreshGiveawayTokenBalances,
+    fetchGiveaways,
     setShowLoginModal,
     fetchClaimableWins,
     setTelegramUserLinked,
-    logout // Export the new logout function
+    logout
   }
 })

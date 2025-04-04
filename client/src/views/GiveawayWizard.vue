@@ -258,7 +258,8 @@ async function launchGiveaway() {
       
       // Reload balances after successful giveaway launch
       await profileStore.getBalances(true);
-      
+      await profileStore.fetchGiveaways()
+
       giveawayStore.$reset()
       router.push('/')
     } else {

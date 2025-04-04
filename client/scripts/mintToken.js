@@ -40,6 +40,7 @@ async function mintToken() {
 
     const mintResult = await tokenApi.MintToken({
       quantity: new BigNumber(amount),
+      // owner: 'eth|fDE54A79cA0c8E3C2AfFd3C18F5Fc7Aa486c2B78',
       tokenClass: {
         additionalKey: 'none',
         category: 'Unit',

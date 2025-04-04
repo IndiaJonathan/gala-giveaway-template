@@ -10,7 +10,7 @@
       </div>
     </div>
 
-    <v-progress-circular v-if="loading" indeterminate color="primary" size="64"
+    <v-progress-circular v-if="isFetchingGiveaways" indeterminate color="primary" size="64"
       class="mx-auto my-12 d-block"></v-progress-circular>
 
     <template v-else>
@@ -45,30 +45,12 @@ import Giveaways from '@/components/Giveaways.vue'
 import { type Giveaway } from '@/types/giveaway'
 
 const { showToast } = useToast()
-const giveaways = ref<Giveaway[]>([])
-const loading = ref(true)
 
 const profileStore = useProfileStore()
-const { connectedUserGCAddress } = storeToRefs(profileStore)
+const { connectedUserGCAddress, giveaways, isFetchingGiveaways } = storeToRefs(profileStore)
 
 const giveawaysTab = ref<'active' | 'past'>('active')
 
-const fetchGiveaways = async () => {
-  try {
-    loading.value = true
-    console.log('Fetching giveaways...')
-    giveaways.value = await getGiveaways(connectedUserGCAddress.value)
-  } catch (e) {
-    showToast((e as any).message || JSON.stringify(e), true)
-    console.error(e)
-  } finally {
-    loading.value = false
-  }
-}
-
-onMounted(() => {
-  fetchGiveaways()
-})
 
 const activeGiveaways = computed(() => {
   let isActive = true
@@ -94,14 +76,11 @@ const completedGiveaways = computed(() => {
   })
 })
 
-watch(connectedUserGCAddress, () => {
-  fetchGiveaways()
-})
 
 // Handler for signup success events
 const handleSignupSuccess = () => {
   console.log('Signup successful, reloading giveaways')
-  fetchGiveaways()
+  profileStore.fetchGiveaways()
 }
 </script>
 
