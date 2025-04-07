@@ -1,7 +1,10 @@
 import { TokenClassKey, type TokenAllowance, type TokenClassKeyProperties } from '@gala-chain/api'
 import { getAddress } from 'ethers'
 
-export function checkTokenEquivalancy(token1: TokenClassKeyProperties, token2: TokenClassKeyProperties) {
+export function checkTokenEquivalancy(
+  token1: TokenClassKeyProperties,
+  token2: TokenClassKeyProperties
+) {
   return tokenToReadable(token1) === tokenToReadable(token2)
 }
 export function tokenToReadable(token: TokenClassKeyProperties) {
@@ -35,12 +38,12 @@ export function getTokenKeyFromString(delimitedString: string) {
   }
 }
 
+
 export async function getConnectedAddress() {
   if (typeof window.ethereum !== 'undefined') {
     try {
       // Get the list of connected accounts (this won't prompt the user)
-      const accounts = await window.ethereum.request({ method: 'eth_accounts' })
-
+      const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' })
       console.log('accounts', accounts)
       // If there is at least one account connected
       if (accounts.length > 0) {
@@ -71,16 +74,16 @@ export function getTokenSymbol(giveawayToken: TokenClassKeyProperties | null | u
   if (giveawayToken?.collection === 'Token' && giveawayToken?.category === 'Unit') {
     return giveawayToken?.type || ''
   }
-  
+
   // Filter out properties that are "none" and join the remaining ones
   if (!giveawayToken) return ''
-  
+
   const parts = [
     giveawayToken.collection,
     giveawayToken.category,
     giveawayToken.type,
     giveawayToken.additionalKey
-  ].filter(part => part !== 'none')
-  
+  ].filter((part) => part !== 'none')
+
   return parts.join('|')
 }

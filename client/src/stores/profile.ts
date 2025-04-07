@@ -183,16 +183,18 @@ export const useProfileStore = defineStore('profile', () => {
       if (newAdress !== connectedEthAddress.value) {
         await walletAddressChanged(newAdress)
       }
-      if (!connectedEthAddress.value) {
-        isAwaitingConnect.value = true
-        await browserClient.value.connect()
-        await walletAddressChanged(browserClient.value.ethereumAddress)
-      } else {
-        //Ensure connection
-        await browserClient.value.connect()
-      }
+      if (newAdress) {
+        if (!connectedEthAddress.value) {
+          isAwaitingConnect.value = true
+          await browserClient.value.connect()
+          await walletAddressChanged(browserClient.value.ethereumAddress)
+        } else {
+          //Ensure connection
+          await browserClient.value.connect()
+        }
 
-      return connectedEthAddress.value
+        return connectedEthAddress.value
+      }
     } finally {
       isAwaitingConnect.value = false
     }
