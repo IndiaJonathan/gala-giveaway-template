@@ -14,7 +14,7 @@ import {
 } from '@gala-chain/connect'
 import { ref, shallowRef, onMounted, watch, type Ref, type ShallowRef, computed } from 'vue'
 import { openNoWeb3WalletDialog } from '@/composables/useDialogue'
-import { getConnectedAddress, tokenToReadable } from '@/utils/GalaHelper'
+import { getConnectedAddress, requestConnect, tokenToReadable } from '@/utils/GalaHelper'
 import type { TokenClassKeyProperties } from '@gala-chain/api'
 import { getCreatedTokens, type Transaction } from '@/services/GalaSwapApi'
 import BigNumber from 'bignumber.js'
@@ -179,7 +179,7 @@ export const useProfileStore = defineStore('profile', () => {
     }
 
     try {
-      const newAdress = await getConnectedAddress()
+      const newAdress = await requestConnect()
       if (newAdress !== connectedEthAddress.value) {
         await walletAddressChanged(newAdress)
       }

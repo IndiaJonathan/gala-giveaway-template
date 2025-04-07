@@ -39,11 +39,34 @@ export function getTokenKeyFromString(delimitedString: string) {
 }
 
 
+export async function requestConnect() {
+  if (typeof window.ethereum !== 'undefined') {
+    try {
+      // Get the list of connected accounts (this WILL prompt the user)
+      const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' })
+      console.log('accounts', accounts)
+      // If there is at least one account connected
+      if (accounts.length > 0) {
+        const connectedAddress = getAddress(accounts[0])
+        return connectedAddress
+      } else {
+        return undefined
+      }
+    } catch (error) {
+      console.error('Error getting connected account:', error)
+      return undefined
+    }
+  } else {
+    console.log('No Ethereum provider found')
+    return undefined
+  }
+}
+
 export async function getConnectedAddress() {
   if (typeof window.ethereum !== 'undefined') {
     try {
       // Get the list of connected accounts (this won't prompt the user)
-      const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' })
+      const accounts = await window.ethereum.request({ method: 'eth_accounts' })
       console.log('accounts', accounts)
       // If there is at least one account connected
       if (accounts.length > 0) {
