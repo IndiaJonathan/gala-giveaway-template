@@ -50,7 +50,10 @@
       </v-main>
 
       <v-snackbar v-model="toast.visible" :timeout="toast.timeout" :color="toast.isError ? 'error' : 'success'">
-        {{ toast.message }}
+        <span v-if="toast.message.includes('Must link Telegram account first')">
+          Must link Telegram account first. <router-link to="/profile" style="text-decoration: underline; color: #ffffff;">Click here</router-link> to go to profile.
+        </span>
+        <span v-else>{{ toast.message }}</span>
         <template v-slot:actions>
           <v-btn variant="text" @click="toast.visible = false"> Close </v-btn>
         </template>

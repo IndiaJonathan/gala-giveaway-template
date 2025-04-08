@@ -16,13 +16,15 @@ interface Web3ButtonProps {
 const props = defineProps<Web3ButtonProps>()
 
 const profileStore = useProfileStore()
-const { isAwaitingSign, isAwaitingConnect, connectedEthAddress } = storeToRefs(profileStore)
+const { connectedEthAddress } = storeToRefs(profileStore)
 
 const isLoading = ref(false)
 
 const openDialog = useDialog().openDialog;
 
 
+const isAwaitingConnect = ref(false)
+const isAwaitingSign = ref(false)
 
 
 const computedValues = computed(() => {
@@ -55,8 +57,10 @@ const buttonText = computed(() => computedValues.value.buttonText)
 
 const handleClick = async () => {
     try {
+        isAwaitingConnect.value = true
+        isAwaitingSign.value = true
         await profileStore.connect();
-
+        isAwaitingConnect.value = false
         if (props.onClick) {
             isLoading.value = true
             await props.onClick()
@@ -68,6 +72,8 @@ const handleClick = async () => {
         }
     } finally {
         isLoading.value = false
+        isAwaitingConnect.value = false
+        isAwaitingSign.value = false
     }
 };
 </script>

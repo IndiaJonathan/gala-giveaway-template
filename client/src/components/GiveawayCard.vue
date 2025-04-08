@@ -164,95 +164,81 @@ let countdownTimer: number | null = null
 
 // Calculate and update the remaining time
 function updateRemainingTime() {
-  // Refresh the calculation of whether the giveaway is upcoming
-  isUpcoming.value = startTime > new Date()
-
-  if (!isUpcoming.value) {
-    availableIn.value = ''
-    // Clear the timer if we're no longer upcoming
-    if (countdownTimer) {
-      clearInterval(countdownTimer)
-      countdownTimer = null
-    }
-    return
-  }
-
   const now = new Date()
   const secondsRemaining = Math.floor((startTime.getTime() - now.getTime()) / 1000)
 
-  // less than 1 minute - update every second
-  if (secondsRemaining < 60) {
-    availableIn.value = `${secondsRemaining}s`
+  // Refresh the calculation of whether the giveaway is upcoming
+  isUpcoming.value = startTime > now
 
-    // If we're showing seconds, make sure we're updating every second
-    if (countdownTimer) {
-      clearInterval(countdownTimer)
-      countdownTimer = setInterval(updateRemainingTime, 1000) as unknown as number
-    }
-  }
-  // less than 1 hour - update every minute
-  else if (secondsRemaining < 3600) {
-    const minutesRemaining = Math.round(secondsRemaining / 60)
-    availableIn.value = `${minutesRemaining}m`
-
-    // If we're showing minutes, we can update once per minute
-    if (countdownTimer && secondsRemaining % 60 === 0) {
-      clearInterval(countdownTimer)
-      countdownTimer = setInterval(updateRemainingTime, 60000) as unknown as number
-    }
-  }
-  // more than 1 hour - update every minute
-  else {
-    const minutesTotalRemaining = Math.round(secondsRemaining / 60)
-    const hoursRemaining = Math.floor(minutesTotalRemaining / 60)
-    const minutesRemaining = minutesTotalRemaining % 60
-    availableIn.value = `${hoursRemaining}h ${minutesRemaining}m`
-  }
-
-  // Check if we've gone past the start time
+  // Handle countdown completion
   if (secondsRemaining <= 0) {
-    // Refresh the component data when timer ends
+    // Clear the timer if the countdown has completed
     if (countdownTimer) {
       clearInterval(countdownTimer)
       countdownTimer = null
     }
+    
+    // Update state when countdown completes
+    isUpcoming.value = false
+    availableIn.value = ''
+    
+    // Emit event to trigger parent component updates
+    emit('giveaway-available', giveaway._id)
+    
+    // Force UI update and refresh giveaways data
+    nextTick(() => {
+      profileStore.fetchGiveaways()
+    })
+    
+    return
+  }
 
-    // Update isUpcoming again
-    isUpcoming.value = startTime > new Date()
-
-    // If the giveaway just became available
-    if (!isUpcoming.value) {
-      // Emit an event to trigger any parent components to update
-      emit('giveaway-available', giveaway._id)
-
-      // Force refresh of component state
-      availableIn.value = ''
-
-      // Force a UI refresh without directly assigning to computed properties
-      nextTick(() => {
-        // Just triggering the nextTick will force a UI refresh
-        // No need to assign to computed property values
-      })
+  // Format the countdown display based on remaining time
+  if (secondsRemaining < 60) {
+    // Less than a minute - show only seconds
+    availableIn.value = `${secondsRemaining}s`
+  } else if (secondsRemaining < 3600) {
+    // Less than an hour
+    const minutes = Math.floor(secondsRemaining / 60)
+    const seconds = secondsRemaining % 60
+    
+    if (minutes < 2) {
+      // Under 2 minutes - show both minutes and seconds
+      availableIn.value = `${minutes}m ${seconds}s`
+    } else {
+      // More than 2 minutes - show only minutes
+      availableIn.value = `${minutes}m`
     }
+  } else {
+    // More than an hour
+    const hours = Math.floor(secondsRemaining / 3600)
+    const minutesTotal = Math.floor((secondsRemaining % 3600) / 60)
+    availableIn.value = `${hours}h ${minutesTotal}m`
   }
 }
 
 // Set up the timer when the component is mounted
 onMounted(() => {
+  const now = new Date()
+  const secondsRemaining = Math.floor((startTime.getTime() - now.getTime()) / 1000)
+  
+  // If the giveaway has already started when component is mounted,
+  // immediately transition to active state
+  if (secondsRemaining <= 0) {
+    isUpcoming.value = false
+    availableIn.value = ''
+    return
+  }
+  
+  // Otherwise initialize the countdown
+  isUpcoming.value = true
+  
   // Update immediately
   updateRemainingTime()
 
-  // Determine initial update frequency based on time remaining
-  const now = new Date()
-  const secondsRemaining = Math.floor((startTime.getTime() - now.getTime()) / 1000)
-
-  let updateInterval = 60000 // Default to every minute
-  if (secondsRemaining < 60) {
-    updateInterval = 1000 // Every second when less than a minute remains
-  }
-
-  // Then update at the determined interval
-  countdownTimer = setInterval(updateRemainingTime, updateInterval) as unknown as number
+  // Always use 1-second intervals for all countdowns to ensure smooth transitions
+  // This ensures we never miss the transition from minutes to seconds
+  countdownTimer = setInterval(updateRemainingTime, 1000) as unknown as number
 })
 
 // Clean up the timer when the component is unmounted

@@ -268,6 +268,23 @@ export async function getCreatedGiveaways(gcAddress: string | undefined) {
   return data
 }
 
+export async function unlinkTelegramAccount(payload: SignedDto) {
+  const response = await fetch(`${baseURL}/api/profile/unlink-accounts`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(payload)
+  })
+
+  if (!response.ok) {
+    const message = await response.json()
+    throw message?.error || 'Unable to unlink Telegram account'
+  }
+
+  return true
+}
+
 // Get required gas fee estimates for a giveaway
 export async function getRequiredGasForGiveaway(
   gcAddress: string | undefined,

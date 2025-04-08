@@ -110,9 +110,9 @@ export const useProfileStore = defineStore('profile', () => {
   const metadata: Ref<TokenClass[]> = ref([])
   const isFetchingProfile = ref(false)
 
-  //W3w status
-  const isAwaitingConnect = ref(false)
-  const isAwaitingSign = ref(false)
+  // //W3w status
+  // const isAwaitingConnect = ref(false)
+  // const isAwaitingSign = ref(false)
 
   const tokenContractUrl = import.meta.env.VITE_TOKEN_CONTRACT_URL
   const giveawayStore = useCreateGiveawayStore()
@@ -185,7 +185,7 @@ export const useProfileStore = defineStore('profile', () => {
       }
       if (newAdress) {
         if (!connectedEthAddress.value) {
-          isAwaitingConnect.value = true
+          // isAwaitingConnect.value = true
           await browserClient.value.connect()
           await walletAddressChanged(browserClient.value.ethereumAddress)
         } else {
@@ -196,7 +196,7 @@ export const useProfileStore = defineStore('profile', () => {
         return connectedEthAddress.value
       }
     } finally {
-      isAwaitingConnect.value = false
+      // isAwaitingConnect.value = false
     }
   }
 
@@ -207,10 +207,10 @@ export const useProfileStore = defineStore('profile', () => {
     }
     await connect()
     try {
-      isAwaitingSign.value = true
+      // isAwaitingSign.value = true
       return await browserClient.value.sign(method, dto, SigningType.PERSONAL_SIGN)
     } finally {
-      isAwaitingSign.value = false
+      // isAwaitingSign.value = false
     }
   }
 
@@ -426,8 +426,8 @@ export const useProfileStore = defineStore('profile', () => {
     error,
     connectedEthAddress,
     connectedUserGCAddress,
-    isAwaitingConnect,
-    isAwaitingSign,
+    // isAwaitingConnect,
+    // isAwaitingSign,
     balances,
     isFetchingProfile,
     metadata,

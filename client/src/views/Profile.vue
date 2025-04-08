@@ -31,6 +31,12 @@
           <h3 v-if="profile.hasTelegramLinked" class="white--text">
             Telegram is linked <v-icon left>mdi-check</v-icon>
           </h3>
+          
+          <v-btn v-if="profile.hasTelegramLinked" color="error" 
+            dark large block class="mt-3" @click="unlinkTelegram">
+            <v-icon left>mdi-link-variant-off</v-icon>
+            Unlink Telegram Account
+          </v-btn>
         </div>
 
         <v-btn v-if="!profile.hasTelegramLinked && tempTelegramUser" :disabled="!connectedUserGCAddress" color="success"
@@ -84,7 +90,7 @@ import { ref, type Ref, onMounted } from 'vue'
 import TelegramLogin from '../components/TelegramLogin.vue'
 import { BrowserConnectClient, TokenApi, TokenBalance } from '@gala-chain/connect'
 import { useToast } from '@/composables/useToast'
-import { getProfile } from '@/services/BackendApi'
+import { getProfile, unlinkTelegramAccount } from '@/services/BackendApi'
 import UserBalances from '../components/UserBalances.vue'
 import ClaimableWins from '@/components/ClaimableWins.vue'
 import type { ClaimableWinDto } from '@/utils/types'
@@ -189,6 +195,35 @@ const linkWallets = async () => {
     }
 
     showToast(errorMessage, true);
+  }
+}
+
+const unlinkTelegram = async () => {
+  if (!connectedUserGCAddress.value) {
+    showToast('Please connect your wallet first.', true)
+    return
+  }
+
+  try {
+    // Create a simple payload with a unique key for the unlink operation
+    const dataToSign = {
+      'uniqueKey': `unlink-telegram-${Date.now()}`
+    }
+
+    // Sign the data with the profile store
+    const signedData = await profileStore.sign('Unlink Telegram Account', dataToSign)
+
+    // Call the API to unlink the account
+    const success = await unlinkTelegramAccount(signedData)
+    
+    if (success) {
+      // Update the local profile state
+      await profileStore.fetchProfile()
+      showToast('Telegram account unlinked successfully!')
+    }
+  } catch (error: any) {
+    console.error('Error unlinking Telegram account:', error)
+    showToast(error.message || 'Failed to unlink Telegram account.', true)
   }
 }
 

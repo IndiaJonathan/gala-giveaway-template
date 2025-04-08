@@ -12,7 +12,11 @@
         cols="12" sm="6" md="6" lg="4"
         class="giveaway-item"
       >
-        <GiveawayCard :giveaway="giveaway" @signup-success="$emit('signup-success')" />
+        <GiveawayCard 
+          :giveaway="giveaway" 
+          @signup-success="$emit('signup-success')"
+          @giveaway-available="$emit('giveaway-available')" 
+        />
       </v-col>
     </v-row>
   </v-container>
@@ -23,7 +27,7 @@ import { type PropType } from 'vue'
 import type { Giveaway } from '@/types/giveaway'
 import GiveawayCard from '@/components/GiveawayCard.vue'
 
-const emit = defineEmits(['signup-success'])
+const emit = defineEmits(['signup-success', 'giveaway-available'])
 
 const { giveaways } = defineProps({
   giveaways: {
