@@ -9,7 +9,6 @@ import { watch } from 'vue'
 import { useProfileStore } from '@/stores/profile'
 import BigNumber from 'bignumber.js'
 import type { TokenClassKeyProperties } from '@gala-chain/api'
-import { getRequiredGasForGiveaway } from '@/services/BackendApi'
 
 export const useCreateGiveawayStore = defineStore('createGiveaway', () => {
   const giveawaySettings = ref<Partial<GiveawaySettingsDto>>({

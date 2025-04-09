@@ -38,7 +38,6 @@ export function getTokenKeyFromString(delimitedString: string) {
   }
 }
 
-
 export async function requestConnect() {
   if (typeof window.ethereum !== 'undefined') {
     try {
@@ -79,6 +78,8 @@ export async function getConnectedAddress() {
       console.error('Error getting connected account:', error)
       return undefined
     }
+
+
   } else {
     console.log('No Ethereum provider found')
     return undefined

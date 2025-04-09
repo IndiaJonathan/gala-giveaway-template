@@ -284,29 +284,3 @@ export async function unlinkTelegramAccount(payload: SignedDto) {
 
   return true
 }
-
-// Get required gas fee estimates for a giveaway
-export async function getRequiredGasForGiveaway(
-  gcAddress: string | undefined,
-  giveawayDto: Partial<StartBasicGivewaySettingsDto>
-) {
-  if (!gcAddress) {
-    throw new Error('GalaChain address is required')
-  }
-
-  const response = await fetch(`${baseURL}/api/giveaway/required-gas/${gcAddress}`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(giveawayDto)
-  })
-
-  if (!response.ok) {
-    const message = await response.text()
-    throw new Error(message)
-  }
-
-  const data = await response.json()
-  return data
-}
