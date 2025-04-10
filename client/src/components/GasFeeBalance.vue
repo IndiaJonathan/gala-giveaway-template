@@ -122,13 +122,14 @@ async function transferToken() {
                 emit('is-valid', true);
             }, 0);
         }
-    } catch (e: unknown) {
-        let errorMessage = 'unknown error';
-        if (isErrorWithMessage(e)) {
-            errorMessage = e.Message;
-        }
+    } catch (e: any) {
+        let errorMessage = e.Message || e.message || 'unknown error';
         console.error(errorMessage);
-        showToast(`Unable to transfer gas tokens. Error: ${errorMessage}`, true);
+        if (errorMessage.includes('ACTION_REJECTED')) {
+            showToast('Transaction rejected', true);
+        } else {
+            showToast(`Unable to transfer gas tokens. Error: ${errorMessage}`, true);
+        }
     }
 }
 

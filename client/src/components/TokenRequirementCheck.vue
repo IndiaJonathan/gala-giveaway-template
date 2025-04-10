@@ -321,13 +321,14 @@ async function performAction() {
                 emit('balance-updated');
             }
         }
-    } catch (e: unknown) {
-        let errorMessage = 'unknown error';
-        if (isErrorWithMessage(e)) {
-            errorMessage = e.Message;
-        }
+    } catch (e: any) {
+        let errorMessage = e.Message || e.message || 'unknown error';
         console.error(errorMessage);
-        showToast(`Unable to ${checkType.value === GiveawayTokenType.ALLOWANCE ? 'grant allowance' : 'transfer token'}. Error: ${errorMessage}`, true);
+        if (errorMessage.includes('ACTION_REJECTED')) {
+            showToast('Transaction rejected', true);
+        } else {
+            showToast(`Unable to ${checkType.value === GiveawayTokenType.ALLOWANCE ? 'grant allowance' : 'transfer token'}. Error: ${errorMessage}`, true);
+        }
     } finally {
         console.log('refreshing giveaway token balances');
         await profileStore.getBalances(true);

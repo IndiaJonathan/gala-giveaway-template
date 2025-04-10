@@ -17,13 +17,8 @@
           <v-tab value="burn_required" class="text-subtitle-1 text-grey px-6">Burn required</v-tab>
         </v-tabs>
 
-        <giveaway-table
-          :headers="tableHeaders"
-          :items="filteredWins"
-          :loading="loading"
-          empty-message="No items found for this filter."
-          class="giveaway-table rounded-lg"
-        >
+        <giveaway-table :headers="tableHeaders" :items="filteredWins" :loading="loading"
+          empty-message="No items found for this filter." class="giveaway-table rounded-lg">
           <template #name="{ item }">
             <div class="d-flex align-center">
               <v-avatar class="mr-2" size="40">
@@ -34,7 +29,8 @@
           </template>
           <template #status="{ item }">
             <v-chip v-if="item.claimed" color="success" size="small" class="text-uppercase">Claimed</v-chip>
-            <v-chip v-else-if="item.giveaway.burnTokenQuantity" color="warning" size="small" class="text-uppercase">Token
+            <v-chip v-else-if="item.giveaway.burnTokenQuantity" color="warning" size="small"
+              class="text-uppercase">Token
               burn required</v-chip>
             <v-chip v-else color="success" size="small" class="text-uppercase">Won</v-chip>
           </template>
@@ -88,7 +84,7 @@ const metadataMap = computed(() => {
 // Get token image from metadata
 const getTokenImage = (token: TokenClassKeyProperties | undefined) => {
   if (!token) return 'https://placehold.co/40x40';
-  
+
   const tokenClass = metadataMap.value.get(tokenToReadable(token));
   if (tokenClass && tokenClass.image) {
     return tokenClass.image;
@@ -103,10 +99,12 @@ const tableHeaders = [
   { key: 'amountWon', title: 'QUANTITY' },
   { key: 'timeWon', title: 'TIME WON', formatter: (item: ClaimableWinDto) => item.timeWon ? formatDate(item.timeWon) : '-' },
   { key: 'claimedDate', title: 'CLAIMED DATE', formatter: (item: ClaimableWinDto) => item.timeClaimed ? formatDate(item.timeClaimed) : '-' },
-  { key: 'claimFee', title: 'CLAIM FEE', formatter: (item: ClaimableWinDto) => {
-    if (item.giveaway.burnTokenQuantity) return `${item.giveaway.burnTokenQuantity} $TOKEN`;
-    return '-';
-  }},
+  {
+    key: 'claimFee', title: 'CLAIM FEE', formatter: (item: ClaimableWinDto) => {
+      if (item.giveaway.burnTokenQuantity) return `${item.giveaway.burnTokenQuantity} $TOKEN`;
+      return '-';
+    }
+  },
   { key: 'actions', title: '', align: 'text-right' }
 ];
 
@@ -127,9 +125,9 @@ const filteredWins = computed(() => {
   } else if (tab.value === 'claimed') {
     return wins.value.filter(win => win.claimed === true);
   } else if (tab.value === 'burn_required') {
-    return wins.value.filter(win => 
-      win.giveaway.burnTokenQuantity && 
-      new BigNumber(win.giveaway.burnTokenQuantity).gt(0) && 
+    return wins.value.filter(win =>
+      win.giveaway.burnTokenQuantity &&
+      new BigNumber(win.giveaway.burnTokenQuantity).gt(0) &&
       !win.claimed
     );
   }
@@ -184,15 +182,19 @@ const handleBurn = async (win: ClaimableWinDto) => {
     await claimWin({ ...signedDto, claimId: win._id });
 
     showToast('Giveaway won! Your item has been claimed successfully.', false);
-    
+
     // Reload balances after successful claim
     await profileStore.getBalances(true);
-    
+
     // Refresh the list after successful burn
     fetchClaimableWins();
-  } catch (error) {
-    console.error('Error burning tokens:', error);
-    showToast(`Failed to burn tokens: ${(error as any).message || JSON.stringify(error)}`, true);
+  } catch (error: any) {
+    if (error.message && error.message.includes('ACTION_REJECTED')) {
+      showToast('Transaction rejected', true);
+    } else {
+      console.error('Error burning tokens:', error);
+      showToast(`Failed to burn tokens: ${(error as any).message || JSON.stringify(error)}`, true);
+    }
   }
 };
 
@@ -202,11 +204,11 @@ const getGiveawayDisplayName = (win: ClaimableWinDto) => {
   if (win.giveaway.name) {
     return win.giveaway.name;
   }
-  
+
   // Otherwise fallback to the token information
   const token = win.giveaway.giveawayToken;
   if (!token) return 'Unknown Giveaway';
-  
+
   return `${token.collection} ${token.category} ${win.giveaway.giveawayType}`;
 };
 

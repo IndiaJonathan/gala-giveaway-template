@@ -267,8 +267,12 @@ async function launchGiveaway() {
       showToast(`Failed to launch giveaway. ${result?.message}`, true)
     }
   } catch (e: any) {
-    console.warn(e)
-    showToast(`Failed to launch giveaway. ${e.message || ''}`, true)
+    if (e.message && e.message.includes('ACTION_REJECTED')) {
+      showToast('Transaction rejected', true);
+    } else {
+      console.warn(e)
+      showToast(`Failed to launch giveaway. ${e.message || ''}`, true)
+    }
   }
 }
 

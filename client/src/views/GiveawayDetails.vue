@@ -8,7 +8,7 @@
             @update:modelValue="handleNameChange"
             required
             :error-messages="nameError"
-            :hint="(!giveawaySettings.name || giveawaySettings.name.trim().length <= 6) ? 'Name must be at least 6 characters long' : ''"
+            :hint="(!giveawaySettings.name || giveawaySettings.name.trim().length <= 6) ? 'Name must be at least 6 characters long' : 'Only alphanumeric characters and spaces are allowed'"
         ></v-text-field>
     </div>
     
@@ -29,7 +29,7 @@ import TokenSelect from '@/components/TokenSelect.vue'
 import DateSelector from '@/components/DateSelector.vue';
 import { useProfileStore } from '@/stores/profile';
 import { storeToRefs } from 'pinia';
-import { ref, watch, type Ref } from 'vue';
+import { ref, watch, type Ref, computed } from 'vue';
 import { useCreateGiveawayStore } from '@/stores/createGiveaway';
 
 const profileStore = useProfileStore();
@@ -63,7 +63,25 @@ const handleValidityChange = () => {
     isValid.value = nameValid && isTokenRefValid && isWinnerRefValid && isDateRefValid;
 };
 
+const filterAlphanumeric = () => {
+    if (giveawaySettings.value.name) {
+        // Filter out non-alphanumeric characters (including spaces)
+        const filtered = giveawaySettings.value.name.replace(/[^a-zA-Z0-9\s]/g, '');
+        if (filtered !== giveawaySettings.value.name) {
+            giveawaySettings.value.name = filtered;
+        }
+    }
+};
+
+// Watch for changes in the name and filter non-alphanumeric characters
+watch(() => giveawaySettings.value.name, (newValue) => {
+    if (newValue) {
+        filterAlphanumeric();
+    }
+});
+
 const handleNameChange = () => {
+    // Filter is now handled by the watcher
     if (!giveawaySettings.value.name) {
         nameError.value = 'Name is required';
     } else if (giveawaySettings.value.name.trim().length <= 6) {
