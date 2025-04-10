@@ -241,7 +241,7 @@ async function launchGiveaway() {
   const unsignedGiveaway = {
     ...signableSettings,
     ...(settings.startDateTime && { startDateTime: settings.startDateTime.toISOString() }),
-    uniqueKey: 'start-giveaway' + new Date().getTime()
+    uniqueKey: 'giveaway-start' + new Date().getTime()
   };
 
   if (settings.endDateTime) {
