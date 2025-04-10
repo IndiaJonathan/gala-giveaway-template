@@ -1,13 +1,15 @@
 <template>
     <Collapsible title="Schedule Giveaway" :collapsible="true" :isOpen="isOpen">
 
-        <p style="margin-bottom: 32px;" class="explanatory-text" v-if="giveawaySettings.giveawayType === 'FirstComeFirstServe'">
+        <p style="margin-bottom: 32px;" class="explanatory-text"
+            v-if="giveawaySettings.giveawayType === 'FirstComeFirstServe'">
             Set the timing for your giveaway. You can choose to run it indefinitely or specify a start and end date.
             Select dates from the calendar and set precise times below.
         </p>
 
         <p style="margin-bottom: 32px;" class="explanatory-text" v-else>
-            Set the timing for your raffle giveaway. Specify both a start and end date to determine when users can enter.
+            Set the timing for your raffle giveaway. Specify both a start and end date to determine when users can
+            enter.
             Select dates from the calendar and set precise times below.
         </p>
 
@@ -77,14 +79,20 @@ const futureDate = new Date(now.getTime());
 
 const startTime = ref(futureDate);
 const endTime = ref(futureDate);
-const props = defineProps({
-    isOpen: { type: Boolean, default: true },
-});
+
 
 
 
 const giveawayStore = useCreateGiveawayStore();
 const { giveawaySettings } = storeToRefs(giveawayStore)
+
+
+watch(
+    () => giveawaySettings.value.giveawayType,
+    (newValue, oldValue) => {
+        selectedDates.value = undefined
+    }
+)
 
 // Get tomorrow's date
 const tomorrow = new Date();
@@ -167,13 +175,13 @@ const combinedEndDate = computed(() => {
 
 
 watch(combinedStartDate, (newStartDate) => {
-  if (newStartDate) {
-    giveawayStore.updateSettings({ startDateTime: newStartDate });
-  }
+    if (newStartDate) {
+        giveawayStore.updateSettings({ startDateTime: newStartDate });
+    }
 });
 
 watch(combinedEndDate, (newEndDate) => {
-  giveawayStore.updateSettings({ endDateTime: newEndDate || undefined });
+    giveawayStore.updateSettings({ endDateTime: newEndDate || undefined });
 });
 
 
@@ -216,13 +224,13 @@ function validateStartDate(date: Date | null): boolean {
         startDateError.value = "Please select a start date";
         return false;
     }
-    
+
     if (date.getTime() < now.getTime()) {
         startDateError.value = null;
         startTimeError.value = "Select a time in the future";
         return false;
     }
-    
+
     startDateError.value = null;
     startTimeError.value = null;
     return true;
@@ -239,14 +247,14 @@ function validateEndDate(date: Date | null): boolean {
         endTimeError.value = null;
         return true;
     }
-    
+
     const threshold = now.getTime() + 60 * 60 * 1000; // 1 hour in ms
     if (date.getTime() < threshold) {
         endDateError.value = null; // Let the time error handle this
         endTimeError.value = "End time must be at least 1 hour in the future";
         return false;
     }
-    
+
     endDateError.value = null;
     endTimeError.value = null;
     return true;

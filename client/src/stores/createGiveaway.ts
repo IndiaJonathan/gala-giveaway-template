@@ -165,6 +165,15 @@ export const useCreateGiveawayStore = defineStore('createGiveaway', () => {
     }
   )
 
+  watch(
+    () => giveawaySettings.value.giveawayType,
+    (newValue, oldValue) => {
+      console.log('Giveaway type changed, updating pool amount')
+      giveawaySettings.value.startDateTime = undefined
+      giveawaySettings.value.endDateTime = undefined
+    }
+  )
+
   function $reset() {
     giveawaySettings.value = {
       name: '',
