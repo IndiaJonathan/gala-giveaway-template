@@ -80,7 +80,7 @@
     </v-list>
 
     <!-- Logout option at the bottom of the drawer -->
-    <template v-slot:append>
+    <!-- <template v-slot:append>
       <v-list nav class="mb-2">
         <v-list-item
           v-if="isUserConnected"
@@ -91,7 +91,7 @@
           @click="handleLogout"
         ></v-list-item>
       </v-list>
-    </template>
+    </template> -->
   </v-navigation-drawer>
 </template>
 

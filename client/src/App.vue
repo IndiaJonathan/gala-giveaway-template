@@ -27,9 +27,9 @@
                 <v-list-item-title>My Profile</v-list-item-title>
               </v-list-item>
               <v-divider></v-divider>
-              <v-list-item @click="handleLogout">
+              <!-- <v-list-item @click="handleLogout">
                 <v-list-item-title class="text-error">Disconnect Wallet</v-list-item-title>
-              </v-list-item>
+              </v-list-item> -->
             </v-list>
           </v-menu>
         </template>
