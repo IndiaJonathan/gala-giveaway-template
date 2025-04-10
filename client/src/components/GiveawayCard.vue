@@ -349,8 +349,12 @@ const handleClaimClick = async () => {
     }
   } catch (error: any) {
     console.error('Error in handleClaimClick:', error);
-    const errorMessage = error.message || error || 'Unknown error occurred';
-    showToast(errorMessage || 'Failed to process giveaway action. Error: Unknown error occurred', true);
+    if (error.message && error.message.includes('ACTION_REJECTED')) {
+      showToast('Transaction rejected', true);
+    } else {
+      const errorMessage = error.message || error || 'Unknown error occurred';
+      showToast(errorMessage || 'Failed to process giveaway action. Error: Unknown error occurred', true);
+    }
   }
 
   return Promise.resolve()
