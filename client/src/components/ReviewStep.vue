@@ -68,7 +68,12 @@
 
             <div class="summary-item">
                 <div class="label">GIVEAWAY ESCROW WALLET:</div>
-                <div class="value">{{ giveawayWalletAddress }}</div>
+                <div class="value-container">
+                    <div class="value truncate-text">{{ giveawayWalletAddress }}</div>
+                    <button @click="copyToClipboard(giveawayWalletAddress)" class="copy-button" title="Copy to clipboard">
+                        <v-icon icon="mdi-content-copy" size="small"></v-icon>
+                    </button>
+                </div>
             </div>
 
             <div class="summary-item">
@@ -119,6 +124,15 @@ const giveawayStore = useCreateGiveawayStore();
 const { giveawaySettings, requiredTokenAmount } = storeToRefs(giveawayStore);
 const profileStore = useProfileStore();
 const { profile } = storeToRefs(profileStore);
+
+// Define numberOfWinners and criteria properties
+const numberOfWinners = computed(() => {
+    return giveawaySettings.value.maxWinners;
+});
+
+const criteria = computed(() => {
+    return giveawaySettings.value.giveawayType;
+});
 
 // Get wallet address from profile store
 const giveawayWalletAddress = computed(() => {
@@ -180,6 +194,18 @@ const requiredTokenToClaim = computed(() => {
         'None';
 });
 
+// Add copy to clipboard functionality
+const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text)
+        .then(() => {
+            // Could add a toast notification here if needed
+            console.log('Text copied to clipboard');
+        })
+        .catch(err => {
+            console.error('Failed to copy text: ', err);
+        });
+};
+
 // Terms agreement
 const agreeToTerms = ref(false);
 const agreeToPrivacy = ref(false);
@@ -238,22 +264,57 @@ defineExpose({ isValid });
 
 .summary-item {
     display: flex;
-    align-items: center;
-    margin-bottom: 12px;
+    flex-direction: column;
+    margin-bottom: 16px;
 }
 
 .label {
     font-size: 14px;
     font-weight: 500;
     color: rgba(255, 255, 255, 0.6);
-    margin-right: 8px;
-    width: 250px;
+    margin-bottom: 8px;
+    width: auto;
 }
 
 .value {
     font-size: 14px;
     font-weight: 500;
     color: rgba(255, 255, 255, 1);
+    word-break: break-word;
+    overflow-wrap: break-word;
+}
+
+.value-container {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    font-size: 14px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 1);
+}
+
+.truncate-text {
+    word-break: break-all;
+    overflow-wrap: break-word;
+    max-width: calc(100% - 40px);
+}
+
+.copy-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: transparent;
+    border: none;
+    cursor: pointer;
+    color: rgba(255, 255, 255, 0.6);
+    transition: color 0.3s;
+    padding: 4px;
+    border-radius: 4px;
+}
+
+.copy-button:hover {
+    color: rgba(255, 255, 255, 1);
+    background-color: rgba(255, 255, 255, 0.1);
 }
 
 .warning-text {

@@ -403,6 +403,9 @@ export const useProfileStore = defineStore('profile', () => {
 
   async function refreshConnectedAddress() {
     connectedEthAddress.value = await getConnectedAddress()
+    if (connectedEthAddress.value) {
+      await connect()
+    }
   }
 
   watch(connectedEthAddress, async () => {

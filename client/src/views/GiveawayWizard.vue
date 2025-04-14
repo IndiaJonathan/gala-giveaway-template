@@ -250,9 +250,8 @@ async function launchGiveaway() {
     delete unsignedGiveaway.endDateTime;
   }
 
-  const signedGiveaway = await connectClient.sign('StartGiveaway', unsignedGiveaway)
-
   try {
+    const signedGiveaway = await connectClient.sign('StartGiveaway', unsignedGiveaway)
     const result = await startGiveaway(signedGiveaway as StartBasicGivewaySettingsDto)
     if (result?.success) {
       showToast('Giveaway launched!')
