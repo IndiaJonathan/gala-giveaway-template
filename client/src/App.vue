@@ -13,12 +13,12 @@
 
       <!-- Profile Menu -->
       <div class="profile-menu-container">
-        <template v-if="connectedUserGCAddress">
+        <template v-if="connectedEthAddress">
           <v-menu offset-y>
             <template v-slot:activator="{ props }">
               <div class="profile-avatar-container" v-bind="props" role="button">
                 <v-avatar size="40" class="profile-avatar">
-                  <span class="text-h6 font-weight-bold white--text">{{ connectedUserGCAddress.slice(-2) }}</span>
+                  <span class="text-h6 font-weight-bold white--text">{{ connectedEthAddress.slice(-2) }}</span>
                 </v-avatar>
               </div>
             </template>
