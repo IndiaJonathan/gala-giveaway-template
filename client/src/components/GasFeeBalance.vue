@@ -117,7 +117,7 @@ async function transferToken() {
 
             // Use a slight delay to avoid synchronous reactive update loops
             setTimeout(async () => {
-                await profileStore.getBalances();
+                await profileStore.getBalances(true);
                 emit('token-transferred');
                 emit('is-valid', true);
             }, 0);
